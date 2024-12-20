@@ -1,0 +1,62 @@
+#V2
+enable
+ifconfig
+configure terminal
+ifconfig
+enable
+ifconfig
+ifconfig ens33 192.169.10.1 up
+ifconfig {ens33} {192.169.10.1} up
+ifconfig {ens33} 192.169.10. up
+enable
+ifconfig
+ifconfig eth0 192.168.19.1 up 
+configure terminalu
+enable
+enable r
+en
+enabl
+enable
+enable r
+exit
+enable r
+enable
+exit
+enabler
+enable i
+enable
+configure terminal
+enable
+enabler
+enable
+configure terminaly
+configure terminal
+exit
+ifconfig
+ifconfig eth0 192.168.29.10 up
+enable
+ifconfig
+ifconfig eth0 192.168.19.1 up
+ifconfig
+enable
+ifconfig 
+ifconfig eth1 192.168.20.2 up
+enable
+ifconfig
+ifconfig eth0 192.168.12.3 up
+ifconfig
+enable
+ifconfig
+ifconfig eth0 192.168.23.2 up
+ifconfig
+enable
+ifconfig
+ifconfig eth0 192.168.19.2 up
+ifconfig
+configure terminal
+interface f0/0
+exit
+hostname R2
+exit
+configure terminal
+exit
