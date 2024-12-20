@@ -17,7 +17,7 @@ pub enum Mode {
     UserMode,
     PrivilegedMode,
     ConfigMode,
-    InterfaceMode(String),
+    InterfaceMode,
 }
 
 pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: &mut CliContext, clock: &mut Option<CustomClock>) {

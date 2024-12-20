@@ -32,6 +32,7 @@ fn main() {
         current_mode: Mode::UserMode,
         config: CliConfig::default(),
         prompt: format!("{}>", CliConfig::default().hostname),
+        selected_interface: None,
     };
 
 
@@ -60,7 +61,7 @@ fn main() {
                 let input = buffer.trim();
                 if input == "exit" {
                     match context.current_mode {
-                        Mode::InterfaceMode(_) => {
+                        Mode::InterfaceMode => {
                             context.current_mode = Mode::ConfigMode;
                             context.prompt = format!("{}(config)#", context.config.hostname);
                             println!("Exiting Interface Configuration Mode.");

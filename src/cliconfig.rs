@@ -27,6 +27,7 @@ pub struct CliContext {
     pub current_mode: Mode,
     pub prompt: String,
     pub config: CliConfig,
+    pub selected_interface: Option<String>,
 }
 
 
@@ -36,6 +37,7 @@ impl Default for CliContext {
             current_mode: Mode::UserMode,
             prompt: "Router>".into(),
             config: CliConfig::default(),
+            selected_interface: None,
         }
     }
 }

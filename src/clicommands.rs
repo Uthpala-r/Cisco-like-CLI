@@ -10,7 +10,8 @@ use crate::execute::Command;
 use crate::execute::Mode;
 use crate::clock_settings::handle_show_clock;
 use crate::clock_settings::handle_clock_set;
-use crate::network_config::NETWORK_STATE;
+use crate::network_config::{NETWORK_STATE, calculate_broadcast};
+use crate::network_config::InterfaceConfig;
 
 pub fn build_command_registry() -> HashMap<&'static str, Command> {
     let mut commands = HashMap::new();
@@ -44,7 +45,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                 if _args.is_empty() {
                     context.current_mode = Mode::ConfigMode;
                     context.prompt = format!("{}(config)#", context.config.hostname);
-                    println!("Entering Global configuration mode...");
+                    println!("Enter configuration commands, one per line.  End with CNTL/Z");
                     Ok(())
                 } else {
                     Err("Invalid arguments provided to 'configure terminal'. This command does not accept additional arguments.".into())
@@ -65,8 +66,9 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                     return Err("Please specify an interface, e.g., 'interface f0/0'.".into());
                 }
                 let interface = args.join(" ");
-                context.current_mode = Mode::InterfaceMode(interface.clone());
-                context.prompt = format!("{}(config-if)# {}", context.config.hostname, interface);
+                context.current_mode = Mode::InterfaceMode;
+                context.selected_interface = Some(interface.clone());
+                context.prompt = format!("{}(config-if)#", context.config.hostname);
                 println!("Entering Interface configuration mode for: {}", interface);
                 Ok(())
             } else {
@@ -118,7 +120,6 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                 let mut network_state = NETWORK_STATE.lock().unwrap();
     
                 if args.is_empty() {
-                    // Display all interface details
                     if network_state.is_empty() {
                         println!("No interfaces found.");
                     } else {
@@ -130,35 +131,34 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                         }
                     }
                 } else if args.len() == 3 && args[2] == "up" {
-                    // Handle 'ifconfig {interface} {new_ip} up'
                     let new_interface = &args[0];
                     let new_ip: Ipv4Addr = Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format");
     
-                    // Check if the interface exists in the network state
-                    if let Some((existing_ip, existing_broadcast)) = network_state.get_mut(&new_interface.to_string()) {
-                        // Update the IP address for the existing interface
+                    let new_broadcast = calculate_broadcast(new_ip, 24);
+    
+                    let new_interface_string = new_interface.to_string();
+                    if let Some((existing_ip, existing_broadcast)) = network_state.get_mut(&new_interface_string) {
                         *existing_ip = new_ip;
+                        *existing_broadcast = new_broadcast;
+    
                         println!("Updated {}: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500", new_interface);
-                        println!("    inet {}  netmask 255.255.255.0  broadcast {}", new_ip, existing_broadcast);
+                        println!("    inet {}  netmask 255.255.255.0  broadcast {}", new_ip, new_broadcast);
                         println!("    inet6 fe80::6a01:72f9:adf2:3ffb  prefixlen 64  scopeid 0x20<link>");
                         println!("    ether 00:0c:29:16:30:92  txqueuelen 1000  (Ethernet)");
                     } else {
-                        // Add a new interface if it doesn't exist
-                        let broadcast_address = Ipv4Addr::from_str("192.168.253.255").expect("Invalid broadcast address");
-                        network_state.insert(new_interface.to_string(), (new_ip, broadcast_address));
+                        network_state.insert(new_interface.to_string(), (new_ip, new_broadcast));
     
                         println!("Created new interface");
                         println!("{}: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500", new_interface);
-                        println!("    inet {}  netmask 255.255.255.0  broadcast {}", new_ip, broadcast_address);
+                        println!("    inet {}  netmask 255.255.255.0  broadcast {}", new_ip, new_broadcast);
                         println!("    inet6 fe80::6a01:72f9:adf2:3ffb  prefixlen 64  scopeid 0x20<link>");
                         println!("    ether 00:0c:29:16:30:92  txqueuelen 1000  (Ethernet)");
                     }
                 } else {
-                    // Handle invalid arguments
                     println!("Invalid arguments provided to 'ifconfig'. This command does not accept additional arguments.");
                 }
     
-                Ok(())  // Return Ok as the command was handled
+                Ok(())  
             },
         },
     );
@@ -284,6 +284,206 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             },
         },
     );
+
+    commands.insert(
+        "ip address",
+        Command {
+            name: "ip address",
+            description: "Assign an IP address and netmask to the selected network interface",
+            suggestions: None,
+            execute: |args, context, _| {
+                if matches!(context.current_mode, Mode::InterfaceMode) {
+                    if args.len() != 2 {
+                        println!("Usage: ip address <ip> <netmask>");
+                        return Err("Invalid number of arguments".into());
+                    }
+    
+                    // Parse IP address and netmask
+                    let ip_address: Ipv4Addr = args[0]
+                        .parse()
+                        .map_err(|_| "Invalid IP address format.".to_string())?;
+                    let netmask: Ipv4Addr = args[1]
+                        .parse()
+                        .map_err(|_| "Invalid netmask format.".to_string())?;
+    
+                    let mut network_state = NETWORK_STATE.lock().unwrap();
+    
+                    if let Some(interface) = &context.selected_interface {
+                        if let Some((existing_ip, existing_broadcast)) = network_state.get_mut(interface) {
+                            *existing_ip = ip_address;
+                            *existing_broadcast = netmask;
+                            println!(
+                                "Updated interface {} with IP {} and netmask {}",
+                                interface, ip_address, netmask
+                            );
+                        } else {
+                            network_state.insert(interface.clone(), (ip_address, netmask));
+                            println!(
+                                "Assigned IP {} and netmask {} to interface {}",
+                                ip_address, netmask, interface
+                            );
+                        }
+                        Ok(())
+                    } else {
+                        Err("No interface selected. Use the 'interface' command first.".into())
+                    }
+                } else {
+                    Err("The 'ip address' command is only available in Interface Configuration mode.".into())
+                }
+            },
+        },
+    );
+    
+    commands.insert(
+        "show interfaces",
+        Command {
+            name: "show interfaces",
+            description: "Display statistics for all interfaces configured on the router",
+            suggestions: None,
+            execute: |args, context, _| {
+                let network_state = NETWORK_STATE.lock().unwrap();
+                let Some(interface_name) = &context.selected_interface else {
+                    return Err("No interface selected. Use the 'interface' command first.".into());
+                };
+    
+                if args.contains(&"brief") {
+                    if network_state.is_empty() {
+                        println!("No interfaces found.");
+                        return Ok(()); // Return Result
+                    } else {
+                        println!("Interface              IP-Address      OK? Method Status                Protocol");
+    
+                        if let Some((ip_address, _)) = network_state.get(&interface_name.to_string()) {
+                            println!(
+                                "{:<22} {:<15} YES unset administratively down       down",
+                                interface_name, ip_address
+                            );
+                        } else {
+                            println!(
+                                "{:<22} {:<15} NO  unset administratively down       down",
+                                interface_name, "-"
+                            );
+                        }
+                    }
+                } else if args.len() == 1 {
+                    let interface_name = &args[0];
+                    if let Some((ip_address, _)) = network_state.get(&interface_name.to_string()) {
+                        println!("{} is up, line protocol is up", interface_name);
+                        println!("  Internet address is {}, subnet mask 255.255.255.0", ip_address);
+                        println!("  MTU 1500 bytes, BW 10000 Kbit, DLY 100000 usec");
+                        println!("  Encapsulation ARPA, loopback not set, keepalive set (10 sec)");
+                    } else {
+                        println!("Interface {} not found.", interface_name);
+                    }
+                } else {
+                    // Handle "show interfaces" without arguments
+                    if network_state.is_empty() {
+                        println!("No interfaces found.");
+                        return Ok(()); // Return Result
+                    } else {
+                        for (interface_name, (ip_address, _)) in network_state.iter() {
+                            println!("{} is up, line protocol is up", interface_name);
+                            println!("  Internet address is {}, subnet mask 255.255.255.0", ip_address);
+                            println!("  MTU 1500 bytes, BW 10000 Kbit, DLY 100000 usec");
+                            println!("  Encapsulation ARPA, loopback not set, keepalive set (10 sec)");
+                        }
+                    }
+                }
+    
+                Ok(()) // Ensure the function returns Result
+            },
+        },
+    );
+
+    commands.insert(
+        "shutdown",
+        Command {
+            name: "shutdown",
+            description: "Disable the selected network interface.",
+            suggestions: None,
+            execute: |args, context, _| {
+                if matches!(context.current_mode, Mode::InterfaceMode) {
+                    if let Some(interface) = &context.selected_interface {
+                        let mut network_state = NETWORK_STATE.lock().unwrap();
+                        if let Some(interface_config) = network_state.get_mut(interface) {
+                            
+                            let ip_address = interface_config.0.clone();
+                            
+                            let mut interface_config = InterfaceConfig {
+                                ip_address: Ipv4Addr::new(0, 0, 0, 0),
+                                is_up: false,
+                            };
+                            
+                            interface_config.is_up = true;
+    
+                            println!(
+                                "Interface {} has been shut down. IP address set to 0.0.0.0",
+                                interface
+                            );
+                        } else {
+                            println!("Interface {} not found.", interface);
+                        }
+                        Ok(())
+                    } else {
+                        Err("No interface selected. Use the 'interface' command first.".into())
+                    }
+                } else {
+                    Err("The 'shutdown' command is only available in Interface Configuration mode.".into())
+                }
+            },
+        },
+    );
+    
+    commands.insert(
+        "no shutdown",
+        Command {
+            name: "no shutdown",
+            description: "Enable the selected network interface.",
+            suggestions: None,
+            execute: |args, context, _| {
+                if matches!(context.current_mode, Mode::InterfaceMode) {
+                    if let Some(interface) = &context.selected_interface {
+                        let mut network_state = NETWORK_STATE.lock().unwrap();
+                        if let Some(interface_config) = network_state.get_mut(interface) {
+                            
+                            if let original_ip = interface_config.0 {
+                                
+                                if original_ip == Ipv4Addr::new(0, 0, 0, 0) {
+                                    println!(
+                                        "%LINK-5-CHANGED: Interface {}, changed state to up",
+                                        interface, 
+                                    );
+                                    println!(
+                                        "%LINEPROTO-5-UPDOWN: Line protocol on Interface {}, changed state to up",
+                                        interface, 
+                                    );
+                                    
+                                    let mut interface_config = InterfaceConfig {
+                                        ip_address: Ipv4Addr::new(0, 0, 0, 0),
+                                        is_up: false,
+                                    };
+                                
+                                    
+                                    interface_config.ip_address = Ipv4Addr::from_str(&interface).unwrap();
+                                    interface_config.is_up = true;
+                                }
+                            } else {
+                                println!("Interface {} not found.", interface);
+                            }
+                        } else {
+                            println!("Interface {} not found.", interface);
+                        }
+                        Ok(())
+                    } else {
+                        Err("No interface selected. Use the 'interface' command first.".into())
+                    }
+                } else {
+                    Err("The 'no shutdown' command is only available in Interface Configuration mode.".into())
+                }
+            },
+        },
+    );
+    
 
     commands
 }

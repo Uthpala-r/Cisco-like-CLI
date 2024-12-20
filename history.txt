@@ -1,44 +1,4 @@
 #V2
-enable
-ifconfig
-configure terminal
-ifconfig
-enable
-ifconfig
-ifconfig ens33 192.169.10.1 up
-ifconfig {ens33} {192.169.10.1} up
-ifconfig {ens33} 192.169.10. up
-enable
-ifconfig
-ifconfig eth0 192.168.19.1 up 
-configure terminalu
-enable
-enable r
-en
-enabl
-enable
-enable r
-exit
-enable r
-enable
-exit
-enabler
-enable i
-enable
-configure terminal
-enable
-enabler
-enable
-configure terminaly
-configure terminal
-exit
-ifconfig
-ifconfig eth0 192.168.29.10 up
-enable
-ifconfig
-ifconfig eth0 192.168.19.1 up
-ifconfig
-enable
 ifconfig 
 ifconfig eth1 192.168.20.2 up
 enable
@@ -88,3 +48,54 @@ exit
 show version
 hostname R1
 exit
+enable
+ifconfig
+ifconfig eth0 192.168.19.20 up
+show clock
+en
+enable
+show interfaces
+show interfaces brief
+enable
+show interfaces
+show interfaces brief
+enable
+configure terminal
+interface g0/0
+enable\\
+enable
+configure terminal
+interface g0/0
+ifconfig
+ip address 192.168.11.1 255.255.255.0
+ip address 192.168.11. 255.255.255.0
+enable
+configure terminal
+interface g0/0
+ip address 192.168.1.1 25.5.5.5
+enable
+configure terminal
+show interfaces
+show interfaces brief
+enable
+configure terminal
+interface g0/0
+ip address 192.179.29.2 3.3.3.3
+show interfaces
+ifconfig
+ifconfig eth0 182.2.2.2 up
+ifconfig
+show interfaces
+enable\\
+enable
+configure terminal
+interface g0/0
+ip address 1.2.3.4 4.4.4.4
+show interfaces
+show interfaces brief
+ifconfig
+ifconfig eth0 2.2.2.2 up
+ifconfig
+show interfaces brief
+show interfaces 
+ifconfig
