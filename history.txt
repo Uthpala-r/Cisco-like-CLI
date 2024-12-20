@@ -60,3 +60,31 @@ hostname R2
 exit
 configure terminal
 exit
+enable
+configure terminal
+exit
+ifconfig
+ifconfig eth0 192.168.12.9 up
+ifconfig
+enable
+ifconfig
+ifconfig eth0 192.168.19.0 up
+ifconfig
+enable
+configure terminal
+ifconfig
+en
+enable
+show clock
+enable
+configure terminal
+ifconfig
+ifconfig eth0 192.168.19.2 up
+ifconfig
+interafce f0/0
+interface f0/0
+hi
+exit
+show version
+hostname R1
+exit
