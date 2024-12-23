@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["handle_clock_set","handle_show_clock"],"struct":["CustomClock"]};

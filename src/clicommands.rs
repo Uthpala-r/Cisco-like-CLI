@@ -1,3 +1,4 @@
+/// External crates for the CLI application
 use std::collections::HashMap;
 use std::net::Ipv4Addr;
 use std::path::Path;
@@ -13,6 +14,34 @@ use crate::clock_settings::handle_clock_set;
 use crate::network_config::{NETWORK_STATE, calculate_broadcast};
 use crate::network_config::InterfaceConfig;
 
+
+/// Builds and returns a `HashMap` of available commands, each represented by a `Command` structure.
+/// 
+/// This function initializes a registry of commands that can be executed in different modes
+/// (e.g., `UserMode`, `PrivilegedMode`, `ConfigMode`, etc.) within a router-like system.
+/// Each command is associated with a name, description, suggestions for usage, and an execution
+/// function that defines its behavior.
+///
+/// The commands registered include:
+/// - `enable`: Switches from User EXEC mode to Privileged EXEC mode.
+/// - `configure terminal`: Enters Global Configuration mode.
+/// - `interface`: Enters Interface Configuration mode for a specified interface.
+/// - `hostname`: Changes the hostname of the device.
+/// - `ifconfig`: Displays or configures network details of the router.
+/// - `show running-config`: Displays the current running configuration from a JSON file.
+/// - `write memory`: Saves the running configuration to the startup configuration.
+/// - `help`: Displays a list of available commands.
+/// - `show version`: Displays the software version information.
+/// - `clock set`: Changes the device's clock date and time.
+/// - `show clock`: Displays the current clock date and time.
+/// - `ip address`: Assigns an IP address and netmask to the selected interface.
+/// - `show interfaces`: Displays statistics for all interfaces, including a brief overview or detailed information.
+/// - `shutdown`: Disable a router's interface
+/// - `no shutdown`: Enable a router's interface 
+///
+/// # Returns
+/// A `HashMap` where the keys are command names (as `&'static str`) and the values are the corresponding `Command` structs.
+/// Each `Command` struct contains the `name`, `description`, `suggestions`, and an `execute` function.
 pub fn build_command_registry() -> HashMap<&'static str, Command> {
     let mut commands = HashMap::new();
 

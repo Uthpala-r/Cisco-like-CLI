@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["calculate_broadcast"],"struct":["InterfaceConfig","NETWORK_STATE"]};

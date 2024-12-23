@@ -1,10 +1,13 @@
+/// External crates for the CLI application
 use std::collections::HashMap;
 use crate::CustomClock;
 use crate::CliContext;
 
-/// A structure representing the commands in the CLI.
+/// Represents a command in the CLI.
+///
+/// Each command has a name, description, optional suggestions for autocompletion,
+/// and an execution function that defines the command's behavior.
 /// 
-/// This struct holds the name, description, suggestions and execute commands 
 pub struct Command {
     pub name: &'static str,
     pub description: &'static str,
@@ -13,6 +16,9 @@ pub struct Command {
 }
 
 
+/// Enum representing the different modes in the CLI.
+///
+/// Modes determine the scope of available commands and their behavior.
 pub enum Mode {
     UserMode,
     PrivilegedMode,
@@ -20,12 +26,29 @@ pub enum Mode {
     InterfaceMode,
 }
 
+
+/// Executes a command or provides suggestions based on the current input.
+///
+/// # Arguments
+/// - `input`: The user's input string.
+/// - `commands`: A `HashMap` of available commands, indexed by their names.
+/// - `context`: The CLI context, which holds the current mode and other state information.
+/// - `clock`: An optional mutable reference to the `CustomClock` structure.
+///
+/// # Behavior
+/// - If the input ends with `?`, it provides autocompletion suggestions based on the current mode.
+/// - Otherwise, it matches the input to a command and executes it if found.
+/// - Prints appropriate messages for invalid commands or execution errors.
 pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: &mut CliContext, clock: &mut Option<CustomClock>) {
+    
+    // Normalize the input by trimming whitespace.
     let normalized_input = input.trim();
 
+    // Handle autocompletion when the input ends with `?`.
     if normalized_input.ends_with('?') {
         let prefix = normalized_input.trim_end_matches('?').trim();
-        
+
+        // Collect suggestions based on the current mode. 
         let suggestions: Vec<_> = match context.current_mode {
             Mode::UserMode => {
                 commands
@@ -77,6 +100,7 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
             _ => Vec::new(), 
         };
 
+        // Display suggestions or notify the user if none are found.
         if suggestions.is_empty() {
             println!("No matching commands found for '{}?'", prefix);
         } else {
@@ -88,6 +112,7 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
         return;
     }
 
+    // Attempt to match the input with a command in the registry.
     let matching_command = commands
         .keys()
         .filter(|cmd| normalized_input.starts_with(*cmd))
@@ -103,6 +128,7 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
             args.split_whitespace().collect()
         };
 
+        // Execute the command and handle the result.
         match (cmd.execute)(&args_vec, context, clock) {
             Ok(_) => println!("Command '{}' executed successfully.", cmd.name),
             Err(err) => println!("Error: {}", err),
