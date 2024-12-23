@@ -46,6 +46,8 @@ impl Completer for CommandCompleter {
         pos: usize,
         _ctx: &rustyline::Context<'_>,
     ) -> Result<(usize, Vec<Self::Candidate>), rustyline::error::ReadlineError> {
+        
+        // The suggestions for the command completion is taken from the build_command_registry function
         let suggestions = build_command_registry(); 
         let mut candidates = Vec::new();
 

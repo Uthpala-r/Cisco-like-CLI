@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["calculate_broadcast"],"struct":["InterfaceConfig","NETWORK_STATE"]};
+window.SIDEBAR_ITEMS = {"fn":["calculate_broadcast"],"struct":["IFCONFIG_STATE","IP_ADDRESS_STATE","InterfaceConfig","ROUTE_TABLE","STATUS_MAP"]};

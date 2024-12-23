@@ -16,7 +16,7 @@ pub struct Command {
 }
 
 
-/// Enum representing the different modes in the CLI.
+/// An Enum representing the different modes in the CLI.
 ///
 /// Modes determine the scope of available commands and their behavior.
 pub enum Mode {
@@ -50,16 +50,20 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
 
         // Collect suggestions based on the current mode. 
         let suggestions: Vec<_> = match context.current_mode {
+            
             Mode::UserMode => {
                 commands
                     .keys()
+                    // Only enable command can be executed in the User Exec Mode
                     .filter(|cmd| cmd.starts_with(prefix) && **cmd == "enable")
                     .map(|cmd| cmd.to_string())
                     .collect()
             }
+
             Mode::PrivilegedMode => {
                 commands
                     .keys()
+                    // Commands configure terminal, help, write memory, ifconfig and the show command can be ecxecuted in the Pirviledged Exec Mode
                     .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "configure terminal" || **cmd == "help" || **cmd == "write memory" || cmd.starts_with("ifconfig") || cmd.starts_with("show")))
                     .map(|cmd| {
                         let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
@@ -77,10 +81,34 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                     })
                     .collect()
             }
+
             Mode::ConfigMode => {
                 commands
                     .keys()
+                    // Commands hostname, interface, help, write memory and ifconfig can be executed in the Config Mode
                     .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "hostname" || **cmd == "interface" || **cmd == "help" || **cmd == "write memory" || cmd.starts_with("ifconfig")))
+                    .map(|cmd| {
+                        let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
+                        let fist_word = cmd.split_whitespace().nth(0).unwrap_or_default();
+                        if cmd.starts_with(prefix) && (prefix.contains(' ') || prefix.contains(fist_word)){
+                            let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
+                            if second_word.is_empty() {
+                                fist_word.to_string()
+                            } else {
+                                second_word.to_string()
+                            }
+                        } else {
+                            fist_word.to_string()
+                        }
+                    })
+                    .collect()
+            }
+
+            Mode::InterfaceMode => {
+                commands
+                    .keys()
+                    // Commands shutdown, no shutdown, help, write memory and ip address can be executed in the Interface Config Mode 
+                    .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "shutdown" || **cmd == "no shutdown" || **cmd == "help" || **cmd == "write memory" || **cmd == "interface" || cmd.starts_with("ip address")))
                     .map(|cmd| {
                         let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
                         let fist_word = cmd.split_whitespace().nth(0).unwrap_or_default();

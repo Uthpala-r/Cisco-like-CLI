@@ -516,7 +516,62 @@
 <a href="#515" id="515">515</a>
 <a href="#516" id="516">516</a>
 <a href="#517" id="517">517</a>
-<a href="#518" id="518">518</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
+<a href="#518" id="518">518</a>
+<a href="#519" id="519">519</a>
+<a href="#520" id="520">520</a>
+<a href="#521" id="521">521</a>
+<a href="#522" id="522">522</a>
+<a href="#523" id="523">523</a>
+<a href="#524" id="524">524</a>
+<a href="#525" id="525">525</a>
+<a href="#526" id="526">526</a>
+<a href="#527" id="527">527</a>
+<a href="#528" id="528">528</a>
+<a href="#529" id="529">529</a>
+<a href="#530" id="530">530</a>
+<a href="#531" id="531">531</a>
+<a href="#532" id="532">532</a>
+<a href="#533" id="533">533</a>
+<a href="#534" id="534">534</a>
+<a href="#535" id="535">535</a>
+<a href="#536" id="536">536</a>
+<a href="#537" id="537">537</a>
+<a href="#538" id="538">538</a>
+<a href="#539" id="539">539</a>
+<a href="#540" id="540">540</a>
+<a href="#541" id="541">541</a>
+<a href="#542" id="542">542</a>
+<a href="#543" id="543">543</a>
+<a href="#544" id="544">544</a>
+<a href="#545" id="545">545</a>
+<a href="#546" id="546">546</a>
+<a href="#547" id="547">547</a>
+<a href="#548" id="548">548</a>
+<a href="#549" id="549">549</a>
+<a href="#550" id="550">550</a>
+<a href="#551" id="551">551</a>
+<a href="#552" id="552">552</a>
+<a href="#553" id="553">553</a>
+<a href="#554" id="554">554</a>
+<a href="#555" id="555">555</a>
+<a href="#556" id="556">556</a>
+<a href="#557" id="557">557</a>
+<a href="#558" id="558">558</a>
+<a href="#559" id="559">559</a>
+<a href="#560" id="560">560</a>
+<a href="#561" id="561">561</a>
+<a href="#562" id="562">562</a>
+<a href="#563" id="563">563</a>
+<a href="#564" id="564">564</a>
+<a href="#565" id="565">565</a>
+<a href="#566" id="566">566</a>
+<a href="#567" id="567">567</a>
+<a href="#568" id="568">568</a>
+<a href="#569" id="569">569</a>
+<a href="#570" id="570">570</a>
+<a href="#571" id="571">571</a>
+<a href="#572" id="572">572</a>
+<a href="#573" id="573">573</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
 </span><span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::net::Ipv4Addr;
 <span class="kw">use </span>std::path::Path;
@@ -529,7 +584,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::execute::Mode;
 <span class="kw">use </span><span class="kw">crate</span>::clock_settings::handle_show_clock;
 <span class="kw">use </span><span class="kw">crate</span>::clock_settings::handle_clock_set;
-<span class="kw">use </span><span class="kw">crate</span>::network_config::{NETWORK_STATE, calculate_broadcast};
+<span class="kw">use </span><span class="kw">crate</span>::network_config::{calculate_broadcast, STATUS_MAP, IFCONFIG_STATE, IP_ADDRESS_STATE, ROUTE_TABLE};
 <span class="kw">use </span><span class="kw">crate</span>::network_config::InterfaceConfig;
 
 
@@ -556,6 +611,7 @@
 /// - `show interfaces`: Displays statistics for all interfaces, including a brief overview or detailed information.
 /// - `shutdown`: Disable a router's interface
 /// - `no shutdown`: Enable a router's interface 
+/// - `ip route`: Define the static ip routes
 ///
 /// # Returns
 /// A `HashMap` where the keys are command names (as `&amp;'static str`) and the values are the corresponding `Command` structs.
@@ -608,7 +664,7 @@
         description: <span class="string">"Enter Interface configuration mode"</span>,
         suggestions: <span class="prelude-val">None</span>,
         execute: |args, context, <span class="kw">_</span>| {
-            <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode) {
+            <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode | Mode::InterfaceMode) {
                 <span class="kw">if </span>args.is_empty() {
                     <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"Please specify an interface, e.g., 'interface f0/0'."</span>.into());
                 }
@@ -619,7 +675,7 @@
                 <span class="macro">println!</span>(<span class="string">"Entering Interface configuration mode for: {}"</span>, interface);
                 <span class="prelude-val">Ok</span>(())
             } <span class="kw">else </span>{
-                <span class="prelude-val">Err</span>(<span class="string">"The 'interface' command is only available in Global Configuration mode."</span>.into())
+                <span class="prelude-val">Err</span>(<span class="string">"The 'interface' command is only available in Global Configuration mode and interface configuration mode."</span>.into())
             }
         },
     });
@@ -664,13 +720,13 @@
             description: <span class="string">"Display or configure network details of the router"</span>,
             suggestions: <span class="prelude-val">None</span>,
             execute: |args, <span class="kw">_</span>, <span class="kw">_</span>| {
-                <span class="kw">let </span><span class="kw-2">mut </span>network_state = NETWORK_STATE.lock().unwrap();
+                <span class="kw">let </span><span class="kw-2">mut </span>ifconfig_state = IFCONFIG_STATE.lock().unwrap();
     
                 <span class="kw">if </span>args.is_empty() {
-                    <span class="kw">if </span>network_state.is_empty() {
+                    <span class="kw">if </span>ifconfig_state.is_empty() {
                         <span class="macro">println!</span>(<span class="string">"No interfaces found."</span>);
                     } <span class="kw">else </span>{
-                        <span class="kw">for </span>(interface_name, (ip_address, broadcast_address)) <span class="kw">in </span>network_state.iter() {
+                        <span class="kw">for </span>(interface_name, (ip_address, broadcast_address)) <span class="kw">in </span>ifconfig_state.iter() {
                             <span class="macro">println!</span>(<span class="string">"{}: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu 1500"</span>, interface_name);
                             <span class="macro">println!</span>(<span class="string">"    inet {}  netmask 255.255.255.0  broadcast {}"</span>, ip_address, broadcast_address);
                             <span class="macro">println!</span>(<span class="string">"    inet6 fe80::6a01:72f9:adf2:3ffb  prefixlen 64  scopeid 0x20&lt;link&gt;"</span>);
@@ -680,32 +736,19 @@
                 } <span class="kw">else if </span>args.len() == <span class="number">3 </span>&amp;&amp; args[<span class="number">2</span>] == <span class="string">"up" </span>{
                     <span class="kw">let </span>new_interface = <span class="kw-2">&amp;</span>args[<span class="number">0</span>];
                     <span class="kw">let </span>new_ip: Ipv4Addr = Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">1</span>]).expect(<span class="string">"Invalid IP address format"</span>);
-    
                     <span class="kw">let </span>new_broadcast = calculate_broadcast(new_ip, <span class="number">24</span>);
     
-                    <span class="kw">let </span>new_interface_string = new_interface.to_string();
-                    <span class="kw">if let </span><span class="prelude-val">Some</span>((existing_ip, existing_broadcast)) = network_state.get_mut(<span class="kw-2">&amp;</span>new_interface_string) {
-                        <span class="kw-2">*</span>existing_ip = new_ip;
-                        <span class="kw-2">*</span>existing_broadcast = new_broadcast;
+                    ifconfig_state.insert(new_interface.to_string(), (new_ip, new_broadcast));
     
-                        <span class="macro">println!</span>(<span class="string">"Updated {}: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu 1500"</span>, new_interface);
-                        <span class="macro">println!</span>(<span class="string">"    inet {}  netmask 255.255.255.0  broadcast {}"</span>, new_ip, new_broadcast);
-                        <span class="macro">println!</span>(<span class="string">"    inet6 fe80::6a01:72f9:adf2:3ffb  prefixlen 64  scopeid 0x20&lt;link&gt;"</span>);
-                        <span class="macro">println!</span>(<span class="string">"    ether 00:0c:29:16:30:92  txqueuelen 1000  (Ethernet)"</span>);
-                    } <span class="kw">else </span>{
-                        network_state.insert(new_interface.to_string(), (new_ip, new_broadcast));
-    
-                        <span class="macro">println!</span>(<span class="string">"Created new interface"</span>);
-                        <span class="macro">println!</span>(<span class="string">"{}: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu 1500"</span>, new_interface);
-                        <span class="macro">println!</span>(<span class="string">"    inet {}  netmask 255.255.255.0  broadcast {}"</span>, new_ip, new_broadcast);
-                        <span class="macro">println!</span>(<span class="string">"    inet6 fe80::6a01:72f9:adf2:3ffb  prefixlen 64  scopeid 0x20&lt;link&gt;"</span>);
-                        <span class="macro">println!</span>(<span class="string">"    ether 00:0c:29:16:30:92  txqueuelen 1000  (Ethernet)"</span>);
-                    }
+                    <span class="macro">println!</span>(<span class="string">"Updated {}: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu 1500"</span>, new_interface);
+                    <span class="macro">println!</span>(<span class="string">"    inet {}  netmask 255.255.255.0  broadcast {}"</span>, new_ip, new_broadcast);
+                    <span class="macro">println!</span>(<span class="string">"    inet6 fe80::6a01:72f9:adf2:3ffb  prefixlen 64  scopeid 0x20&lt;link&gt;"</span>);
+                    <span class="macro">println!</span>(<span class="string">"    ether 00:0c:29:16:30:92  txqueuelen 1000  (Ethernet)"</span>);
                 } <span class="kw">else </span>{
-                    <span class="macro">println!</span>(<span class="string">"Invalid arguments provided to 'ifconfig'. This command does not accept additional arguments."</span>);
+                    <span class="macro">println!</span>(<span class="string">"Invalid arguments provided to 'ifconfig'."</span>);
                 }
     
-                <span class="prelude-val">Ok</span>(())  
+                <span class="prelude-val">Ok</span>(())
             },
         },
     );
@@ -750,11 +793,16 @@
             description: <span class="string">"Save the running configuration to the startup configuration"</span>,
             suggestions: <span class="prelude-val">None</span>,
             execute: |<span class="kw">_</span>, context, <span class="kw">_</span>| {
-                context.config.startup_config = context.config.running_config.clone();
-                save_config(<span class="kw-2">&amp;</span>context.config).map_err(|e| <span class="macro">format!</span>(<span class="string">"Failed to save configuration: {}"</span>, e))<span class="question-mark">?</span>;
-                <span class="macro">println!</span>(<span class="string">"Configuration saved successfully."</span>);
-                <span class="prelude-val">Ok</span>(())
+                <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::PrivilegedMode) {
+                    context.config.startup_config = context.config.running_config.clone();
+                    save_config(<span class="kw-2">&amp;</span>context.config).map_err(|e| <span class="macro">format!</span>(<span class="string">"Failed to save configuration: {}"</span>, e))<span class="question-mark">?</span>;
+                    <span class="macro">println!</span>(<span class="string">"Configuration saved successfully."</span>);
+                    <span class="prelude-val">Ok</span>(())
+                } <span class="kw">else </span>{
+                    <span class="prelude-val">Err</span>(<span class="string">"The 'write memory' command is only available in Privileged EXEC mode."</span>.into())
+                }    
             },
+
         },
     );
 
@@ -845,18 +893,17 @@
                         <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"Invalid number of arguments"</span>.into());
                     }
     
-                    <span class="comment">// Parse IP address and netmask
-                    </span><span class="kw">let </span>ip_address: Ipv4Addr = args[<span class="number">0</span>]
+                    <span class="kw">let </span>ip_address: Ipv4Addr = args[<span class="number">0</span>]
                         .parse()
                         .map_err(|<span class="kw">_</span>| <span class="string">"Invalid IP address format."</span>.to_string())<span class="question-mark">?</span>;
                     <span class="kw">let </span>netmask: Ipv4Addr = args[<span class="number">1</span>]
                         .parse()
                         .map_err(|<span class="kw">_</span>| <span class="string">"Invalid netmask format."</span>.to_string())<span class="question-mark">?</span>;
     
-                    <span class="kw">let </span><span class="kw-2">mut </span>network_state = NETWORK_STATE.lock().unwrap();
+                    <span class="kw">let </span><span class="kw-2">mut </span>ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
     
                     <span class="kw">if let </span><span class="prelude-val">Some</span>(interface) = <span class="kw-2">&amp;</span>context.selected_interface {
-                        <span class="kw">if let </span><span class="prelude-val">Some</span>((existing_ip, existing_broadcast)) = network_state.get_mut(interface) {
+                        <span class="kw">if let </span><span class="prelude-val">Some</span>((existing_ip, existing_broadcast)) = ip_address_state.get_mut(interface) {
                             <span class="kw-2">*</span>existing_ip = ip_address;
                             <span class="kw-2">*</span>existing_broadcast = netmask;
                             <span class="macro">println!</span>(
@@ -864,7 +911,7 @@
                                 interface, ip_address, netmask
                             );
                         } <span class="kw">else </span>{
-                            network_state.insert(interface.clone(), (ip_address, netmask));
+                            ip_address_state.insert(interface.clone(), (ip_address, netmask));
                             <span class="macro">println!</span>(
                                 <span class="string">"Assigned IP {} and netmask {} to interface {}"</span>,
                                 ip_address, netmask, interface
@@ -885,60 +932,76 @@
         <span class="string">"show interfaces"</span>,
         Command {
             name: <span class="string">"show interfaces"</span>,
-            description: <span class="string">"Display statistics for all interfaces configured on the router"</span>,
+            description: <span class="string">"Display detailed statistics for all interfaces configured on the router"</span>,
             suggestions: <span class="prelude-val">None</span>,
             execute: |args, context, <span class="kw">_</span>| {
-                <span class="kw">let </span>network_state = NETWORK_STATE.lock().unwrap();
-                <span class="kw">let </span><span class="prelude-val">Some</span>(interface_name) = <span class="kw-2">&amp;</span>context.selected_interface <span class="kw">else </span>{
-                    <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"No interface selected. Use the 'interface' command first."</span>.into());
-                };
-    
-                <span class="kw">if </span>args.contains(<span class="kw-2">&amp;</span><span class="string">"brief"</span>) {
-                    <span class="kw">if </span>network_state.is_empty() {
+                <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::UserMode | Mode::PrivilegedMode) {
+                    <span class="kw">let </span>ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
+                    <span class="kw">let </span><span class="prelude-val">Some</span>(interface_name) = <span class="kw-2">&amp;</span>context.selected_interface <span class="kw">else </span>{
+                        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"No interface selected. Use the 'interface' command first."</span>.into());
+                    };
+            
+                    <span class="kw">if </span>ip_address_state.is_empty() {
                         <span class="macro">println!</span>(<span class="string">"No interfaces found."</span>);
-                        <span class="kw">return </span><span class="prelude-val">Ok</span>(()); <span class="comment">// Return Result
-                    </span>} <span class="kw">else </span>{
-                        <span class="macro">println!</span>(<span class="string">"Interface              IP-Address      OK? Method Status                Protocol"</span>);
-    
-                        <span class="kw">if let </span><span class="prelude-val">Some</span>((ip_address, <span class="kw">_</span>)) = network_state.get(<span class="kw-2">&amp;</span>interface_name.to_string()) {
-                            <span class="macro">println!</span>(
-                                <span class="string">"{:&lt;22} {:&lt;15} YES unset administratively down       down"</span>,
-                                interface_name, ip_address
-                            );
-                        } <span class="kw">else </span>{
-                            <span class="macro">println!</span>(
-                                <span class="string">"{:&lt;22} {:&lt;15} NO  unset administratively down       down"</span>,
-                                interface_name, <span class="string">"-"
-                            </span>);
-                        }
-                    }
-                } <span class="kw">else if </span>args.len() == <span class="number">1 </span>{
-                    <span class="kw">let </span>interface_name = <span class="kw-2">&amp;</span>args[<span class="number">0</span>];
-                    <span class="kw">if let </span><span class="prelude-val">Some</span>((ip_address, <span class="kw">_</span>)) = network_state.get(<span class="kw-2">&amp;</span>interface_name.to_string()) {
-                        <span class="macro">println!</span>(<span class="string">"{} is up, line protocol is up"</span>, interface_name);
-                        <span class="macro">println!</span>(<span class="string">"  Internet address is {}, subnet mask 255.255.255.0"</span>, ip_address);
-                        <span class="macro">println!</span>(<span class="string">"  MTU 1500 bytes, BW 10000 Kbit, DLY 100000 usec"</span>);
-                        <span class="macro">println!</span>(<span class="string">"  Encapsulation ARPA, loopback not set, keepalive set (10 sec)"</span>);
+                        <span class="kw">return </span><span class="prelude-val">Ok</span>(()); 
                     } <span class="kw">else </span>{
-                        <span class="macro">println!</span>(<span class="string">"Interface {} not found."</span>, interface_name);
-                    }
-                } <span class="kw">else </span>{
-                    <span class="comment">// Handle "show interfaces" without arguments
-                    </span><span class="kw">if </span>network_state.is_empty() {
-                        <span class="macro">println!</span>(<span class="string">"No interfaces found."</span>);
-                        <span class="kw">return </span><span class="prelude-val">Ok</span>(()); <span class="comment">// Return Result
-                    </span>} <span class="kw">else </span>{
-                        <span class="kw">for </span>(interface_name, (ip_address, <span class="kw">_</span>)) <span class="kw">in </span>network_state.iter() {
+                        <span class="kw">for </span>(interface_name, (ip_address, <span class="kw">_</span>)) <span class="kw">in </span>ip_address_state.iter() {
                             <span class="macro">println!</span>(<span class="string">"{} is up, line protocol is up"</span>, interface_name);
                             <span class="macro">println!</span>(<span class="string">"  Internet address is {}, subnet mask 255.255.255.0"</span>, ip_address);
                             <span class="macro">println!</span>(<span class="string">"  MTU 1500 bytes, BW 10000 Kbit, DLY 100000 usec"</span>);
                             <span class="macro">println!</span>(<span class="string">"  Encapsulation ARPA, loopback not set, keepalive set (10 sec)"</span>);
+                            <span class="macro">println!</span>(<span class="string">"  Last clearing of \"show interface\" counters: never"</span>);
+                            <span class="macro">println!</span>(<span class="string">"  Input queue: 0/2000/0/0 (size/max/drops/flushes); Total output drops: 0"</span>);
+                            <span class="macro">println!</span>(<span class="string">"  5 minute input rate 1000 bits/sec, 10 packets/sec"</span>);
+                            <span class="macro">println!</span>(<span class="string">"  5 minute output rate 500 bits/sec, 5 packets/sec"</span>);
+                            <span class="macro">println!</span>(<span class="string">"  100 packets input, 1000 bytes, 10 no buffer"</span>);
+                            <span class="macro">println!</span>(<span class="string">"  50 packets output, 500 bytes, 0 underruns"</span>);
                         }
                     }
+            
+                    <span class="prelude-val">Ok</span>(()) 
+                } <span class="kw">else </span>{
+                    <span class="prelude-val">Err</span>(<span class="string">"The 'show interfaces' command is only available in User Exec Mode and Privileged EXEC mode."</span>.into())
                 }
+            },
+        },
+    );
     
-                <span class="prelude-val">Ok</span>(()) <span class="comment">// Ensure the function returns Result
-            </span>},
+    commands.insert(
+        <span class="string">"show ip interface brief"</span>,
+        Command {
+            name: <span class="string">"show ip interface brief"</span>,
+            description: <span class="string">"Display a brief summary of IP interfaces."</span>,
+            suggestions: <span class="prelude-val">None</span>,
+            execute: |<span class="kw">_</span>, context, <span class="kw">_</span>| {
+                <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::UserMode | Mode::PrivilegedMode) {
+                    <span class="kw">let </span>ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
+                    <span class="kw">let </span>status_map = STATUS_MAP.lock().unwrap();
+        
+                    <span class="macro">println!</span>(
+                        <span class="string">"{:&lt;22} {:&lt;15} {:&lt;8} {:&lt;20} {:&lt;10}"</span>,
+                        <span class="string">"Interface"</span>, <span class="string">"IP-Address"</span>, <span class="string">"OK?"</span>, <span class="string">"Method"</span>, <span class="string">"Status"
+                    </span>);
+        
+                    <span class="kw">for </span>(interface_name, (ip_address, _broadcast_address)) <span class="kw">in </span>ip_address_state.iter() {
+                        <span class="kw">let </span>is_up = status_map.get(interface_name).copied().unwrap_or(<span class="bool-val">false</span>);
+                        <span class="kw">let </span>status = <span class="kw">if </span>is_up {
+                            <span class="string">"administratively up"
+                        </span>} <span class="kw">else </span>{
+                            <span class="string">"administratively down"
+                        </span>};
+        
+                        <span class="macro">println!</span>(
+                            <span class="string">"{:&lt;22} {:&lt;15} YES     unset               {}"</span>,
+                            interface_name, ip_address, status
+                        );
+                    }
+        
+                    <span class="prelude-val">Ok</span>(())
+                } <span class="kw">else </span>{
+                    <span class="prelude-val">Err</span>(<span class="string">"The 'show ip interface brief' command is only available in User Exec Mode and Privileged EXEC mode."</span>.into())
+                }
+            },
         },
     );
 
@@ -951,7 +1014,7 @@
             execute: |args, context, <span class="kw">_</span>| {
                 <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::InterfaceMode) {
                     <span class="kw">if let </span><span class="prelude-val">Some</span>(interface) = <span class="kw-2">&amp;</span>context.selected_interface {
-                        <span class="kw">let </span><span class="kw-2">mut </span>network_state = NETWORK_STATE.lock().unwrap();
+                        <span class="kw">let </span><span class="kw-2">mut </span>network_state = IP_ADDRESS_STATE.lock().unwrap();
                         <span class="kw">if let </span><span class="prelude-val">Some</span>(interface_config) = network_state.get_mut(interface) {
                             
                             <span class="kw">let </span>ip_address = interface_config.<span class="number">0</span>.clone();
@@ -990,37 +1053,27 @@
             execute: |args, context, <span class="kw">_</span>| {
                 <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::InterfaceMode) {
                     <span class="kw">if let </span><span class="prelude-val">Some</span>(interface) = <span class="kw-2">&amp;</span>context.selected_interface {
-                        <span class="kw">let </span><span class="kw-2">mut </span>network_state = NETWORK_STATE.lock().unwrap();
-                        <span class="kw">if let </span><span class="prelude-val">Some</span>(interface_config) = network_state.get_mut(interface) {
-                            
-                            <span class="kw">if let </span>original_ip = interface_config.<span class="number">0 </span>{
-                                
-                                <span class="kw">if </span>original_ip == Ipv4Addr::new(<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>) {
-                                    <span class="macro">println!</span>(
-                                        <span class="string">"%LINK-5-CHANGED: Interface {}, changed state to up"</span>,
-                                        interface, 
-                                    );
-                                    <span class="macro">println!</span>(
-                                        <span class="string">"%LINEPROTO-5-UPDOWN: Line protocol on Interface {}, changed state to up"</span>,
-                                        interface, 
-                                    );
-                                    
-                                    <span class="kw">let </span><span class="kw-2">mut </span>interface_config = InterfaceConfig {
-                                        ip_address: Ipv4Addr::new(<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>),
-                                        is_up: <span class="bool-val">false</span>,
-                                    };
-                                
-                                    
-                                    interface_config.ip_address = Ipv4Addr::from_str(<span class="kw-2">&amp;</span>interface).unwrap();
-                                    interface_config.is_up = <span class="bool-val">true</span>;
-                                }
-                            } <span class="kw">else </span>{
-                                <span class="macro">println!</span>(<span class="string">"Interface {} not found."</span>, interface);
-                            }
+                        <span class="kw">let </span><span class="kw-2">mut </span>network_state = IP_ADDRESS_STATE.lock().unwrap();
+                        <span class="kw">let </span><span class="kw-2">mut </span>status_map = STATUS_MAP.lock().unwrap();
+    
+                        <span class="comment">// Check if the interface exists in `NETWORK_STATE`
+                        </span><span class="kw">if let </span><span class="prelude-val">Some</span>((ip_address, broadcast_address)) = network_state.get(interface) {
+                            <span class="comment">// Update the administrative status to "up" in `STATUS_MAP`
+                            </span>status_map.insert(interface.clone(), <span class="bool-val">true</span>);
+    
+                            <span class="macro">println!</span>(
+                                <span class="string">"%LINK-5-CHANGED: Interface {}, changed state to up"</span>,
+                                interface
+                            );
+                            <span class="macro">println!</span>(
+                                <span class="string">"%LINEPROTO-5-UPDOWN: Line protocol on Interface {}, changed state to up"</span>,
+                                interface
+                            );
+                            <span class="prelude-val">Ok</span>(())
                         } <span class="kw">else </span>{
                             <span class="macro">println!</span>(<span class="string">"Interface {} not found."</span>, interface);
+                            <span class="prelude-val">Err</span>(<span class="string">"Invalid interface."</span>.into())
                         }
-                        <span class="prelude-val">Ok</span>(())
                     } <span class="kw">else </span>{
                         <span class="prelude-val">Err</span>(<span class="string">"No interface selected. Use the 'interface' command first."</span>.into())
                     }
@@ -1031,6 +1084,63 @@
         },
     );
     
+    commands.insert(
+        <span class="string">"ip route"</span>,
+        Command {
+            name: <span class="string">"ip route"</span>,
+            description: <span class="string">"Add static routes to the routing table"</span>,
+            suggestions: <span class="prelude-val">None</span>,
+            execute: |args, context, <span class="kw">_</span>| {
+                <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode) {
+                    <span class="kw">let </span><span class="kw-2">mut </span>route_table = ROUTE_TABLE.lock().unwrap();
+        
+                    <span class="kw">if </span>args.len() == <span class="number">0 </span>{
+                        <span class="comment">// Display the current route table
+                        </span><span class="kw">if </span>route_table.is_empty() {
+                            <span class="macro">println!</span>(<span class="string">"No static routes configured."</span>);
+                        } <span class="kw">else </span>{
+                            <span class="kw">for </span>(route, (netmask, next_hop_or_iface)) <span class="kw">in </span>route_table.iter() {
+                                <span class="macro">println!</span>(<span class="string">"ip route {} {} {}"</span>, route, netmask, next_hop_or_iface);
+                            }
+                        }
+                    } <span class="kw">else if </span>args.len() == <span class="number">3 </span>{
+                        <span class="comment">// Scenario 1: ip route &lt;ip-address&gt; &lt;netmask&gt; &lt;next-hop&gt;
+                        </span><span class="kw">let </span>destination_ip: Ipv4Addr = Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">0</span>]).expect(<span class="string">"Invalid IP address format"</span>);
+                        <span class="kw">let </span>netmask: Ipv4Addr = Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">1</span>]).expect(<span class="string">"Invalid IP address format"</span>);
+                        <span class="kw">let </span>next_hop: Ipv4Addr = Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">2</span>]).expect(<span class="string">"Invalid IP address format"</span>);
+        
+                        route_table.insert(destination_ip.to_string(), (netmask, next_hop.to_string()));
+                        <span class="macro">println!</span>(<span class="string">"Added route: ip route {} {} {}"</span>, destination_ip, netmask, next_hop);
+                    } <span class="kw">else if </span>args.len() == <span class="number">2 </span>{
+                        <span class="comment">// Scenario 2: ip route &lt;ip-address&gt; &lt;netmask&gt; &lt;exit interface&gt;
+                        </span><span class="kw">let </span>destination_ip: Ipv4Addr = Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">0</span>]).expect(<span class="string">"Invalid IP address format"</span>);
+                        <span class="kw">let </span>netmask: Ipv4Addr = Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">1</span>]).expect(<span class="string">"Invalid IP address format"</span>);
+        
+                        <span class="comment">// In this case, assume the exit interface is passed instead of next-hop
+                        </span><span class="macro">println!</span>(<span class="string">"Added route: ip route {} {} {}"</span>, destination_ip, netmask, <span class="string">"exit_interface"</span>);
+        
+                        route_table.insert(destination_ip.to_string(), (netmask, <span class="string">"exit_interface"</span>.to_string()));
+                    } <span class="kw">else if </span>args.len() == <span class="number">4 </span>{
+                        <span class="comment">// Scenario 3: ip route &lt;ip-address&gt; &lt;netmask&gt; &lt;exit interface&gt; &lt;next-hop&gt;
+                        </span><span class="kw">let </span>destination_ip: Ipv4Addr = Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">0</span>]).expect(<span class="string">"Invalid IP address format"</span>);
+                        <span class="kw">let </span>netmask: Ipv4Addr = Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">1</span>]).expect(<span class="string">"Invalid IP address format"</span>);
+                        <span class="kw">let </span>exit_interface: String = args[<span class="number">2</span>].to_string();
+                        <span class="kw">let </span>next_hop: Ipv4Addr = Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">3</span>]).expect(<span class="string">"Invalid IP address format"</span>);
+        
+                        <span class="comment">// Insert the route in the route table with exit interface and next hop
+                        </span>route_table.insert(destination_ip.to_string(), (netmask, <span class="macro">format!</span>(<span class="string">"{} {}"</span>, exit_interface, next_hop)));
+                        <span class="macro">println!</span>(<span class="string">"Added route: ip route {} {} {} {}"</span>, destination_ip, netmask, exit_interface, next_hop);
+                    } <span class="kw">else </span>{
+                        <span class="macro">println!</span>(<span class="string">"Invalid arguments provided to 'ip route'. Expected: ip route &lt;ip-address&gt; &lt;netmask&gt; &lt;next-hop | exit-interface&gt; &lt;next-hop&gt;."</span>);
+                    }
+        
+                    <span class="prelude-val">Ok</span>(())
+                } <span class="kw">else </span>{
+                    <span class="prelude-val">Err</span>(<span class="string">"The 'ip route' command is only available in Configuration mode."</span>.into())
+                }
+            },
+        },
+    );
 
     commands
 }</code></pre></div></section></main></body></html>

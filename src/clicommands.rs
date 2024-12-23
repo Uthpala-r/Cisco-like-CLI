@@ -11,7 +11,7 @@ use crate::execute::Command;
 use crate::execute::Mode;
 use crate::clock_settings::handle_show_clock;
 use crate::clock_settings::handle_clock_set;
-use crate::network_config::{NETWORK_STATE, calculate_broadcast};
+use crate::network_config::{calculate_broadcast, STATUS_MAP, IFCONFIG_STATE, IP_ADDRESS_STATE, ROUTE_TABLE};
 use crate::network_config::InterfaceConfig;
 
 
@@ -38,6 +38,7 @@ use crate::network_config::InterfaceConfig;
 /// - `show interfaces`: Displays statistics for all interfaces, including a brief overview or detailed information.
 /// - `shutdown`: Disable a router's interface
 /// - `no shutdown`: Enable a router's interface 
+/// - `ip route`: Define the static ip routes
 ///
 /// # Returns
 /// A `HashMap` where the keys are command names (as `&'static str`) and the values are the corresponding `Command` structs.
@@ -90,7 +91,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         description: "Enter Interface configuration mode",
         suggestions: None,
         execute: |args, context, _| {
-            if matches!(context.current_mode, Mode::ConfigMode) {
+            if matches!(context.current_mode, Mode::ConfigMode | Mode::InterfaceMode) {
                 if args.is_empty() {
                     return Err("Please specify an interface, e.g., 'interface f0/0'.".into());
                 }
@@ -101,7 +102,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                 println!("Entering Interface configuration mode for: {}", interface);
                 Ok(())
             } else {
-                Err("The 'interface' command is only available in Global Configuration mode.".into())
+                Err("The 'interface' command is only available in Global Configuration mode and interface configuration mode.".into())
             }
         },
     });
@@ -146,13 +147,13 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             description: "Display or configure network details of the router",
             suggestions: None,
             execute: |args, _, _| {
-                let mut network_state = NETWORK_STATE.lock().unwrap();
+                let mut ifconfig_state = IFCONFIG_STATE.lock().unwrap();
     
                 if args.is_empty() {
-                    if network_state.is_empty() {
+                    if ifconfig_state.is_empty() {
                         println!("No interfaces found.");
                     } else {
-                        for (interface_name, (ip_address, broadcast_address)) in network_state.iter() {
+                        for (interface_name, (ip_address, broadcast_address)) in ifconfig_state.iter() {
                             println!("{}: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500", interface_name);
                             println!("    inet {}  netmask 255.255.255.0  broadcast {}", ip_address, broadcast_address);
                             println!("    inet6 fe80::6a01:72f9:adf2:3ffb  prefixlen 64  scopeid 0x20<link>");
@@ -162,32 +163,19 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                 } else if args.len() == 3 && args[2] == "up" {
                     let new_interface = &args[0];
                     let new_ip: Ipv4Addr = Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format");
-    
                     let new_broadcast = calculate_broadcast(new_ip, 24);
     
-                    let new_interface_string = new_interface.to_string();
-                    if let Some((existing_ip, existing_broadcast)) = network_state.get_mut(&new_interface_string) {
-                        *existing_ip = new_ip;
-                        *existing_broadcast = new_broadcast;
+                    ifconfig_state.insert(new_interface.to_string(), (new_ip, new_broadcast));
     
-                        println!("Updated {}: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500", new_interface);
-                        println!("    inet {}  netmask 255.255.255.0  broadcast {}", new_ip, new_broadcast);
-                        println!("    inet6 fe80::6a01:72f9:adf2:3ffb  prefixlen 64  scopeid 0x20<link>");
-                        println!("    ether 00:0c:29:16:30:92  txqueuelen 1000  (Ethernet)");
-                    } else {
-                        network_state.insert(new_interface.to_string(), (new_ip, new_broadcast));
-    
-                        println!("Created new interface");
-                        println!("{}: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500", new_interface);
-                        println!("    inet {}  netmask 255.255.255.0  broadcast {}", new_ip, new_broadcast);
-                        println!("    inet6 fe80::6a01:72f9:adf2:3ffb  prefixlen 64  scopeid 0x20<link>");
-                        println!("    ether 00:0c:29:16:30:92  txqueuelen 1000  (Ethernet)");
-                    }
+                    println!("Updated {}: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500", new_interface);
+                    println!("    inet {}  netmask 255.255.255.0  broadcast {}", new_ip, new_broadcast);
+                    println!("    inet6 fe80::6a01:72f9:adf2:3ffb  prefixlen 64  scopeid 0x20<link>");
+                    println!("    ether 00:0c:29:16:30:92  txqueuelen 1000  (Ethernet)");
                 } else {
-                    println!("Invalid arguments provided to 'ifconfig'. This command does not accept additional arguments.");
+                    println!("Invalid arguments provided to 'ifconfig'.");
                 }
     
-                Ok(())  
+                Ok(())
             },
         },
     );
@@ -232,11 +220,16 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             description: "Save the running configuration to the startup configuration",
             suggestions: None,
             execute: |_, context, _| {
-                context.config.startup_config = context.config.running_config.clone();
-                save_config(&context.config).map_err(|e| format!("Failed to save configuration: {}", e))?;
-                println!("Configuration saved successfully.");
-                Ok(())
+                if matches!(context.current_mode, Mode::PrivilegedMode) {
+                    context.config.startup_config = context.config.running_config.clone();
+                    save_config(&context.config).map_err(|e| format!("Failed to save configuration: {}", e))?;
+                    println!("Configuration saved successfully.");
+                    Ok(())
+                } else {
+                    Err("The 'write memory' command is only available in Privileged EXEC mode.".into())
+                }    
             },
+
         },
     );
 
@@ -327,7 +320,6 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                         return Err("Invalid number of arguments".into());
                     }
     
-                    // Parse IP address and netmask
                     let ip_address: Ipv4Addr = args[0]
                         .parse()
                         .map_err(|_| "Invalid IP address format.".to_string())?;
@@ -335,10 +327,10 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                         .parse()
                         .map_err(|_| "Invalid netmask format.".to_string())?;
     
-                    let mut network_state = NETWORK_STATE.lock().unwrap();
+                    let mut ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
     
                     if let Some(interface) = &context.selected_interface {
-                        if let Some((existing_ip, existing_broadcast)) = network_state.get_mut(interface) {
+                        if let Some((existing_ip, existing_broadcast)) = ip_address_state.get_mut(interface) {
                             *existing_ip = ip_address;
                             *existing_broadcast = netmask;
                             println!(
@@ -346,7 +338,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                                 interface, ip_address, netmask
                             );
                         } else {
-                            network_state.insert(interface.clone(), (ip_address, netmask));
+                            ip_address_state.insert(interface.clone(), (ip_address, netmask));
                             println!(
                                 "Assigned IP {} and netmask {} to interface {}",
                                 ip_address, netmask, interface
@@ -367,59 +359,75 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         "show interfaces",
         Command {
             name: "show interfaces",
-            description: "Display statistics for all interfaces configured on the router",
+            description: "Display detailed statistics for all interfaces configured on the router",
             suggestions: None,
             execute: |args, context, _| {
-                let network_state = NETWORK_STATE.lock().unwrap();
-                let Some(interface_name) = &context.selected_interface else {
-                    return Err("No interface selected. Use the 'interface' command first.".into());
-                };
-    
-                if args.contains(&"brief") {
-                    if network_state.is_empty() {
+                if matches!(context.current_mode, Mode::UserMode | Mode::PrivilegedMode) {
+                    let ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
+                    let Some(interface_name) = &context.selected_interface else {
+                        return Err("No interface selected. Use the 'interface' command first.".into());
+                    };
+            
+                    if ip_address_state.is_empty() {
                         println!("No interfaces found.");
-                        return Ok(()); // Return Result
+                        return Ok(()); 
                     } else {
-                        println!("Interface              IP-Address      OK? Method Status                Protocol");
-    
-                        if let Some((ip_address, _)) = network_state.get(&interface_name.to_string()) {
-                            println!(
-                                "{:<22} {:<15} YES unset administratively down       down",
-                                interface_name, ip_address
-                            );
-                        } else {
-                            println!(
-                                "{:<22} {:<15} NO  unset administratively down       down",
-                                interface_name, "-"
-                            );
-                        }
-                    }
-                } else if args.len() == 1 {
-                    let interface_name = &args[0];
-                    if let Some((ip_address, _)) = network_state.get(&interface_name.to_string()) {
-                        println!("{} is up, line protocol is up", interface_name);
-                        println!("  Internet address is {}, subnet mask 255.255.255.0", ip_address);
-                        println!("  MTU 1500 bytes, BW 10000 Kbit, DLY 100000 usec");
-                        println!("  Encapsulation ARPA, loopback not set, keepalive set (10 sec)");
-                    } else {
-                        println!("Interface {} not found.", interface_name);
-                    }
-                } else {
-                    // Handle "show interfaces" without arguments
-                    if network_state.is_empty() {
-                        println!("No interfaces found.");
-                        return Ok(()); // Return Result
-                    } else {
-                        for (interface_name, (ip_address, _)) in network_state.iter() {
+                        for (interface_name, (ip_address, _)) in ip_address_state.iter() {
                             println!("{} is up, line protocol is up", interface_name);
                             println!("  Internet address is {}, subnet mask 255.255.255.0", ip_address);
                             println!("  MTU 1500 bytes, BW 10000 Kbit, DLY 100000 usec");
                             println!("  Encapsulation ARPA, loopback not set, keepalive set (10 sec)");
+                            println!("  Last clearing of \"show interface\" counters: never");
+                            println!("  Input queue: 0/2000/0/0 (size/max/drops/flushes); Total output drops: 0");
+                            println!("  5 minute input rate 1000 bits/sec, 10 packets/sec");
+                            println!("  5 minute output rate 500 bits/sec, 5 packets/sec");
+                            println!("  100 packets input, 1000 bytes, 10 no buffer");
+                            println!("  50 packets output, 500 bytes, 0 underruns");
                         }
                     }
+            
+                    Ok(()) 
+                } else {
+                    Err("The 'show interfaces' command is only available in User Exec Mode and Privileged EXEC mode.".into())
                 }
+            },
+        },
+    );
     
-                Ok(()) // Ensure the function returns Result
+    commands.insert(
+        "show ip interface brief",
+        Command {
+            name: "show ip interface brief",
+            description: "Display a brief summary of IP interfaces.",
+            suggestions: None,
+            execute: |_, context, _| {
+                if matches!(context.current_mode, Mode::UserMode | Mode::PrivilegedMode) {
+                    let ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
+                    let status_map = STATUS_MAP.lock().unwrap();
+        
+                    println!(
+                        "{:<22} {:<15} {:<8} {:<20} {:<10}",
+                        "Interface", "IP-Address", "OK?", "Method", "Status"
+                    );
+        
+                    for (interface_name, (ip_address, _broadcast_address)) in ip_address_state.iter() {
+                        let is_up = status_map.get(interface_name).copied().unwrap_or(false);
+                        let status = if is_up {
+                            "administratively up"
+                        } else {
+                            "administratively down"
+                        };
+        
+                        println!(
+                            "{:<22} {:<15} YES     unset               {}",
+                            interface_name, ip_address, status
+                        );
+                    }
+        
+                    Ok(())
+                } else {
+                    Err("The 'show ip interface brief' command is only available in User Exec Mode and Privileged EXEC mode.".into())
+                }
             },
         },
     );
@@ -433,7 +441,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             execute: |args, context, _| {
                 if matches!(context.current_mode, Mode::InterfaceMode) {
                     if let Some(interface) = &context.selected_interface {
-                        let mut network_state = NETWORK_STATE.lock().unwrap();
+                        let mut network_state = IP_ADDRESS_STATE.lock().unwrap();
                         if let Some(interface_config) = network_state.get_mut(interface) {
                             
                             let ip_address = interface_config.0.clone();
@@ -472,37 +480,27 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             execute: |args, context, _| {
                 if matches!(context.current_mode, Mode::InterfaceMode) {
                     if let Some(interface) = &context.selected_interface {
-                        let mut network_state = NETWORK_STATE.lock().unwrap();
-                        if let Some(interface_config) = network_state.get_mut(interface) {
-                            
-                            if let original_ip = interface_config.0 {
-                                
-                                if original_ip == Ipv4Addr::new(0, 0, 0, 0) {
-                                    println!(
-                                        "%LINK-5-CHANGED: Interface {}, changed state to up",
-                                        interface, 
-                                    );
-                                    println!(
-                                        "%LINEPROTO-5-UPDOWN: Line protocol on Interface {}, changed state to up",
-                                        interface, 
-                                    );
-                                    
-                                    let mut interface_config = InterfaceConfig {
-                                        ip_address: Ipv4Addr::new(0, 0, 0, 0),
-                                        is_up: false,
-                                    };
-                                
-                                    
-                                    interface_config.ip_address = Ipv4Addr::from_str(&interface).unwrap();
-                                    interface_config.is_up = true;
-                                }
-                            } else {
-                                println!("Interface {} not found.", interface);
-                            }
+                        let mut network_state = IP_ADDRESS_STATE.lock().unwrap();
+                        let mut status_map = STATUS_MAP.lock().unwrap();
+    
+                        // Check if the interface exists in `NETWORK_STATE`
+                        if let Some((ip_address, broadcast_address)) = network_state.get(interface) {
+                            // Update the administrative status to "up" in `STATUS_MAP`
+                            status_map.insert(interface.clone(), true);
+    
+                            println!(
+                                "%LINK-5-CHANGED: Interface {}, changed state to up",
+                                interface
+                            );
+                            println!(
+                                "%LINEPROTO-5-UPDOWN: Line protocol on Interface {}, changed state to up",
+                                interface
+                            );
+                            Ok(())
                         } else {
                             println!("Interface {} not found.", interface);
+                            Err("Invalid interface.".into())
                         }
-                        Ok(())
                     } else {
                         Err("No interface selected. Use the 'interface' command first.".into())
                     }
@@ -513,6 +511,63 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         },
     );
     
+    commands.insert(
+        "ip route",
+        Command {
+            name: "ip route",
+            description: "Add static routes to the routing table",
+            suggestions: None,
+            execute: |args, context, _| {
+                if matches!(context.current_mode, Mode::ConfigMode) {
+                    let mut route_table = ROUTE_TABLE.lock().unwrap();
+        
+                    if args.len() == 0 {
+                        // Display the current route table
+                        if route_table.is_empty() {
+                            println!("No static routes configured.");
+                        } else {
+                            for (route, (netmask, next_hop_or_iface)) in route_table.iter() {
+                                println!("ip route {} {} {}", route, netmask, next_hop_or_iface);
+                            }
+                        }
+                    } else if args.len() == 3 {
+                        // Scenario 1: ip route <ip-address> <netmask> <next-hop>
+                        let destination_ip: Ipv4Addr = Ipv4Addr::from_str(&args[0]).expect("Invalid IP address format");
+                        let netmask: Ipv4Addr = Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format");
+                        let next_hop: Ipv4Addr = Ipv4Addr::from_str(&args[2]).expect("Invalid IP address format");
+        
+                        route_table.insert(destination_ip.to_string(), (netmask, next_hop.to_string()));
+                        println!("Added route: ip route {} {} {}", destination_ip, netmask, next_hop);
+                    } else if args.len() == 2 {
+                        // Scenario 2: ip route <ip-address> <netmask> <exit interface>
+                        let destination_ip: Ipv4Addr = Ipv4Addr::from_str(&args[0]).expect("Invalid IP address format");
+                        let netmask: Ipv4Addr = Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format");
+        
+                        // In this case, assume the exit interface is passed instead of next-hop
+                        println!("Added route: ip route {} {} {}", destination_ip, netmask, "exit_interface");
+        
+                        route_table.insert(destination_ip.to_string(), (netmask, "exit_interface".to_string()));
+                    } else if args.len() == 4 {
+                        // Scenario 3: ip route <ip-address> <netmask> <exit interface> <next-hop>
+                        let destination_ip: Ipv4Addr = Ipv4Addr::from_str(&args[0]).expect("Invalid IP address format");
+                        let netmask: Ipv4Addr = Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format");
+                        let exit_interface: String = args[2].to_string();
+                        let next_hop: Ipv4Addr = Ipv4Addr::from_str(&args[3]).expect("Invalid IP address format");
+        
+                        // Insert the route in the route table with exit interface and next hop
+                        route_table.insert(destination_ip.to_string(), (netmask, format!("{} {}", exit_interface, next_hop)));
+                        println!("Added route: ip route {} {} {} {}", destination_ip, netmask, exit_interface, next_hop);
+                    } else {
+                        println!("Invalid arguments provided to 'ip route'. Expected: ip route <ip-address> <netmask> <next-hop | exit-interface> <next-hop>.");
+                    }
+        
+                    Ok(())
+                } else {
+                    Err("The 'ip route' command is only available in Configuration mode.".into())
+                }
+            },
+        },
+    );
 
     commands
 }

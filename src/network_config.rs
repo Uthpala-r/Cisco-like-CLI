@@ -28,7 +28,8 @@ lazy_static::lazy_static! {
     /// 
     /// By default, the `ens33` interface is initialized with the IP `192.168.253.135` 
     /// and a subnet prefix of 24.
-    pub static ref NETWORK_STATE: Arc<Mutex<HashMap<String, (Ipv4Addr, Ipv4Addr)>>> = Arc::new(Mutex::new({
+    /// 
+    pub static ref IFCONFIG_STATE: Arc<Mutex<HashMap<String, (Ipv4Addr, Ipv4Addr)>>> = Arc::new(Mutex::new({
         let mut map = HashMap::new();
 
         // Default interface and its configuration
@@ -40,6 +41,62 @@ lazy_static::lazy_static! {
         
         map
     }));
+
+    
+    /// A thread-safe global map that tracks the administrative status of network interfaces.
+    ///
+    /// # Description
+    /// `STATUS_MAP` is a `HashMap` wrapped in an `Arc<Mutex<...>>`, allowing
+    /// safe concurrent access and modification. Each key in the map represents
+    /// the name of a network interface (e.g., `"ens33"`), and the value is a
+    /// `bool` indicating whether the interface is administratively up (`true`)
+    /// or administratively down (`false`).
+    ///
+    /// # Default Behavior
+    /// By default, the map is initialized with the `ens33` interface set to
+    /// `false` (administratively down). You can modify the default setup
+    /// based on your requirements.
+    ///
+    /// # Thread Safety
+    /// The use of `Arc<Mutex<...>>` ensures that multiple threads can safely
+    /// access and modify the map, avoiding race conditions.
+    pub static ref STATUS_MAP: Arc<Mutex<HashMap<String, bool>>> = Arc::new(Mutex::new({
+        let mut map = HashMap::new();
+    
+        // Default interface status (administratively down)
+        map.insert("ens33".to_string(), false); // Modify as per your setup
+    
+        map
+    }));
+
+    /// A global, thread-safe state that holds the configuration of network interfaces 
+    /// updated via the `ip address` command.
+    ///
+    /// The `IP_ADDRESS_STATE` is a `Mutex`-protected `HashMap` where:
+    /// - The key (`String`) represents the name of the network interface (e.g., `g0/0`).
+    /// - The value is a tuple containing:
+    ///   - The IP address assigned to the interface (`Ipv4Addr`).
+    ///   - The broadcast address derived from the IP and subnet mask (`Ipv4Addr`).
+    ///
+    /// This state ensures safe concurrent access to the configuration of interfaces 
+    /// updated using the `ip address` command. Other commands like `show interfaces`
+    /// rely on this data to display the status of the configured interfaces.
+    ///
+    /// This structure ensures separation from other interface management commands 
+    /// like `ifconfig`, which uses its own state (`IFCONFIG_STATE`).
+    pub static ref IP_ADDRESS_STATE: Mutex<HashMap<String, (Ipv4Addr, Ipv4Addr)>> = Mutex::new(HashMap::new());
+
+
+    /// A global, thread-safe container for storing static routing information.
+    ///
+    /// This `Mutex<HashMap<String, (Ipv4Addr, String)>>` is used to hold the static routes in a routing table, 
+    /// where the key is the destination IP address (as a string) and the value is a tuple containing:
+    /// - the network mask (`Ipv4Addr`), 
+    /// - the next-hop IP address or the exit interface (stored as a `String`).
+    /// 
+    /// It is wrapped in a `Mutex` to ensure safe, mutable access from multiple threads.
+    pub static ref ROUTE_TABLE: Mutex<HashMap<String, (Ipv4Addr, String)>> = Mutex::new(HashMap::new());
+
 }
 
 
@@ -66,4 +123,5 @@ pub fn calculate_broadcast(ip: Ipv4Addr, prefix_len: u32) -> Ipv4Addr {
     let broadcast_u32 = ip_u32 | !mask;     // Calculate the broadcast address
     Ipv4Addr::from(broadcast_u32)           // Convert back to an Ipv4Addr
 }
+
 

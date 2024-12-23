@@ -1,89 +1,4 @@
 #V2
-ifconfig 
-ifconfig eth1 192.168.20.2 up
-enable
-ifconfig
-ifconfig eth0 192.168.12.3 up
-ifconfig
-enable
-ifconfig
-ifconfig eth0 192.168.23.2 up
-ifconfig
-enable
-ifconfig
-ifconfig eth0 192.168.19.2 up
-ifconfig
-configure terminal
-interface f0/0
-exit
-hostname R2
-exit
-configure terminal
-exit
-enable
-configure terminal
-exit
-ifconfig
-ifconfig eth0 192.168.12.9 up
-ifconfig
-enable
-ifconfig
-ifconfig eth0 192.168.19.0 up
-ifconfig
-enable
-configure terminal
-ifconfig
-en
-enable
-show clock
-enable
-configure terminal
-ifconfig
-ifconfig eth0 192.168.19.2 up
-ifconfig
-interafce f0/0
-interface f0/0
-hi
-exit
-show version
-hostname R1
-exit
-enable
-ifconfig
-ifconfig eth0 192.168.19.20 up
-show clock
-en
-enable
-show interfaces
-show interfaces brief
-enable
-show interfaces
-show interfaces brief
-enable
-configure terminal
-interface g0/0
-enable\\
-enable
-configure terminal
-interface g0/0
-ifconfig
-ip address 192.168.11.1 255.255.255.0
-ip address 192.168.11. 255.255.255.0
-enable
-configure terminal
-interface g0/0
-ip address 192.168.1.1 25.5.5.5
-enable
-configure terminal
-show interfaces
-show interfaces brief
-enable
-configure terminal
-interface g0/0
-ip address 192.179.29.2 3.3.3.3
-show interfaces
-ifconfig
-ifconfig eth0 182.2.2.2 up
 ifconfig
 show interfaces
 enable\\
@@ -99,3 +14,88 @@ ifconfig
 show interfaces brief
 show interfaces 
 ifconfig
+enable
+configure terminal
+interface g0/0
+ip address 192.168.1.2 255.255.255.0
+show interfaces
+show ip interface brief
+ip address 192.18.2.2 255.255.255.0
+show ip interface brief
+inteface f0/0
+exit
+interface f0/0
+ip address 192.18.2.3 255.255.255.0
+show ip interface brief
+ifconfig
+enable
+configure terminal
+interface g0/0
+ip address 192.189.2.3 255.255.255.0
+show ip interface brief
+exit
+interface f0/0
+ip address 192.167.2.3 255.255.255.0 
+no shutdown
+show ip interface brief
+write memory
+show running-config
+exit
+configure terminal
+show running-config
+exit
+show running-config
+show interfaces
+ifconfig eth0 192.17.2.3 up
+ifconfig
+show interfaces
+show ip interface brief
+enable
+configure terminal
+interface f0/0
+configure terminal
+enable
+clock set
+configure terminal
+interface f0/0
+interface g0/0
+enable
+show interfaces
+show ip interface brief
+enable
+configure terminal
+ifconfig
+ifconfig eth0 192.168.1.1 up
+ifconfig
+interface g0/0
+ip address 192.168.23.2 255.255.255.0
+show interfaces
+exit
+show interfaces
+exit
+show interfaces
+ifconfig
+en
+enable
+configure terminal
+ifconfig
+enable
+configure terminal
+ifconfig
+interface g0/0
+ip address 192.168.1.1 255.255.255.0
+interface f0/0
+ip address 192.168.1.2 255.255.255.0
+no shutdown
+exit
+show interfaces
+show ip interface brief
+ifconfig eth0 192.178.1.1 up
+ifconfig 
+show ip interface brief
+show interfaces
+enable
+configure terminal
+ip route
+ip route 192.168.19.1 255.255.255.0 192.168.19.2
+ip route
