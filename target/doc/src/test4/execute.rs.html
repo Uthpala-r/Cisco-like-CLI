@@ -165,7 +165,31 @@
 <a href="#164" id="164">164</a>
 <a href="#165" id="165">165</a>
 <a href="#166" id="166">166</a>
-<a href="#167" id="167">167</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
 </span><span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span><span class="kw">crate</span>::CustomClock;
 <span class="kw">use </span><span class="kw">crate</span>::CliContext;
@@ -191,6 +215,7 @@
     PrivilegedMode,
     ConfigMode,
     InterfaceMode,
+    VlanMode,
 }
 
 
@@ -252,8 +277,8 @@
             Mode::ConfigMode =&gt; {
                 commands
                     .keys()
-                    <span class="comment">// Commands hostname, interface, help, write memory and ifconfig can be executed in the Config Mode
-                    </span>.filter(|cmd| cmd.starts_with(prefix) &amp;&amp; (<span class="kw-2">**</span>cmd == <span class="string">"hostname" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"interface" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"help" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"write memory" </span>|| cmd.starts_with(<span class="string">"ifconfig"</span>)))
+                    <span class="comment">// Commands hostname, interface, help, write memory, vlan and ifconfig can be executed in the Config Mode
+                    </span>.filter(|cmd| cmd.starts_with(prefix) &amp;&amp; (<span class="kw-2">**</span>cmd == <span class="string">"hostname" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"interface" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"help" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"write memory" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"vlan" </span>|| cmd.starts_with(<span class="string">"ifconfig"</span>)))
                     .map(|cmd| {
                         <span class="kw">let </span>second_word = cmd.split_whitespace().nth(<span class="number">1</span>).unwrap_or_default();
                         <span class="kw">let </span>fist_word = cmd.split_whitespace().nth(<span class="number">0</span>).unwrap_or_default();
@@ -275,7 +300,7 @@
                 commands
                     .keys()
                     <span class="comment">// Commands shutdown, no shutdown, help, write memory and ip address can be executed in the Interface Config Mode 
-                    </span>.filter(|cmd| cmd.starts_with(prefix) &amp;&amp; (<span class="kw-2">**</span>cmd == <span class="string">"shutdown" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"no shutdown" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"help" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"write memory" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"interface" </span>|| cmd.starts_with(<span class="string">"ip address"</span>)))
+                    </span>.filter(|cmd| cmd.starts_with(prefix) &amp;&amp; (<span class="kw-2">**</span>cmd == <span class="string">"shutdown" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"no shutdown" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"switchport" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"help" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"write memory" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"interface" </span>|| cmd.starts_with(<span class="string">"ip address"</span>)))
                     .map(|cmd| {
                         <span class="kw">let </span>second_word = cmd.split_whitespace().nth(<span class="number">1</span>).unwrap_or_default();
                         <span class="kw">let </span>fist_word = cmd.split_whitespace().nth(<span class="number">0</span>).unwrap_or_default();
@@ -292,6 +317,29 @@
                     })
                     .collect()
             }
+
+            Mode::VlanMode =&gt; {
+                commands
+                    .keys()
+                    <span class="comment">// Commands vlan, name and state can be executed in the Vlan Mode
+                    </span>.filter(|cmd| cmd.starts_with(prefix) &amp;&amp; (<span class="kw-2">**</span>cmd == <span class="string">"name" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"state" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"vlan" </span>))
+                    .map(|cmd| {
+                        <span class="kw">let </span>second_word = cmd.split_whitespace().nth(<span class="number">1</span>).unwrap_or_default();
+                        <span class="kw">let </span>fist_word = cmd.split_whitespace().nth(<span class="number">0</span>).unwrap_or_default();
+                        <span class="kw">if </span>cmd.starts_with(prefix) &amp;&amp; (prefix.contains(<span class="string">' '</span>) || prefix.contains(fist_word)){
+                            <span class="kw">let </span>second_word = cmd.split_whitespace().nth(<span class="number">1</span>).unwrap_or_default();
+                            <span class="kw">if </span>second_word.is_empty() {
+                                fist_word.to_string()
+                            } <span class="kw">else </span>{
+                                second_word.to_string()
+                            }
+                        } <span class="kw">else </span>{
+                            fist_word.to_string()
+                        }
+                    })
+                    .collect()
+            }
+
             <span class="kw">_ </span>=&gt; Vec::new(), 
         };
 

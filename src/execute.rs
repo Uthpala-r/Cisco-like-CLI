@@ -24,6 +24,7 @@ pub enum Mode {
     PrivilegedMode,
     ConfigMode,
     InterfaceMode,
+    VlanMode,
 }
 
 
@@ -85,8 +86,8 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
             Mode::ConfigMode => {
                 commands
                     .keys()
-                    // Commands hostname, interface, help, write memory and ifconfig can be executed in the Config Mode
-                    .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "hostname" || **cmd == "interface" || **cmd == "help" || **cmd == "write memory" || cmd.starts_with("ifconfig")))
+                    // Commands hostname, interface, help, write memory, vlan and ifconfig can be executed in the Config Mode
+                    .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "hostname" || **cmd == "interface" || **cmd == "help" || **cmd == "write memory" || **cmd == "vlan" || cmd.starts_with("ifconfig")))
                     .map(|cmd| {
                         let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
                         let fist_word = cmd.split_whitespace().nth(0).unwrap_or_default();
@@ -108,7 +109,7 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                 commands
                     .keys()
                     // Commands shutdown, no shutdown, help, write memory and ip address can be executed in the Interface Config Mode 
-                    .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "shutdown" || **cmd == "no shutdown" || **cmd == "help" || **cmd == "write memory" || **cmd == "interface" || cmd.starts_with("ip address")))
+                    .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "shutdown" || **cmd == "no shutdown" || **cmd == "switchport" || **cmd == "help" || **cmd == "write memory" || **cmd == "interface" || cmd.starts_with("ip address")))
                     .map(|cmd| {
                         let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
                         let fist_word = cmd.split_whitespace().nth(0).unwrap_or_default();
@@ -125,6 +126,29 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                     })
                     .collect()
             }
+
+            Mode::VlanMode => {
+                commands
+                    .keys()
+                    // Commands vlan, name and state can be executed in the Vlan Mode
+                    .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "name" || **cmd == "state" || **cmd == "vlan" ))
+                    .map(|cmd| {
+                        let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
+                        let fist_word = cmd.split_whitespace().nth(0).unwrap_or_default();
+                        if cmd.starts_with(prefix) && (prefix.contains(' ') || prefix.contains(fist_word)){
+                            let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
+                            if second_word.is_empty() {
+                                fist_word.to_string()
+                            } else {
+                                second_word.to_string()
+                            }
+                        } else {
+                            fist_word.to_string()
+                        }
+                    })
+                    .collect()
+            }
+
             _ => Vec::new(), 
         };
 

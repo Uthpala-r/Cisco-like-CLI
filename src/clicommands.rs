@@ -39,6 +39,12 @@ use crate::network_config::InterfaceConfig;
 /// - `shutdown`: Disable a router's interface
 /// - `no shutdown`: Enable a router's interface 
 /// - `ip route`: Define the static ip routes
+/// - `show ip route`: Displays the ip routes defined
+/// - `vlan`: Define vlans
+/// - `name`: Define the name of the vlan
+/// - `state: Define the state of the valn
+/// - `show vlan`: Displays information and status of VLANs.
+/// - `switchport`: Defines the switchports
 ///
 /// # Returns
 /// A `HashMap` where the keys are command names (as `&'static str`) and the values are the corresponding `Command` structs.
@@ -88,24 +94,50 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
 
     commands.insert("interface", Command {
         name: "interface",
-        description: "Enter Interface configuration mode",
+        description: "Enter Interface configuration mode or Interface Range configuration mode",
         suggestions: None,
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode | Mode::InterfaceMode) {
                 if args.is_empty() {
-                    return Err("Please specify an interface, e.g., 'interface f0/0'.".into());
+                    return Err("Please specify an interface or range, e.g., 'interface g0/0' or 'interface range f0/0 - 24'.".into());
                 }
-                let interface = args.join(" ");
-                context.current_mode = Mode::InterfaceMode;
-                context.selected_interface = Some(interface.clone());
-                context.prompt = format!("{}(config-if)#", context.config.hostname);
-                println!("Entering Interface configuration mode for: {}", interface);
-                Ok(())
+    
+                let input = args.join(" ");
+                if input.starts_with("range") {
+                    // Handle interface range
+                    let range_args = input.strip_prefix("range").unwrap().trim();
+                    let range_parts: Vec<&str> = range_args.split('-').map(|s| s.trim()).collect();
+    
+                    if range_parts.len() != 2 {
+                        return Err("Invalid range format. Use 'interface range f0/0 - 24'.".into());
+                    }
+    
+                    let start = range_parts[0];
+                    let end = range_parts[1];
+                    if start.is_empty() || end.is_empty() {
+                        return Err("Invalid range format. Start and end interfaces must be specified.".into());
+                    }
+    
+                    context.current_mode = Mode::InterfaceMode;
+                    context.selected_interface = Some(format!("{} - {}", start, end));
+                    context.prompt = format!("{}(config-if-range)#", context.config.hostname);
+                    println!("Entering Interface Range configuration mode for: {} - {}", start, end);
+                    Ok(())
+                } else {
+                    // Handle single interface
+                    let interface = input.clone();
+                    context.current_mode = Mode::InterfaceMode;
+                    context.selected_interface = Some(interface.clone());
+                    context.prompt = format!("{}(config-if)#", context.config.hostname);
+                    println!("Entering Interface configuration mode for: {}", interface);
+                    Ok(())
+                }
             } else {
                 Err("The 'interface' command is only available in Global Configuration mode and interface configuration mode.".into())
             }
         },
     });
+    
 
     commands.insert("hostname", Command {
         name: "hostname",
@@ -530,24 +562,26 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                                 println!("ip route {} {} {}", route, netmask, next_hop_or_iface);
                             }
                         }
-                    } else if args.len() == 3 {
-                        // Scenario 1: ip route <ip-address> <netmask> <next-hop>
+                    } 
+                    
+                    else if args.len() == 3 {
                         let destination_ip: Ipv4Addr = Ipv4Addr::from_str(&args[0]).expect("Invalid IP address format");
                         let netmask: Ipv4Addr = Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format");
-                        let next_hop: Ipv4Addr = Ipv4Addr::from_str(&args[2]).expect("Invalid IP address format");
-        
-                        route_table.insert(destination_ip.to_string(), (netmask, next_hop.to_string()));
-                        println!("Added route: ip route {} {} {}", destination_ip, netmask, next_hop);
-                    } else if args.len() == 2 {
-                        // Scenario 2: ip route <ip-address> <netmask> <exit interface>
-                        let destination_ip: Ipv4Addr = Ipv4Addr::from_str(&args[0]).expect("Invalid IP address format");
-                        let netmask: Ipv4Addr = Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format");
-        
-                        // In this case, assume the exit interface is passed instead of next-hop
-                        println!("Added route: ip route {} {} {}", destination_ip, netmask, "exit_interface");
-        
-                        route_table.insert(destination_ip.to_string(), (netmask, "exit_interface".to_string()));
-                    } else if args.len() == 4 {
+                        
+                        if let Ok(next_hop) = Ipv4Addr::from_str(&args[2]) {
+                            // Scenario 1: ip route <ip-address> <netmask> <next-hop>
+                            route_table.insert(destination_ip.to_string(), (netmask, next_hop.to_string()));
+                            println!("Added route: ip route {} {} {}", destination_ip, netmask, next_hop);
+                        }
+                        else {
+                            // Scenario 2: ip route <ip-address> <netmask> <exit interface>
+                            let exit_interface: String = args[2].to_string();
+                            println!("Added route: ip route {} {} {}", destination_ip, netmask, exit_interface);
+                            route_table.insert(destination_ip.to_string(), (netmask, exit_interface));
+                        }   
+                    } 
+                    
+                    else if args.len() == 4 {
                         // Scenario 3: ip route <ip-address> <netmask> <exit interface> <next-hop>
                         let destination_ip: Ipv4Addr = Ipv4Addr::from_str(&args[0]).expect("Invalid IP address format");
                         let netmask: Ipv4Addr = Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format");
@@ -557,7 +591,9 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                         // Insert the route in the route table with exit interface and next hop
                         route_table.insert(destination_ip.to_string(), (netmask, format!("{} {}", exit_interface, next_hop)));
                         println!("Added route: ip route {} {} {} {}", destination_ip, netmask, exit_interface, next_hop);
-                    } else {
+                    } 
+                    
+                    else {
                         println!("Invalid arguments provided to 'ip route'. Expected: ip route <ip-address> <netmask> <next-hop | exit-interface> <next-hop>.");
                     }
         
@@ -568,6 +604,366 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             },
         },
     );
+
+
+    commands.insert(
+        "show ip route",
+        Command {
+            name: "show ip route",
+            description: "Display the routing table or details for a specific route",
+            suggestions: None,
+            execute: |args, context, _| {
+                if matches!(context.current_mode, Mode::PrivilegedMode) {
+                    let route_table = ROUTE_TABLE.lock().unwrap();
+        
+                    if args.is_empty() {
+                        println!("Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP");
+                        println!("       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area");
+                        println!("       N1 - OSPF NSSA external type 1, N2 - OSPF NSSA external type 2");
+                        println!("       E1 - OSPF external type 1, E2 - OSPF external type 2, E - EGP");
+                        println!("       i - IS-IS, L1 - IS-IS level-1, L2 - IS-IS level-2, ia - IS-IS inter area");
+                        println!("       * - candidate default, U - per-user static route, o - ODR");
+                        println!("       P - periodic downloaded static route");
+                        println!();
+        
+                        if route_table.is_empty() {
+                            println!("No routes configured.");
+                        } else {
+                            for (destination, (netmask, next_hop_or_iface)) in route_table.iter() {
+                                let route_type = if next_hop_or_iface.contains("exit_interface") {
+                                    "C"
+                                } else {
+                                    "S"
+                                };
+        
+                                println!(
+                                    "{}\t{} {} via {}",
+                                    route_type, destination, netmask, next_hop_or_iface
+                                );
+                            }
+                        }
+                    } else if args.len() == 1 {
+                        let destination_ip = args[0];
+                        if let Some((netmask, next_hop_or_iface)) = route_table.get(destination_ip) {
+                            let route_type = if next_hop_or_iface.contains("exit_interface") {
+                                "connected"
+                            } else {
+                                "static"
+                            };
+        
+                            println!("Routing entry for {}/{}", destination_ip, netmask);
+                            println!("Known via \"{}\"", route_type);
+                            println!("  Routing Descriptor Blocks:");
+                            println!("  * {}", next_hop_or_iface);
+                        } else {
+                            println!("No route found for {}.", destination_ip);
+                        }
+                    } else {
+                        println!("Invalid arguments. Use 'show ip route' or 'show ip route <ip-address>'.");
+                    }
+        
+                    Ok(())
+                }
+                else {
+                    Err("The 'show ip route' command is only available in Priviledged Exec mode.".into())
+                }
+            },
+        },
+    );
+
+    commands.insert("vlan", Command {
+        name: "vlan",
+        description: "Define VLAN or VLAN Range",
+        suggestions: None,
+        execute: |args, context, _| {
+            if matches!(context.current_mode, Mode::ConfigMode | Mode::VlanMode) {
+                if args.is_empty() {
+                    return Err("Please specify a VLAN ID or VLAN range, e.g., 'vlan 5' or 'vlan range 10 - 20'.".into());
+                }
+    
+                let input = args.join(" ");
+                
+                if input.starts_with("range") {
+                    // Handle VLAN range
+                    let range_args = input.strip_prefix("range").unwrap().trim();
+                    let range_parts: Vec<&str> = range_args.split('-').map(|s| s.trim()).collect();
+    
+                    if range_parts.len() != 2 {
+                        return Err("Invalid range format. Use 'vlan range 10 - 20'.".into());
+                    }
+    
+                    // Validate the range
+                    let start: u16 = range_parts[0].parse().map_err(|_| "Invalid VLAN ID.")?;
+                    let end: u16 = range_parts[1].parse().map_err(|_| "Invalid VLAN ID.")?;
+                    
+                    if start < 2 || end > 4094 || start > end {
+                        return Err("VLAN range must be between 2 and 4094, and the start must be less than or equal to the end.".into());
+                    }
+    
+                    // Create the VLAN range
+                    context.current_mode = Mode::VlanMode;
+                    context.selected_vlan = Some(format!("{} - {}", start, end));
+                    context.prompt = format!("{}(config-vlan)#", context.config.hostname);
+                    println!("Entering VLAN Range configuration mode for VLANs: {} - {}", start, end);
+                    Ok(())
+                } else {
+                    // Handle single VLAN
+                    let mut vlan_args: Vec<&str> = input.split_whitespace().collect();
+                    let vlan_id: u16 = input.parse().map_err(|_| "Invalid VLAN ID.")?;
+    
+                    if vlan_id == 1 {
+                        return Err("VLAN 1 is the default VLAN and cannot be created.".into());
+                    }
+    
+                    if vlan_id < 2 || vlan_id > 4094 {
+                        return Err("VLAN ID must be between 2 and 4094.".into());
+                    }
+
+                    let vlan_name = if vlan_args.len() > 1 {
+                        vlan_args[1..].join(" ")
+                    } else {
+                        format!("VLAN{}", vlan_id) // Default name
+                    };
+    
+                    context.current_mode = Mode::VlanMode;
+                    context.selected_vlan = Some(vlan_id.to_string());
+                    context.prompt = format!("{}(config-vlan)#", context.config.hostname);
+                    context.vlan_names.get_or_insert_with(HashMap::new);
+                    println!("Entering VLAN configuration mode for VLAN ID: {}", vlan_id);
+                    
+                    if let Some(vlan_names) = &mut context.vlan_names {
+                        vlan_names.insert(vlan_id.to_string(), vlan_name.clone());
+                        println!("VLAN {} named: {}", vlan_id, vlan_name);
+                        Ok(())
+                    } else {
+                        Err("VLAN names are not initialized.".into())
+                    }
+                    
+                }
+            } else {
+                Err("The 'vlan' command is only available in Global Configuration mode and Vlan mode.".into())
+            }
+        },
+    });
+    
+    commands.insert("name", Command {
+        name: "name",
+        description: "Set VLAN name",
+        suggestions: None,
+        execute: |args, context, _| {
+            if matches!(context.current_mode, Mode::VlanMode) {
+                context.vlan_names.get_or_insert_with(HashMap::new);
+                if let Some(vlan_id_str) = &context.selected_vlan {
+                    // Parse vlan_id as u16 from string
+                    let vlan_id: u16 = vlan_id_str.parse().map_err(|_| "Invalid VLAN ID.")?;
+    
+                    if args.is_empty() {
+                        let vlan_name = format!("VLAN{}", vlan_id);
+                    }
+                    let vlan_name = args.join(" ");
+                    
+                    if vlan_id == 1 {
+                        return Err("VLAN 1 cannot have its name changed.".into());
+                    }
+    
+                    // Access the HashMap inside Option and insert the VLAN name
+                    if let Some(vlan_names) = &mut context.vlan_names {
+                        vlan_names.insert(vlan_id.to_string(), vlan_name.clone());
+                        println!("VLAN {} named: {}", vlan_id, vlan_name);
+                        Ok(())
+                    } else {
+                        Err("VLAN names are not initialized.".into())
+                    }
+                } else {
+                    Err("Please enter a VLAN configuration mode first (e.g., 'vlan 5').".into())
+                }
+            } else {
+                Err("The 'name' command is only available in Vlan mode.".into())
+            }
+        },
+    });
+    
+    commands.insert("state", Command {
+        name: "state",
+        description: "Set VLAN state",
+        suggestions: None,
+        execute: |args, context, _| {
+            if matches!(context.current_mode, Mode::VlanMode) {
+                
+                context.vlan_states.get_or_insert_with(HashMap::new);
+                if let Some(vlan_id_str) = &context.selected_vlan {
+                    // Parse vlan_id as u16 from string
+                    let vlan_id: u16 = vlan_id_str.parse().map_err(|_| "Invalid VLAN ID.")?;
+    
+                    if args.is_empty() {
+                        return Err("Please specify the state for the VLAN (active or suspend).".into());
+                    }
+    
+                    let state = args[0].to_lowercase();
+                    if state != "active" && state != "suspend" {
+                        return Err("State must be 'active' or 'suspend'.".into());
+                    }
+    
+                    if vlan_id == 1 {
+                        return Err("VLAN 1 cannot be suspended.".into());
+                    }
+    
+                    // Access the HashMap inside Option and insert the VLAN state
+                    if let Some(vlan_states) = &mut context.vlan_states {
+                        vlan_states.insert(vlan_id, state.clone());
+                        println!("VLAN {} state set to: {}", vlan_id, state);
+                        Ok(())
+                    } else {
+                        Err("VLAN states are not initialized.".into())
+                    }
+                } else {
+                    Err("Please enter a VLAN configuration mode first (e.g., 'vlan 5').".into())
+                }
+            } else {
+                Err("The 'state' command is only available in Vlan mode.".into())
+            }
+        },
+    });
+
+    commands.insert(
+        "show vlan",
+        Command {
+            name: "show vlan",
+            description: "Displays information and status of VLANs.",
+            suggestions: None,
+            execute: |args, context, _| {
+                if matches!(context.current_mode, Mode::PrivilegedMode) {
+                    if let (Some(vlan_names), Some(vlan_states)) = (&context.vlan_names, &context.vlan_states) {
+                        // Display table header for VLANs
+                        println!("{:<6} {:<30} {:<10} {}", "VLAN", "Name", "Status", "Ports");
+
+                        for (vlan_id_str, vlan_name) in vlan_names {
+                            let vlan_id: u16 = vlan_id_str.parse().unwrap_or_default(); 
+                            let unknown_status = "active".to_string();
+                            let status = vlan_states.get(&vlan_id).unwrap_or(&unknown_status); 
+                            let ports = " ";  // temporary
+    
+                            println!("{:<6} {:<30} {:<10} {}", vlan_id, vlan_name, status, ports);
+                        }
+    
+                        Ok(())
+                    } else if let Some(vlan_names) = &context.vlan_names {
+                        println!("{:<6} {:<30} {:<10} {}", "VLAN", "Name", "Status", "Ports");
+
+                        for vlan_id_str in vlan_names.keys() {
+                            let vlan_id: u16 = vlan_id_str.parse().unwrap_or_default();
+                            let vlan_name = format!("VLAN{}", vlan_id);
+                            let status = "active"; 
+                            let ports = " "; // temporary
+    
+                            println!("{:<6} {:<30} {:<10} {}", vlan_id, vlan_name, status, ports);
+                        }
+
+                        Ok(())
+                    } else {
+                        Err("No VLAN information available.".into())
+                    }
+                    
+                }
+            
+                else {
+                    Err("The 'show vlan' command is only available in Priviledged Exec mode.".into())
+                }
+            },
+        },
+    );
+
+    commands.insert("switchport", Command {
+        name: "switchport",
+        description: "Configure switchport settings on the interface",
+        suggestions: Some(vec![
+            "access", "mode", "nonegotiate", "port-security", 
+            "priority", "protected", "trunk", "voice",
+        ]),
+        execute: |args, context, _| {
+            if matches!(context.current_mode, Mode::InterfaceMode) {
+                if args.is_empty() {
+                    return Err("Please specify a switchport subcommand, e.g., 'switchport mode'.".into());
+                }
+    
+                match args[0].as_ref() {
+                    "mode" => {
+                        if args.len() < 2 {
+                            return Err("Usage: switchport mode [access | dynamic | trunk]".into());
+                        }
+                        match args[1].as_ref() {
+                            "access" => {
+                                println!("Switchport mode set to ACCESS.");
+                                context.switchport_mode = Some("access".to_string());
+                                Ok(())
+                            }
+                            "dynamic" => {
+                                println!("Switchport mode set to DYNAMIC.");
+                                context.switchport_mode = Some("dynamic".to_string());
+                                Ok(())
+                            }
+                            "trunk" => {
+                                println!("Switchport mode set to TRUNK.");
+                                context.switchport_mode = Some("trunk".to_string());
+                                Ok(())
+                            }
+                            _ => Err("Invalid mode. Use 'access', 'dynamic', or 'trunk'.".into()),
+                        }
+                    }
+                    "trunk" => {
+                        if args.len() < 2 {
+                            return Err("Usage: switchport trunk [encapsulation | native vlan | allowed vlan]".into());
+                        }
+                        match args[1].as_ref() {
+                            "encapsulation" => {
+                                if args.len() < 3 || args[2] != "dot1q" {
+                                    return Err("Usage: switchport trunk encapsulation dot1q".into());
+                                }
+                                println!("Trunk encapsulation set to DOT1Q.");
+                                context.trunk_encapsulation = Some("dot1q".to_string());
+                                Ok(())
+                            }
+                            "native" => {
+                                if args.len() < 4 || args[2] != "vlan" {
+                                    return Err("Usage: switchport trunk native vlan <vlan_id>".into());
+                                }
+                                let vlan_id: u16 = args[3].parse().map_err(|_| "Invalid VLAN ID.")?;
+                                println!("Native VLAN set to {}.", vlan_id);
+                                context.native_vlan = Some(vlan_id);
+                                Ok(())
+                            }
+                            "allowed" => {
+                                if args.len() < 4 || args[2] != "vlan" {
+                                    return Err("Usage: switchport trunk allowed vlan <vlan_id>".into());
+                                }
+                                let vlan_id: u16 = args[3].parse().map_err(|_| "Invalid VLAN ID.")?;
+                                println!("Allowed VLAN set to {}.", vlan_id);
+                                context.allowed_vlans.insert(vlan_id);
+                                Ok(())
+                            }
+                            _ => Err("Invalid trunk subcommand. Use 'encapsulation', 'native vlan', or 'allowed vlan'.".into()),
+                        }
+                    }
+                    "access" => {
+                        println!("Access mode characteristics set.");
+                        Ok(())
+                    }
+                    "nonegotiate" => {
+                        println!("Switchport set to NONEGOTIATE.");
+                        Ok(())
+                    }
+                    "port-security" => {
+                        println!("Port security configured.");
+                        Ok(())
+                    }
+                    _ => Err("Invalid switchport subcommand.".into()),
+                }
+            } else {
+                Err("The 'switchport' command is only available in Interface Configuration mode.".into())
+            }
+        },
+    });
+    
 
     commands
 }

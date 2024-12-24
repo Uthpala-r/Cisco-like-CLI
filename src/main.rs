@@ -28,6 +28,7 @@ use crate::execute::Mode;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use rustyline::history::DefaultHistory;
+use std::collections::HashSet;
 
 
 /// The main function serves as the entry point of the CLI application.
@@ -48,6 +49,13 @@ fn main() {
         config: CliConfig::default(),
         prompt: format!("{}>", CliConfig::default().hostname),
         selected_interface: None,
+        selected_vlan: None,
+        vlan_names: None,
+        vlan_states: None,
+        switchport_mode: None,
+        trunk_encapsulation: None,
+        native_vlan: None,
+        allowed_vlans: HashSet::new(),
     };
 
     // Configure the Rustyline editor with history behavior
@@ -83,6 +91,11 @@ fn main() {
                             context.current_mode = Mode::ConfigMode;
                             context.prompt = format!("{}(config)#", context.config.hostname);
                             println!("Exiting Interface Configuration Mode.");
+                        }
+                        Mode::VlanMode => {
+                            context.current_mode = Mode::ConfigMode;
+                            context.prompt = format!("{}(config)#", context.config.hostname);
+                            println!("Exiting Vlan Mode.");
                         }
                         Mode::ConfigMode => {
                             context.current_mode = Mode::PrivilegedMode;

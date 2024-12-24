@@ -1,101 +1,101 @@
 #V2
-ifconfig
-show interfaces
-enable\\
-enable
-configure terminal
-interface g0/0
-ip address 1.2.3.4 4.4.4.4
-show interfaces
-show interfaces brief
-ifconfig
-ifconfig eth0 2.2.2.2 up
-ifconfig
-show interfaces brief
-show interfaces 
-ifconfig
-enable
-configure terminal
-interface g0/0
-ip address 192.168.1.2 255.255.255.0
-show interfaces
-show ip interface brief
-ip address 192.18.2.2 255.255.255.0
-show ip interface brief
-inteface f0/0
 exit
-interface f0/0
-ip address 192.18.2.3 255.255.255.0
-show ip interface brief
-ifconfig
+ip route 192.168.1.1 255.255.255.0 g0/0
+ip route 192.168.1.2 255.255.255.0 192.168.1.1
+exit
+show ip route
 enable
 configure terminal
-interface g0/0
-ip address 192.189.2.3 255.255.255.0
-show ip interface brief
+interface 192.168.1.1 255.255.255.0 
 exit
-interface f0/0
-ip address 192.167.2.3 255.255.255.0 
-no shutdown
-show ip interface brief
-write memory
-show running-config
+ip route 192.168.1.1 255.255.255.0 g0/0
 exit
-configure terminal
-show running-config
-exit
-show running-config
-show interfaces
-ifconfig eth0 192.17.2.3 up
-ifconfig
-show interfaces
-show ip interface brief
+show ip route 192.168.1.1
 enable
 configure terminal
-interface f0/0
-configure terminal
-enable
-clock set
-configure terminal
-interface f0/0
-interface g0/0
-enable
-show interfaces
-show ip interface brief
-enable
-configure terminal
-ifconfig
-ifconfig eth0 192.168.1.1 up
-ifconfig
-interface g0/0
-ip address 192.168.23.2 255.255.255.0
-show interfaces
+interface f0/1
+interface range f0/1-2
 exit
-show interfaces
-exit
-show interfaces
-ifconfig
 en
 enable
 configure terminal
-ifconfig
+vlan 5
+name engineering
+state active
 enable
 configure terminal
-ifconfig
-interface g0/0
-ip address 192.168.1.1 255.255.255.0
-interface f0/0
-ip address 192.168.1.2 255.255.255.0
-no shutdown
+vlan 5
+name engineering
+state active
+en
+enable
+configure terminal
+vlan 5
 exit
-show interfaces
-show ip interface brief
-ifconfig eth0 192.178.1.1 up
-ifconfig 
-show ip interface brief
-show interfaces
+show vlan
+en
 enable
 configure terminal
-ip route
-ip route 192.168.19.1 255.255.255.0 192.168.19.2
-ip route
+vlan 5
+exit
+show vlan
+configure terminal
+vlan 5
+name engi
+state active
+show vlan
+exit
+show vlan
+configure terminal
+vlan 10
+name engineering
+exit
+show version
+show vlan
+enable
+configure terminal
+vlan 5
+exit
+show vlan
+enable
+configure terminal
+vlan 5
+exit
+show vlan
+enable
+configure terminal
+vlan 5
+vlan 10
+enable
+configure terminal
+vlan 5
+vlan 10
+enable
+configure terminal
+vlan 5
+vlan 10
+name Engineering
+status 
+status d
+state
+state suspend
+exit
+show vlan
+en
+enable
+configure terminal
+interface g0/0
+sw?
+switchport ?
+switchport 
+switchport mode trunk
+switchport nonegotiation
+switchport nonegotiate
+?
+configure terminal
+enable
+?
+configure terminal
+?
+interface g
+?
