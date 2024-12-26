@@ -1,6 +1,6 @@
 /// External crates for the CLI application
 use crate::cliconfig::CliConfig;
-use std::fs::{self, File, OpenOptions};
+use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 
 

@@ -2,6 +2,7 @@
 use std::collections::HashMap;
 use crate::CustomClock;
 use crate::CliContext;
+use crate::commandcompleter::{CommandCompleter};
 
 /// Represents a command in the CLI.
 ///
@@ -25,6 +26,7 @@ pub enum Mode {
     ConfigMode,
     InterfaceMode,
     VlanMode,
+    RouterConfigMode,
 }
 
 
@@ -40,10 +42,24 @@ pub enum Mode {
 /// - If the input ends with `?`, it provides autocompletion suggestions based on the current mode.
 /// - Otherwise, it matches the input to a command and executes it if found.
 /// - Prints appropriate messages for invalid commands or execution errors.
-pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: &mut CliContext, clock: &mut Option<CustomClock>) {
+pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: &mut CliContext, clock: &mut Option<CustomClock>, completer: &CommandCompleter,) {
     
     // Normalize the input by trimming whitespace.
     let normalized_input = input.trim();
+
+    // Handle subcommand suggestions if the input ends with a space.
+    if input.ends_with(' ') {
+        let parts: Vec<&str> = normalized_input.split_whitespace().collect();
+        if let Some(suggestions) = completer.commands.get(parts[0]) {
+            println!("Possible subcommands:");
+            for suggestion in suggestions {
+                println!("  {}", suggestion);
+            }
+        } else {
+            println!("No subcommands available for '{}'", parts[0]);
+        }
+        return;
+    }
 
     // Handle autocompletion when the input ends with `?`.
     if normalized_input.ends_with('?') {
@@ -132,6 +148,28 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                     .keys()
                     // Commands vlan, name and state can be executed in the Vlan Mode
                     .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "name" || **cmd == "state" || **cmd == "vlan" ))
+                    .map(|cmd| {
+                        let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
+                        let fist_word = cmd.split_whitespace().nth(0).unwrap_or_default();
+                        if cmd.starts_with(prefix) && (prefix.contains(' ') || prefix.contains(fist_word)){
+                            let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
+                            if second_word.is_empty() {
+                                fist_word.to_string()
+                            } else {
+                                second_word.to_string()
+                            }
+                        } else {
+                            fist_word.to_string()
+                        }
+                    })
+                    .collect()
+            }
+
+            Mode::RouterConfigMode => {
+                commands
+                    .keys()
+                    // Commands vlan, name and state can be executed in the Vlan Mode
+                    .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "network" ))
                     .map(|cmd| {
                         let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
                         let fist_word = cmd.split_whitespace().nth(0).unwrap_or_default();

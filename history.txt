@@ -1,44 +1,4 @@
 #V2
-exit
-ip route 192.168.1.1 255.255.255.0 g0/0
-ip route 192.168.1.2 255.255.255.0 192.168.1.1
-exit
-show ip route
-enable
-configure terminal
-interface 192.168.1.1 255.255.255.0 
-exit
-ip route 192.168.1.1 255.255.255.0 g0/0
-exit
-show ip route 192.168.1.1
-enable
-configure terminal
-interface f0/1
-interface range f0/1-2
-exit
-en
-enable
-configure terminal
-vlan 5
-name engineering
-state active
-enable
-configure terminal
-vlan 5
-name engineering
-state active
-en
-enable
-configure terminal
-vlan 5
-exit
-show vlan
-en
-enable
-configure terminal
-vlan 5
-exit
-show vlan
 configure terminal
 vlan 5
 name engi
@@ -99,3 +59,43 @@ configure terminal
 ?
 interface g
 ?
+enable
+configure terminal
+enable
+configure terminal
+enable
+configure terminal
+ip route 2.2.2.2 3.3.3.3 4.4.4.4
+show ip route
+exit
+show ip route
+configure terminal
+interface g0/0
+enable 
+configure terminal
+interface 
+interface  g0/0
+enable
+configure terminal
+router ospf
+router ospf 12
+enable
+configure terminal
+en
+enable
+configure terminal
+router ospf 23
+network 10.0.0.1 2.2.2.2 are 1
+enable
+configure terminal
+interface g0/0
+ip ospf cost 65
+ip ospf retransmit-interval 1
+enable 
+configure terminal
+router ospf 4
+neighbor 192.2.2.2 cost 2
+enable 
+configure terminal
+router ospf 6
+area 2.5.5.5 authentication

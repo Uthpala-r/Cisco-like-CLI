@@ -28,7 +28,7 @@ use crate::execute::Mode;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use rustyline::history::DefaultHistory;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 
 
 /// The main function serves as the entry point of the CLI application.
@@ -66,7 +66,10 @@ fn main() {
     // Initialize the command-line editor with a custom command completer
     let mut rl = Editor::<CommandCompleter, DefaultHistory>::with_config(config)
         .expect("Failed to initialize editor");
-    rl.set_helper(Some(CommandCompleter { commands: command_names }));
+
+    let mut commands_map: HashMap<String, Vec<String>> = HashMap::new();
+    for command in command_names {commands_map.insert(command.clone(), vec![command.clone()]);}
+    rl.set_helper(Some(CommandCompleter { commands: commands_map }));
     rl.load_history("history.txt").ok();
 
     // Set up the initial clock settings
@@ -83,39 +86,10 @@ fn main() {
             Ok(buffer) => {
                 rl.add_history_entry(buffer.as_str());
                 let input = buffer.trim();
+                let completer = rl.helper().unwrap() as &CommandCompleter;
 
-                // Handle the "exit" command based on the current CLI mode. Exiting the modes in order
-                if input == "exit" {
-                    match context.current_mode {
-                        Mode::InterfaceMode => {
-                            context.current_mode = Mode::ConfigMode;
-                            context.prompt = format!("{}(config)#", context.config.hostname);
-                            println!("Exiting Interface Configuration Mode.");
-                        }
-                        Mode::VlanMode => {
-                            context.current_mode = Mode::ConfigMode;
-                            context.prompt = format!("{}(config)#", context.config.hostname);
-                            println!("Exiting Vlan Mode.");
-                        }
-                        Mode::ConfigMode => {
-                            context.current_mode = Mode::PrivilegedMode;
-                            context.prompt = format!("{}#", context.config.hostname);
-                            println!("Exiting Global Configuration Mode.");
-                        }
-                        Mode::PrivilegedMode => {
-                            context.current_mode = Mode::UserMode;
-                            context.prompt = format!("{}>", context.config.hostname);
-                            println!("Exiting Privileged EXEC Mode.");
-                        }
-                        Mode::UserMode => {
-                            println!("Already at the top level.");
-                        }
-                    }
-
-                } else {
-                    // Else execute the execute_commands fucntion to execute other commands
-                    execute_command(input, &commands, &mut context, &mut clock);
-                }
+                execute_command(input, &commands, &mut context, &mut clock, completer);
+                      
             }
 
             // Exit the CLI if Ctrl+C is pressed

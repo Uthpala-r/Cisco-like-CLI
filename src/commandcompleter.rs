@@ -7,6 +7,7 @@ use rustyline::completion::{Completer, Pair};
 use rustyline::highlight::Highlighter;
 use rustyline::validate::{Validator, ValidationContext, ValidationResult};
 use rustyline::error::ReadlineError;
+use std::collections::HashMap;
 
 
 /// A custom completer for the CLI application.
@@ -19,7 +20,7 @@ use rustyline::error::ReadlineError;
 /// 
 pub struct CommandCompleter {
     /// A list of all available commands for auto-completion.
-    pub commands: Vec<String>,
+    pub commands: HashMap<String, Vec<String>>,
 }
 
 
@@ -57,17 +58,50 @@ impl Completer for CommandCompleter {
             line
         };
 
-        // Match commands that start with the query and add them as suggestions.
-        for (command, _) in suggestions {
-            if command.starts_with(query) {
-                candidates.push(Pair {
-                    display: command.clone().to_string(),     
-                    replacement: command.clone().to_string(), 
-                });
+        let parts: Vec<&str> = query.trim_end().split_whitespace().collect();
+
+        if parts.len() == 1 && !query.ends_with(' ') {
+            // Suggest main commands
+            for (command, _) in &suggestions {
+                if command.starts_with(parts[0]) {
+                    candidates.push(Pair {
+                        display: command.to_string(),
+                        replacement: command.to_string(),
+                    });
+                }
+            }
+        } else if parts.len() == 1 && query.ends_with(' ') {
+            // Suggest subcommands for the main command
+            if let Some(subcommands) = suggestions.get(parts[0]) {
+                for subcmd in subcommands.suggestions.iter() {
+                    candidates.push(Pair {
+                        display: subcmd.join(" "),
+                        replacement: format!("{} {}", parts[0], subcmd.join(" ")),
+                    });
+                }
+            }
+        } else if parts.len() == 2 {
+            // Suggest specific subcommands that start with the entered prefix
+            if let Some(subcommands) = suggestions.get(parts[0]) {
+                for subcmd in subcommands.suggestions.iter() {
+                    if subcmd.join(" ").starts_with(parts[1]) {
+                        candidates.push(Pair {
+                            display: subcmd.join(" "),
+                            replacement: subcmd.join(" "),
+                        });
+                    }
+                }
             }
         }
 
-        Ok((0, candidates))
+        // Determine the starting position for completions
+        let pos = if parts.len() > 1 {
+            query.rfind(' ').unwrap_or(0) + 1
+        } else {
+            0
+        };
+
+        Ok((pos, candidates))
     }
 }
 
@@ -112,3 +146,4 @@ impl Validator for CommandCompleter {
         Ok(ValidationResult::Valid(None)) 
     }
 }
+

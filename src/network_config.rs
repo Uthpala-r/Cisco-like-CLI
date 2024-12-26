@@ -97,6 +97,9 @@ lazy_static::lazy_static! {
     /// It is wrapped in a `Mutex` to ensure safe, mutable access from multiple threads.
     pub static ref ROUTE_TABLE: Mutex<HashMap<String, (Ipv4Addr, String)>> = Mutex::new(HashMap::new());
 
+
+    pub static ref OSPF_CONFIG: Mutex<OSPFConfig> = Mutex::new(OSPFConfig::new());
+
 }
 
 
@@ -122,6 +125,41 @@ pub fn calculate_broadcast(ip: Ipv4Addr, prefix_len: u32) -> Ipv4Addr {
     let mask = !0 << (32 - prefix_len);     // Create the subnet mask
     let broadcast_u32 = ip_u32 | !mask;     // Calculate the broadcast address
     Ipv4Addr::from(broadcast_u32)           // Convert back to an Ipv4Addr
+}
+
+
+#[derive(Debug, Clone)]
+pub struct OSPFConfig {
+    pub passive_interfaces: Vec<String>,
+    pub distance: Option<u32>,
+    pub default_information_originate: bool,
+    pub router_id: Option<String>,
+    pub areas: HashMap<String, AreaConfig>,
+    pub networks: HashMap<String, u32>,
+    pub neighbors: HashMap<Ipv4Addr, Option<u32>>,
+    pub process_id: Option<u32>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AreaConfig {
+    pub authentication: bool,
+    pub stub: bool,
+    pub default_cost: Option<u32>,
+}
+
+impl OSPFConfig {
+    pub fn new() -> Self {
+        Self {
+            passive_interfaces: Vec::new(),
+            distance: None,
+            default_information_originate: false,
+            router_id: None,
+            areas: HashMap::new(),
+            networks: HashMap::new(),
+            neighbors: HashMap::new(),
+            process_id: None,
+        }
+    }
 }
 
 
