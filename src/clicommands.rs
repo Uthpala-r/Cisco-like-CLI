@@ -41,11 +41,22 @@ use crate::network_config::{InterfaceConfig, OSPFConfig};
 /// - `no shutdown`: Enable a router's interface 
 /// - `ip route`: Define the static ip routes
 /// - `show ip route`: Displays the ip routes defined
-/// - `vlan`: Define vlans
+/// - `vlan`: Define vlans. This will enter the Vlan Mode
 /// - `name`: Define the name of the vlan
 /// - `state: Define the state of the valn
 /// - `show vlan`: Displays information and status of VLANs.
 /// - `switchport`: Defines the switchports
+/// - `router ospf`: Configures and enables an OSPF routing process on the router. Specify the process ID to distinguish between multiple OSPF instances. This will enter the RouterConfig Mode
+/// - `network`: Associates a network or subnet with a specific OSPF area.
+/// - `ip ospf`: Assigns OSPF-specific parameters to an interface, such as the OSPF cost or authentication settings.
+/// - `neighbor`: Manually specifies a neighboring router for OSPF adjacency, usually in cases of non-broadcast networks.
+/// - `area`: Defines OSPF area-specific configurations, such as authentication, stub area settings, or default-cost for stub areas.
+/// - `passive-interface`: Prevents OSPF from sending hello packets on the specified interface while still advertising the interface's network in OSPF.
+/// - `distance`: Configures the administrative distance for OSPF routes, which influences route preference when multiple protocols advertise the same destination.
+/// - `default-information`: Configures OSPF to advertise a default route (0.0.0.0/0) to other routers in the network.
+/// - `router-id`: Manually sets a unique identifier for the OSPF process, typically an IPv4 address, to distinguish the router in the OSPF domain.
+/// - `clear ip ospf process`: Restarts the OSPF process, clearing the OSPF routing table and adjacencies.
+/// - `show ip ospf neighbor`: Displays information about OSPF neighbors, including their state, router ID, and the interface used for adjacency.
 ///
 /// # Returns
 /// A `HashMap` where the keys are command names (as `&'static str`) and the values are the corresponding `Command` structs.

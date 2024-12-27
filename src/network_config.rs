@@ -98,6 +98,16 @@ lazy_static::lazy_static! {
     pub static ref ROUTE_TABLE: Mutex<HashMap<String, (Ipv4Addr, String)>> = Mutex::new(HashMap::new());
 
 
+    /// A global configuration for the OSPF (Open Shortest Path First) protocol, 
+    /// wrapped in a `Mutex` to allow safe concurrent access.
+    ///
+    /// The `OSPF_CONFIG` object holds the state and settings for the OSPF protocol 
+    /// and ensures thread-safe mutation and access by leveraging Rust's synchronization primitives.
+    ///
+    /// # Notes
+    /// - The `Mutex` ensures that only one thread can modify the configuration at a time.
+    /// - Always handle the possibility of a poisoned mutex when locking.
+    ///
     pub static ref OSPF_CONFIG: Mutex<OSPFConfig> = Mutex::new(OSPFConfig::new());
 
 }
@@ -128,6 +138,23 @@ pub fn calculate_broadcast(ip: Ipv4Addr, prefix_len: u32) -> Ipv4Addr {
 }
 
 
+/// Represents the configuration for the OSPF (Open Shortest Path First) protocol.
+///
+/// This structure contains the various configurable parameters required for 
+/// setting up an OSPF routing process, including interfaces, areas, and neighbors.
+///
+/// # Fields
+/// - `passive_interfaces`: A list of interface names that are configured as passive, meaning 
+///   OSPF will not send or receive routing packets on these interfaces.
+/// - `distance`: An optional administrative distance value for the OSPF routes.
+/// - `default_information_originate`: A boolean flag indicating whether to advertise a default route
+///   to other OSPF routers.
+/// - `router_id`: An optional unique identifier for the router within the OSPF process.
+/// - `areas`: A mapping of area IDs to their respective [`AreaConfig`] configurations.
+/// - `networks`: A mapping of network prefixes to their associated subnet masks.
+/// - `neighbors`: A mapping of OSPF neighbor IPv4 addresses to their optional priority values.
+/// - `process_id`: An optional identifier for the OSPF routing process.
+///
 #[derive(Debug, Clone)]
 pub struct OSPFConfig {
     pub passive_interfaces: Vec<String>,
@@ -140,6 +167,17 @@ pub struct OSPFConfig {
     pub process_id: Option<u32>,
 }
 
+
+/// Represents the configuration for a specific OSPF area.
+///
+/// Each OSPF area can have unique settings for authentication, cost, and whether it is 
+/// a stub area.
+///
+/// # Fields
+/// - `authentication`: Indicates whether authentication is enabled for this area.
+/// - `stub`: Indicates whether this area is configured as a stub area.
+/// - `default_cost`: An optional cost value for routes advertised into this stub area.
+///
 #[derive(Debug, Clone)]
 pub struct AreaConfig {
     pub authentication: bool,

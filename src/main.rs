@@ -92,7 +92,6 @@ fn main() {
                       
             }
 
-            // Exit the CLI if Ctrl+C is pressed
             Err(ReadlineError::Interrupted) => {
                 println!("CTRL-C pressed. Exiting...");
                 break;
