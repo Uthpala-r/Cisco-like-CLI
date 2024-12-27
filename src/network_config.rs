@@ -110,6 +110,18 @@ lazy_static::lazy_static! {
     ///
     pub static ref OSPF_CONFIG: Mutex<OSPFConfig> = Mutex::new(OSPFConfig::new());
 
+
+    /// A global store for access control lists (ACLs), wrapped in a `Mutex` to ensure thread-safe access.
+    ///
+    /// This `ACL_STORE` holds a collection of ACLs, indexed by a unique string identifier (either by name or number). 
+    /// The store is protected by a `Mutex` to allow safe concurrent access from multiple threads.
+    ///
+    /// # Notes
+    /// - The `Mutex` ensures that only one thread can modify the ACL store at a time, avoiding race conditions.
+    /// - You should always handle the possibility of a poisoned mutex when locking, for example by using `.unwrap()` or handling the error gracefully.
+    ///
+    pub static ref ACL_STORE: Mutex<HashMap<String, AccessControlList>> = Mutex::new(HashMap::new());
+
 }
 
 
@@ -200,4 +212,50 @@ impl OSPFConfig {
     }
 }
 
+
+/// Represents a single entry in an Access Control List (ACL).
+///
+/// This structure defines the conditions for matching network traffic in an ACL, 
+/// including the action to take (allow or deny), source and destination addresses, 
+/// protocols, ports, and operators for comparison.
+///
+/// # Fields
+/// - `action`: The action to take when a packet matches this ACL entry (e.g., "allow" or "deny").
+/// - `source`: The source IP address or network to match.
+/// - `destination`: The destination IP address or network to match.
+/// - `protocol`: An optional protocol to match, such as "TCP", "UDP", or "ICMP".
+/// - `matches`: An optional number of matches (such as packet count) to track how many packets meet the criteria.
+/// - `source_operator`: An optional operator (e.g., "gt", "lt") for comparing source values (used for port matching).
+/// - `source_port`: An optional source port to match, typically used with protocols like TCP or UDP.
+/// - `destination_operator`: An optional operator (e.g., "gt", "lt") for comparing destination values.
+/// - `destination_port`: An optional destination port to match, typically used with TCP or UDP.
+///
+#[derive(Debug)]
+pub struct AclEntry {
+    pub action: String,
+    pub source: String,
+    pub destination: String,
+    pub protocol: Option<String>,
+    pub matches: Option<u32>, 
+    pub source_operator: Option<String>, 
+    pub source_port: Option<String>,  
+    pub destination_operator: Option<String>, 
+    pub destination_port: Option<String>, 
+}
+
+
+/// Represents an Access Control List (ACL), which contains multiple ACL entries.
+///
+/// This structure holds a list of ACL entries, each of which defines a rule for filtering network traffic.
+/// ACLs are often used in networking devices such as routers and firewalls to control access to resources.
+///
+/// # Fields
+/// - `number_or_name`: The unique identifier for the ACL, either as a number or a name.
+/// - `entries`: A list of [`AclEntry`] objects, each representing a specific rule in the ACL.
+///
+#[derive(Debug)]
+pub struct AccessControlList {
+    pub number_or_name: String,
+    pub entries: Vec<AclEntry>,
+}
 

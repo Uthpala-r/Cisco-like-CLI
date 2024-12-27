@@ -12,8 +12,8 @@ use crate::execute::Command;
 use crate::execute::Mode;
 use crate::clock_settings::handle_show_clock;
 use crate::clock_settings::handle_clock_set;
-use crate::network_config::{calculate_broadcast, STATUS_MAP, IFCONFIG_STATE, IP_ADDRESS_STATE, ROUTE_TABLE, OSPF_CONFIG};
-use crate::network_config::{InterfaceConfig, OSPFConfig};
+use crate::network_config::{calculate_broadcast, STATUS_MAP, IFCONFIG_STATE, IP_ADDRESS_STATE, ROUTE_TABLE, OSPF_CONFIG, ACL_STORE};
+use crate::network_config::{InterfaceConfig, OSPFConfig, AclEntry, AccessControlList};
 
 
 /// Builds and returns a `HashMap` of available commands, each represented by a `Command` structure.
@@ -57,6 +57,11 @@ use crate::network_config::{InterfaceConfig, OSPFConfig};
 /// - `router-id`: Manually sets a unique identifier for the OSPF process, typically an IPv4 address, to distinguish the router in the OSPF domain.
 /// - `clear ip ospf process`: Restarts the OSPF process, clearing the OSPF routing table and adjacencies.
 /// - `show ip ospf neighbor`: Displays information about OSPF neighbors, including their state, router ID, and the interface used for adjacency.
+/// - `access-list`: Defines an ACL by creating or modifying an access control list with a specified number or name. This command is used to specify a set of rules for filtering network traffic.
+/// - `ip access-list`: Used to create or modify an IP access list, specifying the version (standard or extended) and the list of rules to filter IP packets based on source/destination addresses, protocols, and ports.
+/// - `show access-lists`: Displays the current configuration of all ACLs on the device, showing the list of ACL entries and their statistics (matches, actions, etc.).
+/// - `permit`: An ACL action that allows network traffic that matches the rule's conditions (e.g., specific IP address or protocol) to pass through.
+/// - `deny`: An ACL action that blocks network traffic matching the rule's conditions, preventing it from passing through the network.
 ///
 /// # Returns
 /// A `HashMap` where the keys are command names (as `&'static str`) and the values are the corresponding `Command` structs.
@@ -172,7 +177,19 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                     Mode::RouterConfigMode => {
                         context.current_mode = Mode::ConfigMode;
                         context.prompt = format!("{}(config)#", context.config.hostname);
-                        println!("Exiting VLAN Mode...");
+                        println!("Exiting Router Configuration Mode Mode...");
+                        Ok(())
+                    }
+                    Mode::ConfigStdNaclMode(_) => {
+                        context.current_mode = Mode::ConfigMode;
+                        context.prompt = format!("{}(config)#", context.config.hostname);
+                        println!("Exiting Standard ACL Mode...");
+                        Ok(())
+                    }
+                    Mode::ConfigExtNaclMode(_) => {
+                        context.current_mode = Mode::ConfigMode;
+                        context.prompt = format!("{}(config)#", context.config.hostname);
+                        println!("Exiting Extended ACL Mode...");
                         Ok(())
                     }
                     Mode::ConfigMode => {
@@ -1444,7 +1461,329 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         },
     });
 
+
+    commands.insert("access-list", Command {
+        name: "access-list",
+        description: "Configure a standard numbered ACL",
+        suggestions: None,
+        execute: |args, context, _| {
+            if matches!(context.current_mode, Mode::ConfigMode) {
+                if args.len() >= 3 {
+                    let acl_number = args[0].to_string();
+                    let action = args[1].to_string();
+                    let source = Ipv4Addr::from_str(&args[2]).expect("Invalid IP address format").to_string();
+                    let destination = if args.len() > 3 { Ipv4Addr::from_str(&args[3]).expect("Invalid IP address format").to_string()} else { "any".to_string() };
+                    let protocol = args.get(4).clone();
     
+                    let entry = AclEntry {
+                        action,
+                        source,
+                        destination,
+                        protocol: None,     
+                        source_operator: None,
+                        source_port: None,
+                        destination_operator: None,
+                        destination_port: None,
+                        matches: None,
+                    };;
+    
+                    let mut acl_store = ACL_STORE.lock().unwrap();
+                    acl_store
+                        .entry(acl_number.clone())
+                        .or_insert(AccessControlList {
+                            number_or_name: acl_number.clone(),
+                            entries: vec![],
+                        })
+                        .entries
+                        .push(entry);
+    
+                    println!("ACL {} updated.", acl_number);
+                    Ok(())
+                } else {
+                    Err("Invalid syntax. Use 'access-list <number> {deny|permit} <source_ip> <wildcard_mask>'.".into())
+                }
+            } else {
+                Err("The 'access-list' command is only available in global configuration mode.".into())
+            }
+        },
+    });
+
+    commands.insert("ip access-list", Command {
+        name: "ip access-list",
+        description: "Configure a named or numbered ACL (standard or extended)",
+        suggestions: None,
+        execute: |args, context, _| {
+            if matches!(context.current_mode, Mode::ConfigMode | Mode::ConfigStdNaclMode(_) | Mode::ConfigExtNaclMode(_)) {
+                if args.len() >= 2 {
+                    let acl_type = args[0].to_lowercase(); // "standard" or "extended"
+                    let acl_name_or_number = args[1].to_string(); // ACL name or number
+    
+                    let mut acl_store = ACL_STORE.lock().unwrap();
+                    acl_store.entry(acl_name_or_number.clone()).or_insert(AccessControlList {
+                        number_or_name: acl_name_or_number.clone(),
+                        entries: vec![],
+                    });
+    
+                    match acl_type.as_str() {
+                        "standard" => {
+                            // Transition to ConfigStdNaclMode
+                            context.current_mode = Mode::ConfigStdNaclMode(acl_name_or_number.clone());
+                            context.prompt = format!("{}(config-std-nacl)#", context.config.hostname);
+                            println!("Standard ACL '{}' created. Enter ACL configuration mode.", acl_name_or_number);
+                            Ok(())
+                        }
+                        "extended" => {
+                            // Transition to ConfigExtNaclMode
+                            context.current_mode = Mode::ConfigExtNaclMode(acl_name_or_number.clone());
+                            context.prompt = format!("{}(config-ext-nacl)#", context.config.hostname);
+                            println!("Extended ACL '{}' created. Enter ACL configuration mode.", acl_name_or_number);
+                            Ok(())
+                        }
+                        _ => {
+                            Err("Invalid syntax. Use 'ip access-list standard <acl_name>' or 'ip access-list extended <name_or_number>'.".into())
+                        }
+                    }
+                } else {
+                    Err("Invalid syntax. Use 'ip access-list standard <acl_name>' or 'ip access-list extended <name_or_number>'.".into())
+                }
+            } else {
+                Err("The 'ip access-list' command is only available in global configuration mode.".into())
+            }
+        },
+    });
+    
+    commands.insert("show access-lists", Command {
+        name: "show access-lists",
+        description: "Display all configured access lists",
+        suggestions: None,
+        execute: |_args, context, _| {
+            if matches!(context.current_mode, Mode::PrivilegedMode) {
+                let acl_store = ACL_STORE.lock().unwrap();
+                if acl_store.is_empty() {
+                    println!("No access lists configured.");
+                    return Ok(());
+                }
+    
+                for (name, acl) in acl_store.iter() {
+                    println!("\nAccess list: {}", acl.number_or_name);
+                    for entry in &acl.entries {
+                        let protocol = entry.protocol.clone().unwrap_or("ip".to_string());
+                        let source_op = entry.source_operator.clone().unwrap_or_default();
+                        let source_port = entry.source_port.clone().unwrap_or_default();
+                        let destination_op = entry.destination_operator.clone().unwrap_or_default();
+                        let destination_port = entry.destination_port.clone().unwrap_or_default();
+                        let matches = entry.matches.map_or(String::new(), |m| format!("({} matches)", m));
+    
+                        println!(
+                            "  {} {} {} {} {} {} {} {} {}",
+                            entry.action,
+                            protocol,
+                            entry.source,
+                            source_op,
+                            source_port,
+                            entry.destination,
+                            destination_op,
+                            destination_port,
+                            matches
+                        );
+                    }
+                }
+    
+                Ok(())
+            } else {
+                Err("The 'show access-lists' command is only available in privileged EXEC mode.".into())
+            }
+        },
+    });
+    
+
+
+    // DENY Command
+    commands.insert("deny", Command {
+        name: "deny",
+        description: "Add a deny entry to the ACL (standard or extended)",
+        suggestions: None,
+        execute: |args, context, _| {
+            match &context.current_mode {
+                // Standard ACL Mode
+                Mode::ConfigStdNaclMode(acl_name) => {
+                    if args.len() >= 1 {
+                        let ip = Ipv4Addr::from_str(&args[0]).expect("Invalid IP address format").to_string();
+                        let wildcard_mask = if args.len() > 1 {
+                            Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format").to_string()
+                        } else {
+                            "0.0.0.0".to_string() // Default mask
+                        };
+
+                        // Create the ACL entry
+                        let entry = AclEntry {
+                            action: "deny".to_string(),
+                            source: ip,
+                            destination: wildcard_mask,
+                            protocol: None,
+                            source_operator: None,
+                            source_port: None,
+                            destination_operator: None,
+                            destination_port: None,
+                            matches: None,
+                        };
+
+                        // Add the entry to the ACL store
+                        let mut acl_store = ACL_STORE.lock().unwrap();
+                        if let Some(acl) = acl_store.get_mut(acl_name) {
+                            acl.entries.push(entry);
+                            println!("Deny entry added to standard ACL '{}'.", acl_name);
+                            Ok(())
+                        } else {
+                            Err(format!("ACL '{}' not found.", acl_name).into())
+                        }
+                    } else {
+                        Err("Invalid syntax. Use 'deny <ip> <wildcard mask>'.".into())
+                    }
+                }
+                // Extended ACL Mode
+                Mode::ConfigExtNaclMode(acl_name) => {
+                    if args.len() >= 3 {
+                        let protocol = Some(args[0].to_lowercase()); // "tcp", "udp", "icmp", etc.
+                        let source = Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format").to_string();
+                        let destination = Ipv4Addr::from_str(&args[2]).expect("Invalid IP address format").to_string();
+
+                        // Optional port operators and numbers
+                        let mut source_operator = None;
+                        let mut source_port = None;
+                        let mut destination_operator = None;
+                        let mut destination_port = None;
+
+                        if args.len() > 4 {
+                            source_operator = Some(args[3].to_lowercase()); // e.g., "eq", "gt", "lt"
+                            source_port = args.get(4).map(|p| p.to_string()); // Source port number
+                            destination_operator = args.get(5).map(|o| o.to_lowercase()); // e.g., "eq", "gt", "lt"
+                            destination_port = args.get(6).map(|p| p.to_string()); // Destination port number
+                        }
+
+                        let entry = AclEntry {
+                            action: "deny".to_string(),
+                            protocol,
+                            source,
+                            source_operator,
+                            source_port,
+                            destination,
+                            destination_operator,
+                            destination_port,
+                            matches: None,
+                        };
+
+                        let mut acl_store = ACL_STORE.lock().unwrap();
+                        if let Some(acl) = acl_store.get_mut(acl_name) {
+                            acl.entries.push(entry);
+                            println!("Deny entry added to extended ACL '{}'.", acl_name);
+                            Ok(())
+                        } else {
+                            Err(format!("ACL '{}' not found.", acl_name).into())
+                        }
+                    } else {
+                        Err("Invalid syntax. Use 'deny <protocol> <src_ip> <dest_ip>' or 'deny <protocol> <src_ip> <eq|gt|lt> <src_port> <dest_ip> <eq|gt|lt> <dest_port>'.".into())
+                    }
+                }
+                // Invalid Mode
+                _ => Err("This command is only available in ACL configuration mode.".into()),
+            }
+        },
+    });
+
+    // PERMIT Command
+    commands.insert("permit", Command {
+        name: "permit",
+        description: "Add a permit entry to the ACL (standard or extended)",
+        suggestions: None,
+        execute: |args, context, _| {
+            match &context.current_mode {
+                // Standard ACL Mode
+                Mode::ConfigStdNaclMode(acl_name) => {
+                    if args.len() >= 1 {
+                        let ip = Ipv4Addr::from_str(&args[0]).expect("Invalid IP address format").to_string();
+                        let wildcard_mask = if args.len() > 1 {
+                            Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format").to_string()
+                        } else {
+                            "0.0.0.0".to_string() // Default mask
+                        };
+
+                        // Create the ACL entry
+                        let entry = AclEntry {
+                            action: "permit".to_string(),
+                            source: ip,
+                            destination: wildcard_mask,
+                            protocol: None,
+                            source_operator: None,
+                            source_port: None,
+                            destination_operator: None,
+                            destination_port: None,
+                            matches: None,
+                        };
+
+                        // Add the entry to the ACL store
+                        let mut acl_store = ACL_STORE.lock().unwrap();
+                        if let Some(acl) = acl_store.get_mut(acl_name) {
+                            acl.entries.push(entry);
+                            println!("Permit entry added to standard ACL '{}'.", acl_name);
+                            Ok(())
+                        } else {
+                            Err(format!("ACL '{}' not found.", acl_name).into())
+                        }
+                    } else {
+                        Err("Invalid syntax. Use 'permit <ip> <wildcard mask>'.".into())
+                    }
+                }
+                // Extended ACL Mode
+                Mode::ConfigExtNaclMode(acl_name) => {
+                    if args.len() >= 3 {
+                        let protocol = Some(args[0].to_lowercase()); // "tcp", "udp", "icmp", etc.
+                        let source = Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format").to_string();
+                        let destination = Ipv4Addr::from_str(&args[2]).expect("Invalid IP address format").to_string();
+
+                        // Optional port operators and numbers
+                        let mut source_operator = None;
+                        let mut source_port = None;
+                        let mut destination_operator = None;
+                        let mut destination_port = None;
+
+                        if args.len() > 4 {
+                            source_operator = Some(args[3].to_lowercase()); // e.g., "eq", "gt", "lt"
+                            source_port = args.get(4).map(|p| p.to_string()); // Source port number
+                            destination_operator = args.get(5).map(|o| o.to_lowercase()); // e.g., "eq", "gt", "lt"
+                            destination_port = args.get(6).map(|p| p.to_string()); // Destination port number
+                        }
+
+                        let entry = AclEntry {
+                            action: "permit".to_string(),
+                            protocol,
+                            source,
+                            source_operator,
+                            source_port,
+                            destination,
+                            destination_operator,
+                            destination_port,
+                            matches: None,
+                        };
+
+                        let mut acl_store = ACL_STORE.lock().unwrap();
+                        if let Some(acl) = acl_store.get_mut(acl_name) {
+                            acl.entries.push(entry);
+                            println!("Permit entry added to extended ACL '{}'.", acl_name);
+                            Ok(())
+                        } else {
+                            Err(format!("ACL '{}' not found.", acl_name).into())
+                        }
+                    } else {
+                        Err("Invalid syntax. Use 'permit <protocol> <src_ip> <dest_ip>' or 'permit <protocol> <src_ip> <eq|gt|lt> <src_port> <dest_ip> <eq|gt|lt> <dest_port>'.".into())
+                    }
+                }
+                // Invalid Mode
+                _ => Err("This command is only available in ACL configuration mode.".into()),
+            }
+        },
+    });
+
 
     commands
 }

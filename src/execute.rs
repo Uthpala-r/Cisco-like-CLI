@@ -27,6 +27,8 @@ pub enum Mode {
     InterfaceMode,
     VlanMode,
     RouterConfigMode,
+    ConfigStdNaclMode(String),
+    ConfigExtNaclMode(String),
 }
 
 
@@ -170,6 +172,50 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                     .keys()
                     // Commands vlan, name and state can be executed in the Vlan Mode
                     .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "network" ))
+                    .map(|cmd| {
+                        let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
+                        let fist_word = cmd.split_whitespace().nth(0).unwrap_or_default();
+                        if cmd.starts_with(prefix) && (prefix.contains(' ') || prefix.contains(fist_word)){
+                            let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
+                            if second_word.is_empty() {
+                                fist_word.to_string()
+                            } else {
+                                second_word.to_string()
+                            }
+                        } else {
+                            fist_word.to_string()
+                        }
+                    })
+                    .collect()
+            }
+
+            Mode::ConfigStdNaclMode(_) => {
+                commands
+                    .keys()
+                    // Commands vlan, name and state can be executed in the Vlan Mode
+                    .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "deny" || **cmd == "permit" ))
+                    .map(|cmd| {
+                        let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
+                        let fist_word = cmd.split_whitespace().nth(0).unwrap_or_default();
+                        if cmd.starts_with(prefix) && (prefix.contains(' ') || prefix.contains(fist_word)){
+                            let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
+                            if second_word.is_empty() {
+                                fist_word.to_string()
+                            } else {
+                                second_word.to_string()
+                            }
+                        } else {
+                            fist_word.to_string()
+                        }
+                    })
+                    .collect()
+            }
+
+            Mode::ConfigExtNaclMode(_) => {
+                commands
+                    .keys()
+                    // Commands vlan, name and state can be executed in the Vlan Mode
+                    .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "deny" || **cmd == "permit" ))
                     .map(|cmd| {
                         let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
                         let fist_word = cmd.split_whitespace().nth(0).unwrap_or_default();
