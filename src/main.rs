@@ -29,6 +29,8 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use rustyline::history::DefaultHistory;
 use std::collections::{HashSet, HashMap};
+use ctrlc;
+use std::io::{self, Write};
 
 
 /// The main function serves as the entry point of the CLI application.
@@ -56,6 +58,12 @@ fn main() {
         trunk_encapsulation: None,
         native_vlan: None,
         allowed_vlans: HashSet::new(),
+        ntp_servers: HashSet::new(), 
+        ntp_associations: Vec::new(),
+        ntp_authentication_enabled: false,   
+        ntp_authentication_keys: HashMap::new(), 
+        ntp_trusted_keys: HashSet::new(),     
+        ntp_master: false,   
     };
 
     // Configure the Rustyline editor with history behavior
@@ -78,6 +86,12 @@ fn main() {
         time: "12:00".into(),
     });
 
+    let mut exit_requested = false;
+
+    ctrlc::set_handler(move || {
+        println!("\nCtrl+C pressed, but waiting for 'exit cli' command to exit...");
+    }).expect("Error setting Ctrl+C handler");
+
     // Main REPL loop for processing user input
     loop {
         
@@ -88,13 +102,17 @@ fn main() {
                 let input = buffer.trim();
                 let completer = rl.helper().unwrap() as &CommandCompleter;
 
+                if input == "exit cli" {
+                    println!("Exiting CLI...");
+                    break;
+                }
+
                 execute_command(input, &commands, &mut context, &mut clock, completer);
                       
             }
 
             Err(ReadlineError::Interrupted) => {
-                println!("CTRL-C pressed. Exiting...");
-                break;
+                println!("Ctrl+C pressed, but waiting for 'exit cli' command to exit...");
             }
 
 

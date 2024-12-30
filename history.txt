@@ -1,101 +1,101 @@
 #V2
-neighbor 192.2.2.2 cost 2
 enable 
 configure terminal
-router ospf 6
-area 2.5.5.5 authentication
-enable
+virtual-template 4
+enable 
 configure terminal
-router ospf 5
-network 192.168.1.1 0.0.0.0 area 2
-neighbor 192.168.1.1 cost 10
-area 5 authentication
-passive-interface
-distance 6
-default-information originate
-router-id 38
-show ip ospf neighbor
-passive-interface g0/0
-show ip ospf neighbor
-clear ip ospf process
 exit
-clear ip ospf process
-show ip ospf neighbor
+show ntp associations
 configure terminal 
-interface g0/0
-ip ospf cost 4
-ip ospf retransmit-interval 7
-enable
-configure terminal
-access-list 5 deny 192.168.1.1 0.0.0.0
-access-list 6 permit any
-exit 
-show access-lists
+ntp server 10.0.0.0
+exit
+show ntp associations
 configure terminal 
-ip access-list standard Hi
-permit 192.168.2.3 0.0.0.0
-<deny|permit> 192.168.2.3 0.0.0.0
+ntp master
+ntp authenticate
+ntp authentication-key 2 md5 Hi
 enable
 configure terminal
-ip access-list standard Hi
-deny 192.168.0.0.0.0
-exit
-ip access-list standard Bye
-deny 192.168.2.2 0.0.0.0
-exit
-show access-lists
-configure terminal
-ip access-list extended Hello
+ntp authentication-key 5 md5 Hi
 enable
 configure terminal
-ip access-list extended Hello
-permit tcp 192.168.2.2 3.3.3.3
-enable 
+ntp authentication-key 5 md5 Hi
+ntp trusted-key 5
+ntp trusted-key 9
+show ntp
+exit
+show ntp
 configure terminal
-ip access-list extended Hello
-permit tcp 19.6 9.7
+ntp authenticate
 exit
-ip access-list extended Hi
-permit tcp 19.6 eq 40 9.7 gt 67
-enable 
-configure terminal
-ip access-list extended He
-permit tcp 5.7 7.98
-exit
-ip access-list extended Jo
-permit tcp 5.7 eq 78 7.98 gt 78
-exit
-show access-lists
-enable 
-configure terminal
-ip access-list standar hi
-ip access-list standard hi
-exit
-ip access-list extenfded hi
-ip access-list extended hi
-ip access-list extended bye
-deny udp 4.6 eq 78 8.9 lt 67
-exit exit
-exit 
-show access-lists
+show ntp
+enable
+enable password
 enable
 configure terminal
-ip access-list extended hi
-permit udp 67 8 7 7 7 
-ip access-list standard by
-permit udp 7.7 8.8
-exit
-show access-lists
-configure terminal
-ip access-list standard hiiii
-deny 8.8. 0.0.0
-exit
-access-list 89 8.9 0.0.0.0
-access-list 89 permit any
-exit
-show access-lists
-enable 
-configure terminal
-ip access-list standard Hi
-deny 4.4.4.4 2.2.2.2
+enable password Hi
 enable
+enable secret
+configure terminal
+enable
+configure terminal
+enable password Hi
+exit
+enable
+configure terminal
+enable secret dudu
+service password-encryption
+exit
+enable password
+enable
+enable secret
+enable
+configure terminal
+enable password Hi
+exit
+enable
+configure terminal
+enable password Hi
+exit
+enable
+configure terminal
+enable password Hi
+exit
+enable
+exit
+enable
+enable\\
+configure terminal'
+enable secret dudu
+exit
+enable password
+enable
+enable\\
+configure terminal
+enable password Hi
+exit
+enable
+configure terminal
+enable secret dudu
+exit
+enable
+exit
+enable
+configure terminal
+enable password Hi
+enable secret dudu
+exit
+enable
+exit
+enable
+enable password`
+enable
+configure terminal
+service password-encryption
+enable secret Hi
+service password-encryption
+enable 
+configure terminal\\
+ip domain-name Hi
+crypto key generate rsa
+exit cli

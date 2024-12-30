@@ -3,6 +3,7 @@ use std::str::FromStr;
 use std::net::Ipv4Addr;
 use std::sync::{Mutex, Arc};
 use std::collections::HashMap;
+use sha2::{Sha256, Digest};
 
 
 /// Represents the configuration of a network interface.
@@ -122,6 +123,21 @@ lazy_static::lazy_static! {
     ///
     pub static ref ACL_STORE: Mutex<HashMap<String, AccessControlList>> = Mutex::new(HashMap::new());
 
+
+    /// A static, thread-safe reference to a `PasswordStore` instance, protected by a `Mutex`.
+    /// 
+    /// This allows for concurrent access to the `PasswordStore` while ensuring that only one
+    /// thread can access the data at a time. The `PasswordStore` is initialized with default
+    /// values.
+    ///
+    /// # Example
+    /// ```rust
+    /// // Accessing the PASSWORD_STORAGE and modifying the PasswordStore
+    /// let mut store = PASSWORD_STORAGE.lock().unwrap();
+    /// store.add_password("user1", "password123");
+    /// ```
+    pub static ref PASSWORD_STORAGE: Mutex<PasswordStore> = Mutex::new(PasswordStore::default());
+
 }
 
 
@@ -148,6 +164,26 @@ pub fn calculate_broadcast(ip: Ipv4Addr, prefix_len: u32) -> Ipv4Addr {
     let broadcast_u32 = ip_u32 | !mask;     // Calculate the broadcast address
     Ipv4Addr::from(broadcast_u32)           // Convert back to an Ipv4Addr
 }
+
+
+/// Encrypts a password using the SHA-256 hashing algorithm.
+///
+/// This function takes a plaintext password, hashes it using SHA-256, and returns the
+/// resulting hash as a hexadecimal string.
+///
+/// # Parameters
+/// - `password`: A reference to a string slice (`&str`) representing the password to be hashed.
+///
+/// # Returns
+/// A string containing the hexadecimal representation of the SHA-256 hash of the password.
+///
+pub fn encrypt_password(password: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(password);
+    let result = hasher.finalize();
+    format!("{:x}", result)  
+}
+
 
 
 /// Represents the configuration for the OSPF (Open Shortest Path First) protocol.
@@ -259,3 +295,81 @@ pub struct AccessControlList {
     pub entries: Vec<AclEntry>,
 }
 
+
+/// Represents the NTP (Network Time Protocol) association details for a device.
+/// 
+/// This structure holds information related to the NTP association, such as the server's
+/// address, reference clock, synchronization status, and time offset values.
+#[derive(Default)]
+pub struct NtpAssociation {
+    pub address: String,
+    pub ref_clock: String,
+    pub st: u8,
+    pub when: String,
+    pub poll: u8,
+    pub reach: u8,
+    pub delay: f64,
+    pub offset: f64,
+    pub disp: f64,
+}
+
+
+/// A structure for storing the enable password and enable secret for authentication purposes.
+pub struct PasswordStore {
+    pub enable_password: Option<String>,
+    pub enable_secret: Option<String>,
+}
+
+impl Default for PasswordStore {
+    fn default() -> Self {
+        PasswordStore {
+            enable_password: None,
+            enable_secret: None,
+        }
+    }
+}
+
+
+/// Sets the enable password in the `PasswordStore`.
+/// 
+/// This function updates the stored `enable_password` to the provided value.
+///
+/// # Parameters
+/// - `password`: A reference to the password string to set as the enable password.
+pub fn set_enable_password(password: &str) {
+    let mut storage = PASSWORD_STORAGE.lock().unwrap();
+    storage.enable_password = Some(password.to_string());
+}
+
+
+/// Sets the enable secret in the `PasswordStore`.
+/// 
+/// This function updates the stored `enable_secret` to the provided value.
+///
+/// # Parameters
+/// - `secret`: A reference to the secret string to set as the enable secret.
+pub fn set_enable_secret(secret: &str) {
+    let mut storage = PASSWORD_STORAGE.lock().unwrap();
+    storage.enable_secret = Some(secret.to_string());
+}
+
+
+/// Retrieves the stored enable password from the `PasswordStore`.
+/// 
+/// # Returns
+/// An `Option<String>`, containing the enable password if set, or `None` if not set.
+pub fn get_enable_password() -> Option<String> {
+    let storage = PASSWORD_STORAGE.lock().unwrap();
+    storage.enable_password.clone()
+}
+
+
+
+/// Retrieves the stored enable secret from the `PasswordStore`.
+/// 
+/// # Returns
+/// An `Option<String>`, containing the enable secret if set, or `None` if not set.
+pub fn get_enable_secret() -> Option<String> {
+    let storage = PASSWORD_STORAGE.lock().unwrap();
+    storage.enable_secret.clone()
+}

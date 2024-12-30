@@ -2,6 +2,7 @@
 use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
 use crate::execute::Mode;
+use crate::network_config::NtpAssociation;
 
 
 /// Represents the configuration for the CLI application.
@@ -10,6 +11,7 @@ use crate::execute::Mode;
 /// - `running_config`: A map containing the currently active configuration settings.
 /// - `startup_config`: A map containing the startup configuration settings loaded at initialization.
 /// - `hostname`: The hostname of the system.
+/// etc.
 ///
 /// # Examples
 /// ```
@@ -22,6 +24,18 @@ pub struct CliConfig {
     pub running_config: HashMap<String, String>,
     pub startup_config: HashMap<String, String>,
     pub hostname: String,
+    pub crypto_ipsec_profile: Option<String>, 
+    pub transform_sets: Option<Vec<String>>,  
+    pub tunnel_mode: Option<String>,         
+    pub tunnel_source: Option<String>,      
+    pub tunnel_destination: Option<String>,  
+    pub tunnel_protection_profile: Option<String>, 
+    pub virtual_template: Option<String>,  
+    pub enable_password: Option<String>,          
+    pub enable_secret: Option<String>,            
+    pub password_encryption: bool,
+    pub domain_name: Option<String>,      
+  
 }
 
 
@@ -32,11 +46,33 @@ impl Default for CliConfig {
     /// - `running_config`: An empty `HashMap`.
     /// - `startup_config`: An empty `HashMap`.
     /// - `hostname`: `"Router"`.
+    /// - `crypto_ipsec_profile: None`,
+    /// - `transform_sets: None`,
+    /// - `tunnel_mode: None`,
+    /// - `tunnel_source: None`,
+    /// - `tunnel_destination: None`,
+    /// - `tunnel_protection_profile: None`,
+    /// - `virtual_template: None`,
+    /// - `enable_password: None`,          
+    /// - `enable_secret: None`,            
+    /// - `password_encryption: false`, 
+    /// - `domain_name: None`,
     fn default() -> Self {
         Self {
             running_config: HashMap::new(),
             startup_config: HashMap::new(),
             hostname: "Router".to_string(),
+            crypto_ipsec_profile: None,
+            transform_sets: None,
+            tunnel_mode: None,
+            tunnel_source: None,
+            tunnel_destination: None,
+            tunnel_protection_profile: None,
+            virtual_template: None,
+            enable_password: None,          
+            enable_secret: None,            
+            password_encryption: false, 
+            domain_name: None,
         }
     }
 }
@@ -65,6 +101,12 @@ pub struct CliContext {
     pub trunk_encapsulation: Option<String>, 
     pub native_vlan: Option<u16>, 
     pub allowed_vlans: HashSet<u16>,
+    pub ntp_servers: HashSet<String>,  
+    pub ntp_associations: Vec<NtpAssociation>,  
+    pub ntp_authentication_enabled: bool,   
+    pub ntp_authentication_keys: HashMap<u32, String>, 
+    pub ntp_trusted_keys: HashSet<u32>,     
+    pub ntp_master: bool, 
 }
 
 
@@ -83,6 +125,12 @@ impl Default for CliContext {
     /// - `trunk_encapsulation`: `None`,
     /// - `native_vlan`: `None`,
     /// - `allowed_vlans`: `HashSet::new()`,
+    /// - `ntp_servers: HashSet::new()`, 
+    /// - `ntp_associations: Vec::new()`,
+    /// - `ntp_authentication_enabled: false`,   
+    /// - `ntp_authentication_keys: HashMap::new()`, 
+    /// - `ntp_trusted_keys: HashSet::new()`,     
+    /// - `ntp_master: false,
     fn default() -> Self {
         Self {
             current_mode: Mode::UserMode,
@@ -96,6 +144,12 @@ impl Default for CliContext {
             trunk_encapsulation: None,
             native_vlan: None,
             allowed_vlans: HashSet::new(),
+            ntp_servers: HashSet::new(), 
+            ntp_associations: Vec::new(),
+            ntp_authentication_enabled: false,   
+            ntp_authentication_keys: HashMap::new(), 
+            ntp_trusted_keys: HashSet::new(),     
+            ntp_master: false,
         }
     }
 }
