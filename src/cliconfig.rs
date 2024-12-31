@@ -21,8 +21,8 @@ use crate::network_config::NtpAssociation;
 /// 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct CliConfig {
-    pub running_config: HashMap<String, String>,
-    pub startup_config: HashMap<String, String>,
+    pub running_config: Option<String>,
+    pub startup_config: Option<String>,
     pub hostname: String,
     pub crypto_ipsec_profile: Option<String>, 
     pub transform_sets: Option<Vec<String>>,  
@@ -32,9 +32,11 @@ pub struct CliConfig {
     pub tunnel_protection_profile: Option<String>, 
     pub virtual_template: Option<String>,  
     pub enable_password: Option<String>,          
-    pub enable_secret: Option<String>,            
+    pub enable_secret: Option<String>,  
+    pub encrypted_password: Option<String>,          
+    pub encrypted_secret: Option<String>,          
     pub password_encryption: bool,
-    pub domain_name: Option<String>,      
+    pub domain_name: Option<String>,    
   
 }
 
@@ -59,8 +61,8 @@ impl Default for CliConfig {
     /// - `domain_name: None`,
     fn default() -> Self {
         Self {
-            running_config: HashMap::new(),
-            startup_config: HashMap::new(),
+            running_config: None,
+            startup_config: None,
             hostname: "Router".to_string(),
             crypto_ipsec_profile: None,
             transform_sets: None,
@@ -70,9 +72,12 @@ impl Default for CliConfig {
             tunnel_protection_profile: None,
             virtual_template: None,
             enable_password: None,          
-            enable_secret: None,            
+            enable_secret: None,   
+            encrypted_password: None,          
+            encrypted_secret: None,         
             password_encryption: false, 
             domain_name: None,
+            
         }
     }
 }

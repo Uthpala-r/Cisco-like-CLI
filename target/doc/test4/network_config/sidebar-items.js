@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["calculate_broadcast"],"struct":["IFCONFIG_STATE","IP_ADDRESS_STATE","InterfaceConfig","ROUTE_TABLE","STATUS_MAP"]};
+window.SIDEBAR_ITEMS = {"fn":["calculate_broadcast","encrypt_password","get_enable_password","get_enable_secret","set_enable_password","set_enable_secret"],"struct":["ACL_STORE","AccessControlList","AclEntry","AreaConfig","IFCONFIG_STATE","IP_ADDRESS_STATE","InterfaceConfig","NtpAssociation","OSPFConfig","OSPF_CONFIG","PASSWORD_STORAGE","PasswordStore","ROUTE_TABLE","STATUS_MAP"]};

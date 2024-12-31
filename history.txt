@@ -1,101 +1,101 @@
 #V2
-enable 
 configure terminal
-virtual-template 4
-enable 
-configure terminal
-exit
-show ntp associations
-configure terminal 
-ntp server 10.0.0.0
-exit
-show ntp associations
-configure terminal 
-ntp master
-ntp authenticate
-ntp authentication-key 2 md5 Hi
-enable
-configure terminal
-ntp authentication-key 5 md5 Hi
-enable
-configure terminal
-ntp authentication-key 5 md5 Hi
-ntp trusted-key 5
-ntp trusted-key 9
-show ntp
-exit
-show ntp
-configure terminal
-ntp authenticate
-exit
-show ntp
-enable
-enable password
-enable
-configure terminal
-enable password Hi
-enable
-enable secret
-configure terminal
-enable
-configure terminal
-enable password Hi
-exit
-enable
-configure terminal
-enable secret dudu
-service password-encryption
-exit
-enable password
-enable
-enable secret
-enable
-configure terminal
-enable password Hi
-exit
-enable
-configure terminal
-enable password Hi
-exit
-enable
-configure terminal
-enable password Hi
-exit
-enable
-exit
-enable
-enable\\
-configure terminal'
-enable secret dudu
-exit
-enable password
-enable
-enable\\
-configure terminal
-enable password Hi
-exit
-enable
-configure terminal
-enable secret dudu
-exit
-enable
-exit
-enable
-configure terminal
-enable password Hi
-enable secret dudu
-exit
-enable
-exit
-enable
-enable password`
-enable
-configure terminal
-service password-encryption
 enable secret Hi
+enable password dudu
 service password-encryption
-enable 
-configure terminal\\
-ip domain-name Hi
-crypto key generate rsa
+exit
+enable secret
+enable
+show running-config
+exit cli
+enable
+configure terminal
+enable secret Hi
+enable password dudu
+service password-encryption
+exit
+show running-config
+exit cli
+enable
+configure terminal
+interface g0/0
+ip address 192.168.1.1 255.255.255.0
+no shutdown
+exit
+show running-config
+exit cli
+enable password
+enable
+configure terminal
+hostname R1
+interface g0/0
+ip address 192.168.2.2 255.255.255.0 
+no shutdown
+exit
+show running-config
+configure terminalt
+enable password Hi
+service password-encryption
+exit
+show running-config
+configure terminal
+hostname Router
+exit cli
+enable
+configure terminal
+hostname R1
+exit
+show running-config
+exit cli
+enable
+show running-config
+show startup-config
+exit xli
+exit cli
+enable password
+enable
+configure terminal
+hostname R1
+exit
+show running-config
+show startup-config
+exit cli
+enable
+configure terminalt
+hostname R1
+exit
+show running-config
+show startup-config
+write memory
+show startup-config
+copy running-config
+copy running-config Mytest.txt
+show startup-config
+ecxit cli
+eexit cli
+exit cli
+enable secret
+enable
+configure terminal
+hostname R1
+exit
+show running-config
+show startup-config
+write memory
+show startup-config
+show running-config
+exit cli
+enable
+configure terminal
+hostname R1
+exit
+show startup-config
+write memory
+show startup-config
+exit cli
+enable
+configure terminal
+hostname R1
+exit
+show startup-config
 exit cli

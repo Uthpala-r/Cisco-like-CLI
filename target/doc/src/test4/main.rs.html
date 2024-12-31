@@ -126,16 +126,7 @@
 <a href="#125" id="125">125</a>
 <a href="#126" id="126">126</a>
 <a href="#127" id="127">127</a>
-<a href="#128" id="128">128</a>
-<a href="#129" id="129">129</a>
-<a href="#130" id="130">130</a>
-<a href="#131" id="131">131</a>
-<a href="#132" id="132">132</a>
-<a href="#133" id="133">133</a>
-<a href="#134" id="134">134</a>
-<a href="#135" id="135">135</a>
-<a href="#136" id="136">136</a>
-<a href="#137" id="137">137</a></pre></div><pre class="rust"><code><span class="doccomment">//! # Cisco-like Command-Line Interface (CLI) Application
+<a href="#128" id="128">128</a></pre></div><pre class="rust"><code><span class="doccomment">//! # Cisco-like Command-Line Interface (CLI) Application
 //!
 //! This file serves as the main module that initializes and links all other sub-modules.
 //! The CLI provides a hierarchical command structure similar to Cisco's networking devices.
@@ -165,7 +156,9 @@
 </span><span class="kw">use </span>rustyline::error::ReadlineError;
 <span class="kw">use </span>rustyline::Editor;
 <span class="kw">use </span>rustyline::history::DefaultHistory;
-<span class="kw">use </span>std::collections::HashSet;
+<span class="kw">use </span>std::collections::{HashSet, HashMap};
+<span class="kw">use </span>ctrlc;
+<span class="kw">use </span>std::io::{<span class="self">self</span>, Write};
 
 
 <span class="doccomment">/// The main function serves as the entry point of the CLI application.
@@ -193,6 +186,12 @@
         trunk_encapsulation: <span class="prelude-val">None</span>,
         native_vlan: <span class="prelude-val">None</span>,
         allowed_vlans: HashSet::new(),
+        ntp_servers: HashSet::new(), 
+        ntp_associations: Vec::new(),
+        ntp_authentication_enabled: <span class="bool-val">false</span>,   
+        ntp_authentication_keys: HashMap::new(), 
+        ntp_trusted_keys: HashSet::new(),     
+        ntp_master: <span class="bool-val">false</span>,   
     };
 
     <span class="comment">// Configure the Rustyline editor with history behavior
@@ -203,7 +202,10 @@
     <span class="comment">// Initialize the command-line editor with a custom command completer
     </span><span class="kw">let </span><span class="kw-2">mut </span>rl = Editor::&lt;CommandCompleter, DefaultHistory&gt;::with_config(config)
         .expect(<span class="string">"Failed to initialize editor"</span>);
-    rl.set_helper(<span class="prelude-val">Some</span>(CommandCompleter { commands: command_names }));
+
+    <span class="kw">let </span><span class="kw-2">mut </span>commands_map: HashMap&lt;String, Vec&lt;String&gt;&gt; = HashMap::new();
+    <span class="kw">for </span>command <span class="kw">in </span>command_names {commands_map.insert(command.clone(), <span class="macro">vec!</span>[command.clone()]);}
+    rl.set_helper(<span class="prelude-val">Some</span>(CommandCompleter { commands: commands_map }));
     rl.load_history(<span class="string">"history.txt"</span>).ok();
 
     <span class="comment">// Set up the initial clock settings
@@ -211,6 +213,12 @@
         date: <span class="string">"2024-06-01"</span>.into(),
         time: <span class="string">"12:00"</span>.into(),
     });
+
+    <span class="kw">let </span><span class="kw-2">mut </span>exit_requested = <span class="bool-val">false</span>;
+
+    ctrlc::set_handler(<span class="kw">move </span>|| {
+        <span class="macro">println!</span>(<span class="string">"\nCtrl+C pressed, but waiting for 'exit cli' command to exit..."</span>);
+    }).expect(<span class="string">"Error setting Ctrl+C handler"</span>);
 
     <span class="comment">// Main REPL loop for processing user input
     </span><span class="kw">loop </span>{
@@ -220,45 +228,19 @@
             <span class="prelude-val">Ok</span>(buffer) =&gt; {
                 rl.add_history_entry(buffer.as_str());
                 <span class="kw">let </span>input = buffer.trim();
+                <span class="kw">let </span>completer = rl.helper().unwrap() <span class="kw">as </span><span class="kw-2">&amp;</span>CommandCompleter;
 
-                <span class="comment">// Handle the "exit" command based on the current CLI mode. Exiting the modes in order
-                </span><span class="kw">if </span>input == <span class="string">"exit" </span>{
-                    <span class="kw">match </span>context.current_mode {
-                        Mode::InterfaceMode =&gt; {
-                            context.current_mode = Mode::ConfigMode;
-                            context.prompt = <span class="macro">format!</span>(<span class="string">"{}(config)#"</span>, context.config.hostname);
-                            <span class="macro">println!</span>(<span class="string">"Exiting Interface Configuration Mode."</span>);
-                        }
-                        Mode::VlanMode =&gt; {
-                            context.current_mode = Mode::ConfigMode;
-                            context.prompt = <span class="macro">format!</span>(<span class="string">"{}(config)#"</span>, context.config.hostname);
-                            <span class="macro">println!</span>(<span class="string">"Exiting Vlan Mode."</span>);
-                        }
-                        Mode::ConfigMode =&gt; {
-                            context.current_mode = Mode::PrivilegedMode;
-                            context.prompt = <span class="macro">format!</span>(<span class="string">"{}#"</span>, context.config.hostname);
-                            <span class="macro">println!</span>(<span class="string">"Exiting Global Configuration Mode."</span>);
-                        }
-                        Mode::PrivilegedMode =&gt; {
-                            context.current_mode = Mode::UserMode;
-                            context.prompt = <span class="macro">format!</span>(<span class="string">"{}&gt;"</span>, context.config.hostname);
-                            <span class="macro">println!</span>(<span class="string">"Exiting Privileged EXEC Mode."</span>);
-                        }
-                        Mode::UserMode =&gt; {
-                            <span class="macro">println!</span>(<span class="string">"Already at the top level."</span>);
-                        }
-                    }
-
-                } <span class="kw">else </span>{
-                    <span class="comment">// Else execute the execute_commands fucntion to execute other commands
-                    </span>execute_command(input, <span class="kw-2">&amp;</span>commands, <span class="kw-2">&amp;mut </span>context, <span class="kw-2">&amp;mut </span>clock);
+                <span class="kw">if </span>input == <span class="string">"exit cli" </span>{
+                    <span class="macro">println!</span>(<span class="string">"Exiting CLI..."</span>);
+                    <span class="kw">break</span>;
                 }
+
+                execute_command(input, <span class="kw-2">&amp;</span>commands, <span class="kw-2">&amp;mut </span>context, <span class="kw-2">&amp;mut </span>clock, completer);
+                      
             }
 
-            <span class="comment">// Exit the CLI if Ctrl+C is pressed
-            </span><span class="prelude-val">Err</span>(ReadlineError::Interrupted) =&gt; {
-                <span class="macro">println!</span>(<span class="string">"CTRL-C pressed. Exiting..."</span>);
-                <span class="kw">break</span>;
+            <span class="prelude-val">Err</span>(ReadlineError::Interrupted) =&gt; {
+                <span class="macro">println!</span>(<span class="string">"Ctrl+C pressed, but waiting for 'exit cli' command to exit..."</span>);
             }
 
 

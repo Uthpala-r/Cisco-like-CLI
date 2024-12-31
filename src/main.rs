@@ -30,7 +30,6 @@ use rustyline::Editor;
 use rustyline::history::DefaultHistory;
 use std::collections::{HashSet, HashMap};
 use ctrlc;
-use std::io::{self, Write};
 
 
 /// The main function serves as the entry point of the CLI application.

@@ -1,7 +1,8 @@
 /// External crates for the CLI application
-use crate::cliconfig::CliConfig;
+use crate::cliconfig::{CliConfig, CliContext};
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
+use crate::network_config::{STATUS_MAP, IP_ADDRESS_STATE};
 
 
 /// Saves the given `CliConfig` to a file named `startup-config.json`.
@@ -61,4 +62,100 @@ pub fn load_config() -> CliConfig {
         }
     }
     CliConfig::default()
+}
+
+
+/// This function defines the running-config updates
+/// 
+/// # Returns
+/// The running-config
+/// 
+pub fn get_running_config(context: &CliContext) -> String {
+    let hostname = &context.config.hostname;
+    let encrypted_password = context.config.encrypted_password.clone().unwrap_or_default();
+    let encrypted_secret = context.config.encrypted_secret.clone().unwrap_or_default();
+
+    // Access global states
+    let ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
+    let status_map = STATUS_MAP.lock().unwrap();
+
+    // Determine the active interface
+    let interface = context
+        .selected_interface
+        .clone()
+        .unwrap_or_else(|| "FastEthernet0/1".to_string());
+
+    // Retrieve IP address and netmask for the interface
+    let ip_address = ip_address_state
+        .get(&interface)
+        .map(|(ip, _)| ip.to_string())
+        .unwrap_or_else(|| "no ip address".to_string());
+
+    // Determine the shutdown status
+    let shutdown_status = if status_map.get(&interface).copied().unwrap_or(false) {
+        "no shutdown"
+    } else {
+        "shutdown"
+    };
+
+    format!(
+        r#"version 15.1
+no service timestamps log datetime msec
+{}
+!
+hostname {}
+!
+enable password 5 {}
+enable secret 5 {}
+!
+interface {}
+ip address {}
+{}
+!"#,
+        if context.config.password_encryption {
+            "service password-encryption"
+        } else {
+            "no service password-encryption"
+        },
+        hostname,
+        encrypted_password,
+        encrypted_secret,
+        interface,
+        ip_address,
+        shutdown_status,
+    )
+}
+
+
+pub fn default_startup_config(context: &mut CliContext) -> String {
+    
+    let running_config = context.config.running_config.clone().unwrap_or_else(|| {
+        
+        r#"
+Building configuration...
+
+Current configuration : 0 bytes
+
+version 15.1
+no service timestamps log datetime msec
+no service password-encryption
+!
+hostname Router
+!
+enable password 5 
+enable secret 5 
+!
+interface FastEthernet0/0
+no ip address
+shutdown
+!
+"#
+        .to_string()
+    });
+
+    if context.config.startup_config.is_none() {
+        context.config.startup_config = Some(running_config.clone());
+    }
+
+    running_config
 }

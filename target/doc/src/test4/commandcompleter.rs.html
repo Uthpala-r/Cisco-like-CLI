@@ -112,7 +112,42 @@
 <a href="#111" id="111">111</a>
 <a href="#112" id="112">112</a>
 <a href="#113" id="113">113</a>
-<a href="#114" id="114">114</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
 </span><span class="kw">use </span><span class="kw">crate</span>::build_command_registry;
 
 <span class="kw">use </span>rustyline::hint::Hinter;
@@ -121,6 +156,7 @@
 <span class="kw">use </span>rustyline::highlight::Highlighter;
 <span class="kw">use </span>rustyline::validate::{Validator, ValidationContext, ValidationResult};
 <span class="kw">use </span>rustyline::error::ReadlineError;
+<span class="kw">use </span>std::collections::HashMap;
 
 
 <span class="doccomment">/// A custom completer for the CLI application.
@@ -133,7 +169,7 @@
 /// 
 </span><span class="kw">pub struct </span>CommandCompleter {
     <span class="doccomment">/// A list of all available commands for auto-completion.
-    </span><span class="kw">pub </span>commands: Vec&lt;String&gt;,
+    </span><span class="kw">pub </span>commands: HashMap&lt;String, Vec&lt;String&gt;&gt;,
 }
 
 
@@ -171,17 +207,50 @@
             line
         };
 
-        <span class="comment">// Match commands that start with the query and add them as suggestions.
-        </span><span class="kw">for </span>(command, <span class="kw">_</span>) <span class="kw">in </span>suggestions {
-            <span class="kw">if </span>command.starts_with(query) {
-                candidates.push(Pair {
-                    display: command.clone().to_string(),     
-                    replacement: command.clone().to_string(), 
-                });
+        <span class="kw">let </span>parts: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = query.trim_end().split_whitespace().collect();
+
+        <span class="kw">if </span>parts.len() == <span class="number">1 </span>&amp;&amp; !query.ends_with(<span class="string">' '</span>) {
+            <span class="comment">// Suggest main commands
+            </span><span class="kw">for </span>(command, <span class="kw">_</span>) <span class="kw">in </span><span class="kw-2">&amp;</span>suggestions {
+                <span class="kw">if </span>command.starts_with(parts[<span class="number">0</span>]) {
+                    candidates.push(Pair {
+                        display: command.to_string(),
+                        replacement: command.to_string(),
+                    });
+                }
+            }
+        } <span class="kw">else if </span>parts.len() == <span class="number">1 </span>&amp;&amp; query.ends_with(<span class="string">' '</span>) {
+            <span class="comment">// Suggest subcommands for the main command
+            </span><span class="kw">if let </span><span class="prelude-val">Some</span>(subcommands) = suggestions.get(parts[<span class="number">0</span>]) {
+                <span class="kw">for </span>subcmd <span class="kw">in </span>subcommands.suggestions.iter() {
+                    candidates.push(Pair {
+                        display: subcmd.join(<span class="string">" "</span>),
+                        replacement: <span class="macro">format!</span>(<span class="string">"{} {}"</span>, parts[<span class="number">0</span>], subcmd.join(<span class="string">" "</span>)),
+                    });
+                }
+            }
+        } <span class="kw">else if </span>parts.len() == <span class="number">2 </span>{
+            <span class="comment">// Suggest specific subcommands that start with the entered prefix
+            </span><span class="kw">if let </span><span class="prelude-val">Some</span>(subcommands) = suggestions.get(parts[<span class="number">0</span>]) {
+                <span class="kw">for </span>subcmd <span class="kw">in </span>subcommands.suggestions.iter() {
+                    <span class="kw">if </span>subcmd.join(<span class="string">" "</span>).starts_with(parts[<span class="number">1</span>]) {
+                        candidates.push(Pair {
+                            display: subcmd.join(<span class="string">" "</span>),
+                            replacement: subcmd.join(<span class="string">" "</span>),
+                        });
+                    }
+                }
             }
         }
 
-        <span class="prelude-val">Ok</span>((<span class="number">0</span>, candidates))
+        <span class="comment">// Determine the starting position for completions
+        </span><span class="kw">let </span>pos = <span class="kw">if </span>parts.len() &gt; <span class="number">1 </span>{
+            query.rfind(<span class="string">' '</span>).unwrap_or(<span class="number">0</span>) + <span class="number">1
+        </span>} <span class="kw">else </span>{
+            <span class="number">0
+        </span>};
+
+        <span class="prelude-val">Ok</span>((pos, candidates))
     }
 }
 
@@ -225,4 +294,6 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;ValidationResult, ReadlineError&gt; {
         <span class="prelude-val">Ok</span>(ValidationResult::Valid(<span class="prelude-val">None</span>)) 
     }
-}</code></pre></div></section></main></body></html>
+}
+
+</code></pre></div></section></main></body></html>

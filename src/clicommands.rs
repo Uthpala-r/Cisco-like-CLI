@@ -2,13 +2,13 @@
 use std::collections::HashMap;
 use std::net::Ipv4Addr;
 use std::path::Path;
-use std::fs;
+use std::fs::{self, File};
+use std::io::Write;
 use std::str::FromStr;
-use std::sync::{Arc, Mutex};
 use rpassword::read_password;
 
-use crate::run_config::save_config;
-use crate::run_config::load_config;
+use crate::run_config::{save_config, get_running_config, default_startup_config};
+//use crate::run_config::load_config;
 use crate::execute::Command;
 use crate::execute::Mode;
 use crate::clock_settings::handle_show_clock;
@@ -351,30 +351,39 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         "show running-config",
         Command {
             name: "show running-config",
-            description: "Display the current running configuration (from JSON file)",
+            description: "Display the current running configuration",
             suggestions: None,
             execute: |_, context, _| {
                 if matches!(context.current_mode, Mode::PrivilegedMode) {
-                    let file_path = Path::new("startup-config.json"); 
-
-                    if file_path.exists() {
-                        
-                        match fs::read_to_string(file_path) {
-                            Ok(file_content) => {
-                                println!("{}", file_content); 
-                                Ok(())
-                            }
-                            Err(err) => {
-                                eprintln!("Error reading the file: {}", err); 
-                                Err(err.to_string())
-                            }
-                        }
-                    } else {
-                        eprintln!("The JSON configuration file does not exist.");
-                        Err("File not found".to_string())
-                    }
+                    println!("Building configuration...\n");
+                    println!("Current configuration : 0 bytes\n");
+                    let running_config = get_running_config(&context);
+                    println!("{}", running_config);
+                    Ok(())
                 } else {
                     Err("The 'show running-config' command is only available in Privileged EXEC mode.".into())
+                }
+            },
+        },
+    );
+
+    commands.insert(
+        "show startup-config",
+        Command {
+            name: "show startup-config",
+            description: "Display the startup configuration (from memory)",
+            suggestions: None,
+            execute: |_, context, _| {
+                if matches!(context.current_mode, Mode::PrivilegedMode) {
+                    // Display the saved startup configuration
+                    let startup_config = default_startup_config(context);
+                        
+                        println!("Building configuration...\n");
+                        println!("Startup configuration : 0 bytes\n");
+                        println!("{}", startup_config); 
+                        Ok(())
+                } else {
+                    Err("The 'show startup-config' command is only available in Privileged EXEC mode.".into())
                 }
             },
         },
@@ -388,15 +397,52 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             suggestions: Some(vec!["memory"]),
             execute: |_, context, _| {
                 if matches!(context.current_mode, Mode::PrivilegedMode) {
-                    context.config.startup_config = context.config.running_config.clone();
-                    save_config(&context.config).map_err(|e| format!("Failed to save configuration: {}", e))?;
+                    // Save the running configuration to the startup configuration using default_startup_config
+                    let running_config = default_startup_config(context); 
+                    //context.config.startup_config = Some(running_config.clone());
+    
                     println!("Configuration saved successfully.");
                     Ok(())
                 } else {
                     Err("The 'write memory' command is only available in Privileged EXEC mode.".into())
-                }    
+                }
             },
+        },
+    );
 
+    commands.insert(
+        "copy running-config",
+        Command {
+            name: "copy running-config",
+            description: "Copy the running configuration to a file",
+            suggestions: Some(vec!["<file_name>"]),
+            execute: |args, context, _| {
+                if matches!(context.current_mode, Mode::PrivilegedMode) {
+                    
+                    if let Some(file_name) = args.get(0) {
+                        let running_config = get_running_config(context); 
+                        let file_path = Path::new(file_name);
+                        match File::create(file_path) {
+                            Ok(mut file) => {
+                                if let Err(err) = file.write_all(running_config.as_bytes()) {
+                                    eprintln!("Error writing to the file: {}", err);
+                                    return Err(err.to_string());
+                                }
+                                println!("Running configuration copied to {}", file_name);
+                                Ok(())
+                            }
+                            Err(err) => {
+                                eprintln!("Error creating the file: {}", err);
+                                Err(err.to_string())
+                            }
+                        }
+                    } else {
+                        Err("No file name provided.".into())
+                    }
+                } else {
+                    Err("The 'copy running-config' command is only available in Privileged EXEC mode.".into())
+                }
+            },
         },
     );
 
@@ -2166,8 +2212,15 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                 let stored_secret = storage.enable_secret.clone();
                 drop(storage);
                 
-                let encrypted_password = encrypt_password(&stored_password.unwrap());
-                let encrypted_secret = encrypt_password(&stored_secret.unwrap());
+                if let Some(password) = stored_password {
+                    let encrypted_password = encrypt_password(&password);
+                    context.config.encrypted_password = Some(encrypted_password);
+                }
+                
+                if let Some(secret) = stored_secret {
+                    let encrypted_secret = encrypt_password(&secret);
+                    context.config.encrypted_secret = Some(encrypted_secret);  // Update encrypted secret
+                }
     
                 context.config.password_encryption = true;
                 println!("Password encryption enabled.");

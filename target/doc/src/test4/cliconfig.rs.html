@@ -99,10 +99,65 @@
 <a href="#98" id="98">98</a>
 <a href="#99" id="99">99</a>
 <a href="#100" id="100">100</a>
-<a href="#101" id="101">101</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
 </span><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span><span class="kw">crate</span>::execute::Mode;
+<span class="kw">use </span><span class="kw">crate</span>::network_config::NtpAssociation;
 
 
 <span class="doccomment">/// Represents the configuration for the CLI application.
@@ -111,6 +166,7 @@
 /// - `running_config`: A map containing the currently active configuration settings.
 /// - `startup_config`: A map containing the startup configuration settings loaded at initialization.
 /// - `hostname`: The hostname of the system.
+/// etc.
 ///
 /// # Examples
 /// ```
@@ -123,6 +179,18 @@
     <span class="kw">pub </span>running_config: HashMap&lt;String, String&gt;,
     <span class="kw">pub </span>startup_config: HashMap&lt;String, String&gt;,
     <span class="kw">pub </span>hostname: String,
+    <span class="kw">pub </span>crypto_ipsec_profile: <span class="prelude-ty">Option</span>&lt;String&gt;, 
+    <span class="kw">pub </span>transform_sets: <span class="prelude-ty">Option</span>&lt;Vec&lt;String&gt;&gt;,  
+    <span class="kw">pub </span>tunnel_mode: <span class="prelude-ty">Option</span>&lt;String&gt;,         
+    <span class="kw">pub </span>tunnel_source: <span class="prelude-ty">Option</span>&lt;String&gt;,      
+    <span class="kw">pub </span>tunnel_destination: <span class="prelude-ty">Option</span>&lt;String&gt;,  
+    <span class="kw">pub </span>tunnel_protection_profile: <span class="prelude-ty">Option</span>&lt;String&gt;, 
+    <span class="kw">pub </span>virtual_template: <span class="prelude-ty">Option</span>&lt;String&gt;,  
+    <span class="kw">pub </span>enable_password: <span class="prelude-ty">Option</span>&lt;String&gt;,          
+    <span class="kw">pub </span>enable_secret: <span class="prelude-ty">Option</span>&lt;String&gt;,            
+    <span class="kw">pub </span>password_encryption: bool,
+    <span class="kw">pub </span>domain_name: <span class="prelude-ty">Option</span>&lt;String&gt;,      
+  
 }
 
 
@@ -133,11 +201,33 @@
     /// - `running_config`: An empty `HashMap`.
     /// - `startup_config`: An empty `HashMap`.
     /// - `hostname`: `"Router"`.
+    /// - `crypto_ipsec_profile: None`,
+    /// - `transform_sets: None`,
+    /// - `tunnel_mode: None`,
+    /// - `tunnel_source: None`,
+    /// - `tunnel_destination: None`,
+    /// - `tunnel_protection_profile: None`,
+    /// - `virtual_template: None`,
+    /// - `enable_password: None`,          
+    /// - `enable_secret: None`,            
+    /// - `password_encryption: false`, 
+    /// - `domain_name: None`,
     </span><span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             running_config: HashMap::new(),
             startup_config: HashMap::new(),
             hostname: <span class="string">"Router"</span>.to_string(),
+            crypto_ipsec_profile: <span class="prelude-val">None</span>,
+            transform_sets: <span class="prelude-val">None</span>,
+            tunnel_mode: <span class="prelude-val">None</span>,
+            tunnel_source: <span class="prelude-val">None</span>,
+            tunnel_destination: <span class="prelude-val">None</span>,
+            tunnel_protection_profile: <span class="prelude-val">None</span>,
+            virtual_template: <span class="prelude-val">None</span>,
+            enable_password: <span class="prelude-val">None</span>,          
+            enable_secret: <span class="prelude-val">None</span>,            
+            password_encryption: <span class="bool-val">false</span>, 
+            domain_name: <span class="prelude-val">None</span>,
         }
     }
 }
@@ -166,6 +256,12 @@
     <span class="kw">pub </span>trunk_encapsulation: <span class="prelude-ty">Option</span>&lt;String&gt;, 
     <span class="kw">pub </span>native_vlan: <span class="prelude-ty">Option</span>&lt;u16&gt;, 
     <span class="kw">pub </span>allowed_vlans: HashSet&lt;u16&gt;,
+    <span class="kw">pub </span>ntp_servers: HashSet&lt;String&gt;,  
+    <span class="kw">pub </span>ntp_associations: Vec&lt;NtpAssociation&gt;,  
+    <span class="kw">pub </span>ntp_authentication_enabled: bool,   
+    <span class="kw">pub </span>ntp_authentication_keys: HashMap&lt;u32, String&gt;, 
+    <span class="kw">pub </span>ntp_trusted_keys: HashSet&lt;u32&gt;,     
+    <span class="kw">pub </span>ntp_master: bool, 
 }
 
 
@@ -184,6 +280,12 @@
     /// - `trunk_encapsulation`: `None`,
     /// - `native_vlan`: `None`,
     /// - `allowed_vlans`: `HashSet::new()`,
+    /// - `ntp_servers: HashSet::new()`, 
+    /// - `ntp_associations: Vec::new()`,
+    /// - `ntp_authentication_enabled: false`,   
+    /// - `ntp_authentication_keys: HashMap::new()`, 
+    /// - `ntp_trusted_keys: HashSet::new()`,     
+    /// - `ntp_master: false,
     </span><span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             current_mode: Mode::UserMode,
@@ -197,6 +299,12 @@
             trunk_encapsulation: <span class="prelude-val">None</span>,
             native_vlan: <span class="prelude-val">None</span>,
             allowed_vlans: HashSet::new(),
+            ntp_servers: HashSet::new(), 
+            ntp_associations: Vec::new(),
+            ntp_authentication_enabled: <span class="bool-val">false</span>,   
+            ntp_authentication_keys: HashMap::new(), 
+            ntp_trusted_keys: HashSet::new(),     
+            ntp_master: <span class="bool-val">false</span>,
         }
     }
 }</code></pre></div></section></main></body></html>
