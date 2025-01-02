@@ -6,13 +6,13 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::str::FromStr;
 use rpassword::read_password;
+use chrono::Local;
 
 use crate::run_config::{save_config, get_running_config, default_startup_config};
 //use crate::run_config::load_config;
 use crate::execute::Command;
 use crate::execute::Mode;
-use crate::clock_settings::handle_show_clock;
-use crate::clock_settings::handle_clock_set;
+use crate::clock_settings::{handle_clock_set, parse_clock_set_input, handle_show_clock};
 use crate::network_config::{calculate_broadcast, STATUS_MAP, IFCONFIG_STATE, IP_ADDRESS_STATE, ROUTE_TABLE, OSPF_CONFIG, ACL_STORE, encrypt_password, PASSWORD_STORAGE, set_enable_password, set_enable_secret, get_enable_password, get_enable_secret};
 use crate::network_config::{InterfaceConfig, OSPFConfig, AclEntry, AccessControlList, NtpAssociation};
 
@@ -79,7 +79,9 @@ use crate::network_config::{InterfaceConfig, OSPFConfig, AclEntry, AccessControl
 /// - `enable password`: Configures a password for privileged EXEC mode access. This password is weaker than the `enable secret` and should be avoided when possible.
 /// - `ip domain-name`: Sets the domain name for the device, which is used in various operations such as DNS resolution.
 /// - `crypto key`: Generates or manages cryptographic keys used in various security protocols, including VPNs and encryption.
-///
+/// - `show processes`: Shows the system processes and memories
+/// - `ping`: Confirms the connection between ip addresses
+/// 
 /// # Returns
 /// A `HashMap` where the keys are command names (as `&'static str`) and the values are the corresponding `Command` structs.
 /// Each `Command` struct contains the `name`, `description`, `suggestions`, and an `execute` function.
@@ -375,20 +377,28 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             suggestions: None,
             execute: |_, context, _| {
                 if matches!(context.current_mode, Mode::PrivilegedMode) {
-                    // Display the saved startup configuration
-                    let startup_config = default_startup_config(context);
-                        
-                        println!("Building configuration...\n");
-                        println!("Startup configuration : 0 bytes\n");
-                        println!("{}", startup_config); 
-                        Ok(())
+                    println!("Building configuration...\n");
+    
+                    // Check if write memory has been executed
+                    if let Some(last_written) = &context.config.last_written {
+                        println!(
+                            "Startup configuration (last saved: {}):\n",
+                            last_written
+                        );
+                        let startup_config = get_running_config(&context);
+                        println!("{}", startup_config);
+                    } else {
+                        println!("Startup configuration (default):\n");
+                        println!("{}", default_startup_config(context));
+                    }
+                    Ok(())
                 } else {
                     Err("The 'show startup-config' command is only available in Privileged EXEC mode.".into())
                 }
             },
         },
     );
-
+    
     commands.insert(
         "write",
         Command {
@@ -397,9 +407,12 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             suggestions: Some(vec!["memory"]),
             execute: |_, context, _| {
                 if matches!(context.current_mode, Mode::PrivilegedMode) {
-                    // Save the running configuration to the startup configuration using default_startup_config
-                    let running_config = default_startup_config(context); 
-                    //context.config.startup_config = Some(running_config.clone());
+                    // Save the running configuration to the startup configuration
+                    let running_config = get_running_config(context);
+                    context.config.startup_config = Some(running_config.clone());
+    
+                    // Update the last written timestamp
+                    context.config.last_written = Some(chrono::Local::now().to_string());
     
                     println!("Configuration saved successfully.");
                     Ok(())
@@ -409,6 +422,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             },
         },
     );
+    
 
     commands.insert(
         "copy running-config",
@@ -437,7 +451,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                             }
                         }
                     } else {
-                        Err("No file name provided.".into())
+                        Err("No file name provided. Usage: copy running-config <file-name>".into())
                     }
                 } else {
                     Err("The 'copy running-config' command is only available in Privileged EXEC mode.".into())
@@ -487,16 +501,24 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             suggestions: Some(vec!["set"]),
             execute: |args, _context, clock| {
                 if let Some(clock) = clock {
-                    handle_clock_set(&args.join(" "), clock);
-                    Ok(())
+
+                    let input = args.join(" ");
+    
+                    match parse_clock_set_input(&input) {
+                        Ok((time, day, month, year)) => {
+                  
+                            handle_clock_set(time, day, month, year, clock);
+                            Ok(())
+                        }
+                        Err(err) => Err(err), 
+                    }
                 } else {
                     Err("Clock functionality is unavailable.".to_string())
-                }  
-             
+                }
             },
-
         },
     );
+    
 
     commands.insert(
         "show clock",
@@ -2331,6 +2353,118 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         },
     });
     
+    commands.insert(
+        "show processes",
+        Command {
+            name: "show processes",
+            description: "Display process information or CPU/memory utilization",
+            suggestions: Some(vec!["cpu", "cpu history", "memory"]),
+            execute: |_args, context, _| {
+                if matches!(context.current_mode, Mode::PrivilegedMode) {
+                                        
+                    if _args.is_empty() {
+                            
+                        println!("CPU utilization for five seconds: 0%/0%; one minute: 0%; five minutes: 0%");
+                        println!(
+                            " PID Q  Ty       PC  Runtime(uS)    Invoked   uSecs    Stacks TTY Process\n\
+                              1 C  sp 602F3AF0            0       1627       0 2600/3000   0 Load Meter\n\
+                              2 L  we 60C5BE00            4        136      29 5572/6000   0 CEF Scanner\n\
+                              3 L  st 602D90F8         1676        837    2002 5740/6000   0 Check heaps\n\
+                              4 C  we 602D08F8            0          1       0 5568/6000   0 Chunk Manager\n\
+                              5 C  we 602DF0E8            0          1       0 5592/6000   0 Pool Manager"
+                        ); 
+                        Ok(())     
+                    }
+
+                    else{
+                        match &_args[0] as &str { 
+                            "cpu" => {
+                            
+                                println!("CPU utilization for five seconds: 8%/4%; one minute: 6%; five minutes: 5%");
+                                println!(
+                                    " PID Runtime(uS)   Invoked  uSecs    5Sec   1Min   5Min TTY Process\n\
+                                    1         384     32789     11   0.00%  0.00%  0.00%   0 Load Meter\n\
+                                    2        2752      1179   2334   0.73%  1.06%  0.29%   0 Exec\n\
+                                    3      318592      5273  60419   0.00%  0.15%  0.17%   0 Check heaps\n\
+                                    4           4         1   4000   0.00%  0.00%  0.00%   0 Pool Manager\n\
+                                    5        6472      6568    985   0.00%  0.00%  0.00%   0 ARP Input"
+                                );
+                                Ok(())
+                            }
+                            
+                            "cpu history" => {
+                                
+                                println!(
+                                    "CPU% per minute (last 60 minutes)\n\
+                                    100\n 90\n 80         *  *                     * *     *  * *  *\n\
+                                    70  * * ***** *  ** ***** ***  **** ******  *  *******     * *\n\
+                                    60  #***##*##*#***#####*#*###*****#*###*#*#*##*#*##*#*##*****#\n\
+                                    50  ##########################################################\n\
+                                    40  ##########################################################\n\
+                                    30  ##########################################################\n\
+                                    20  ##########################################################\n\
+                                    10  ##########################################################\n\
+                                        0....5....1....1....2....2....3....3....4....4....5....5....\n\
+                                                0    5    0    5    0    5    0    5    0    5"
+                                );
+                                Ok(())
+                            }
+                            
+                            "memory" => {
+                                
+                                println!(
+                                    "Total: 106206400, Used: 7479116, Free: 98727284\n\
+                                    PID TTY  Allocated      Freed    Holding    Getbufs    Retbufs Process\n\
+                                    0   0      81648       1808    6577644          0          0 *Init*\n\
+                                    0   0        572     123196        572          0          0 *Sched*\n\
+                                    0   0   10750692    3442000       5812    2813524          0 *Dead*\n\
+                                    1   0        276        276       3804          0          0 Load Meter"
+                                );
+                                Ok(())
+                            }
+                            _ => Err("Invalid subcommand for 'show processes'. Valid subcommands are 'cpu', 'cpu history', and 'memory'.".into()),
+                        }
+                    }
+                } else {
+                    Err("The 'show processes' command is only available in Privileged EXEC mode.".into())
+                }
+            },
+        },
+    );
+    
+    commands.insert("ping", Command {
+        name: "ping",
+        description: "Ping a specific IP address to check reachability",
+        suggestions: None,
+        execute: |args, context, _| {
+            if args.len() == 1 {
+                let ip: String = args[0].to_string();
+                let route_table = ROUTE_TABLE.lock().unwrap();
+    
+                if route_table.contains_key(&ip) {
+                    println!("Pinging {} with 32 bytes of data:", ip);
+                    for _ in 0..4 {
+                        println!("Reply from {}: bytes=32 time<1ms TTL=128", ip);
+                    }
+                    println!("\nPing statistics for {}:", ip);
+                    println!("    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),");
+                    println!("Approximate round trip times in milli-seconds:");
+                    println!("    Minimum = 0ms, Maximum = 1ms, Average = 0ms");
+                    Ok(())
+                } else {
+                    println!("Pinging {} with 32 bytes of data:", ip);
+                    for _ in 0..4 {
+                        println!("Request timed out.");
+                    }
+                    println!("\nPing statistics for {}:", ip);
+                    println!("    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss),");
+                    Err(format!("IP address {} is not reachable.", ip).into())
+                }
+            } else {
+                Err("Invalid syntax. Usage: ping <ip>".into())
+            }
+        },
+    });
     
 
 

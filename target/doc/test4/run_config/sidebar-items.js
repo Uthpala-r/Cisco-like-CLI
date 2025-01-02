@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["load_config","save_config"]};
+window.SIDEBAR_ITEMS = {"fn":["default_startup_config","get_running_config","load_config","save_config"]};

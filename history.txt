@@ -1,101 +1,101 @@
 #V2
-configure terminal
-enable secret Hi
-enable password dudu
-service password-encryption
 exit
-enable secret
+ip route 192.168.1.1 255.255.255.0 192.168.1.2 
+exit
+ping 192.168.1.1
+exit
+?
 enable
-show running-config
+configure terminal
+?
+exit
+?
+exit cli
+?
+configure terminal
+enable
+configure terminal
+?
+exit
+?
+exit cli
+enable password
+en
+enable
+?
+show?
+show ?
+?
 exit cli
 enable
+?
+exit cli
+enable password
+?
+enable
+?
+con?
+configure?
+configure ?
 configure terminal
-enable secret Hi
-enable password dudu
-service password-encryption
+?
+interface g0/0
+?
 exit
-show running-config
+show ?
+exit cli
+enable password
+enable
+clock set
+show clock
+clock set 16:17:23 02 01 2025
+clock set 04:17:23 02 01 2025
+clock set 04:17:23 02 January 2025
+exit cli
+enable
+clock set 16:17:34 1 January 2024
+exit cli
+enable secret
+enable
+clock set 23:23:23 01 January 2023
+clock set 23:23:23 1 January 2023
+exit cli
+enable secret
+enable
+clock set 16:25:2024 1 January 2025
+show clock
 exit cli
 enable
 configure terminal
 interface g0/0
 ip address 192.168.1.1 255.255.255.0
-no shutdown
 exit
-show running-config
-exit cli
-enable password
-enable
-configure terminal
-hostname R1
-interface g0/0
-ip address 192.168.2.2 255.255.255.0 
-no shutdown
+ip route 192.168.1.1 255.255.255.0 192.168.2.2
 exit
+show ip route
 show running-config
-configure terminalt
-enable password Hi
-service password-encryption
-exit
-show running-config
-configure terminal
-hostname Router
-exit cli
-enable
-configure terminal
-hostname R1
-exit
-show running-config
-exit cli
-enable
-show running-config
-show startup-config
-exit xli
-exit cli
-enable password
-enable
-configure terminal
-hostname R1
-exit
-show running-config
-show startup-config
-exit cli
-enable
-configure terminalt
-hostname R1
-exit
-show running-config
-show startup-config
-write memory
-show startup-config
-copy running-config
-copy running-config Mytest.txt
-show startup-config
-ecxit cli
-eexit cli
 exit cli
 enable secret
 enable
 configure terminal
-hostname R1
+ip route 192.168.1.1 255.255.255.0 192.168.2.2
 exit
+show ip route
 show running-config
-show startup-config
-write memory
-show startup-config
+exit cli
+enable password
+enable
+configure terminal
+interface g0/0
+exit
+ip route 192.168.1.1 255.255.255.0 192.168.2.2
+exit
 show running-config
 exit cli
 enable
 configure terminal
-hostname R1
+ip route 192.168.1.1 255.255.255.0 192.168.2.3
 exit
-show startup-config
-write memory
-show startup-config
-exit cli
-enable
-configure terminal
-hostname R1
-exit
-show startup-config
+show ip route
+show running-config
 exit cli

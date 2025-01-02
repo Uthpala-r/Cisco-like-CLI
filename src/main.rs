@@ -20,7 +20,7 @@ use crate::cliconfig::CliContext;
 use commandcompleter::CommandCompleter;
 use clicommands::build_command_registry;
 use execute::execute_command;
-use clock_settings::CustomClock;
+use clock_settings::Clock;
 use crate::execute::Mode;
 
 
@@ -80,7 +80,7 @@ fn main() {
     rl.load_history("history.txt").ok();
 
     // Set up the initial clock settings
-    let mut clock = Some(CustomClock {
+    let mut clock = Some(Clock {
         date: "2024-06-01".into(),
         time: "12:00".into(),
     });

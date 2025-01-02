@@ -2,7 +2,8 @@
 use crate::cliconfig::{CliConfig, CliContext};
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
-use crate::network_config::{STATUS_MAP, IP_ADDRESS_STATE};
+use std::net::Ipv4Addr;
+use crate::network_config::{STATUS_MAP, IP_ADDRESS_STATE, ROUTE_TABLE};
 
 
 /// Saves the given `CliConfig` to a file named `startup-config.json`.
@@ -65,11 +66,21 @@ pub fn load_config() -> CliConfig {
 }
 
 
-/// This function defines the running-config updates
+/// Retrieves the current running configuration of the device.
+/// 
+/// The running configuration is a volatile piece of information that reflects 
+/// the current state of the device, including any changes made to it. This 
+/// configuration is stored in memory rather than NVRAM, meaning it will be lost 
+/// when the device loses power.
 /// 
 /// # Returns
-/// The running-config
+/// A `String` representing the current running configuration of the device.
 /// 
+/// # Example
+/// ```rust
+/// let config = get_running_config();
+/// println!("Running Configuration: {}", config);
+/// ``` 
 pub fn get_running_config(context: &CliContext) -> String {
     let hostname = &context.config.hostname;
     let encrypted_password = context.config.encrypted_password.clone().unwrap_or_default();
@@ -78,6 +89,7 @@ pub fn get_running_config(context: &CliContext) -> String {
     // Access global states
     let ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
     let status_map = STATUS_MAP.lock().unwrap();
+    let route_table = ROUTE_TABLE.lock().unwrap();
 
     // Determine the active interface
     let interface = context
@@ -90,6 +102,14 @@ pub fn get_running_config(context: &CliContext) -> String {
         .get(&interface)
         .map(|(ip, _)| ip.to_string())
         .unwrap_or_else(|| "no ip address".to_string());
+
+    let mut route_entries = String::new();
+    for (destination, (netmask, next_hop_or_iface)) in route_table.iter() {
+        route_entries.push_str(&format!(
+            "ip route {} {} {}\n",
+            destination, netmask, next_hop_or_iface
+        ));
+    }
 
     // Determine the shutdown status
     let shutdown_status = if status_map.get(&interface).copied().unwrap_or(false) {
@@ -110,8 +130,14 @@ enable secret 5 {}
 !
 interface {}
 ip address {}
+duplex auto
+speed auto
 {}
-!"#,
+!
+ip classes
+{}
+!
+"#,
         if context.config.password_encryption {
             "service password-encryption"
         } else {
@@ -123,13 +149,28 @@ ip address {}
         interface,
         ip_address,
         shutdown_status,
+        route_entries,
     )
 }
 
 
+/// Retrieves the startup configuration of the device.
+/// 
+/// The startup configuration is a non-volatile piece of information that is 
+/// stored in NVRAM. This configuration persists across device reboots and 
+/// represents the settings that the device will use upon startup.
+/// 
+/// # Returns
+/// A `String` representing the startup configuration of the device.
+/// 
+/// # Example
+/// ```rust
+/// let startup_config = default_startup_config();
+/// println!("Startup Configuration: {}", startup_config);
+/// ```
 pub fn default_startup_config(context: &mut CliContext) -> String {
     
-    let running_config = context.config.running_config.clone().unwrap_or_else(|| {
+    let startup_config = (
         
         r#"
 Building configuration...
@@ -151,11 +192,7 @@ shutdown
 !
 "#
         .to_string()
-    });
-
-    if context.config.startup_config.is_none() {
-        context.config.startup_config = Some(running_config.clone());
-    }
-
-    running_config
+    
+);
+    startup_config
 }

@@ -74,7 +74,89 @@
 <a href="#73" id="73">73</a>
 <a href="#74" id="74">74</a>
 <a href="#75" id="75">75</a>
-<a href="#76" id="76">76</a></pre></div><pre class="rust"><code><span class="doccomment">/// A structure representing the custom clock in the CLI.
+<a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
+<a href="#87" id="87">87</a>
+<a href="#88" id="88">88</a>
+<a href="#89" id="89">89</a>
+<a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a></pre></div><pre class="rust"><code><span class="doccomment">/// A structure representing the custom clock in the CLI.
 ///
 /// This struct is used to store the date and time as strings in a specific format.
 ///
@@ -84,7 +166,7 @@
 ///
 /// # Examples
 /// ```
-/// let clock = CustomClock {
+/// let clock = Clock {
 ///     date: "2024-06-01".to_string(),
 ///     time: "12:00".to_string(),
 /// };
@@ -92,9 +174,26 @@
 /// assert_eq!(clock.time, "12:00");
 /// ```
 /// 
-</span><span class="kw">pub struct </span>CustomClock {
-    <span class="kw">pub </span>date: String,
+</span><span class="kw">pub struct </span>Clock {
     <span class="kw">pub </span>time: String,
+    <span class="kw">pub </span>date: String,
+}
+
+<span class="kw">impl </span>Clock {
+    <span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
+        Clock {
+            time: String::new(),
+            date: String::new(),
+        }
+    }
+
+    <span class="kw">pub fn </span>set_time(<span class="kw-2">&amp;mut </span><span class="self">self</span>, time: <span class="kw-2">&amp;</span>str) {
+        <span class="self">self</span>.time = time.to_string();
+    }
+
+    <span class="kw">pub fn </span>set_date(<span class="kw-2">&amp;mut </span><span class="self">self</span>, day: u8, month: <span class="kw-2">&amp;</span>str, year: u16) {
+        <span class="self">self</span>.date = <span class="macro">format!</span>(<span class="string">"{} {} {}"</span>, day, month, year);
+    }
 }
 
 
@@ -121,16 +220,81 @@
 /// # Errors
 /// Prints a usage message if the input is not in the expected format.
 /// 
-</span><span class="kw">pub fn </span>handle_clock_set(input: <span class="kw-2">&amp;</span>str, clock: <span class="kw-2">&amp;mut </span>CustomClock) {
-    <span class="kw">let </span>parts: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = input.split_whitespace().collect();
-    <span class="kw">if </span>parts.len() &lt; <span class="number">4 </span>{
-        <span class="macro">println!</span>(<span class="string">"Usage: clock set &lt;date&gt; &lt;time&gt;"</span>);
-        <span class="kw">return</span>;
-    }
-    clock.date = parts[<span class="number">2</span>].to_string();
-    clock.time = parts[<span class="number">3</span>].to_string();
-    <span class="macro">println!</span>(<span class="string">"Clock set to: {} {}"</span>, clock.date, clock.time);
+</span><span class="kw">pub fn </span>handle_clock_set(time: <span class="kw-2">&amp;</span>str, day: u8, month: <span class="kw-2">&amp;</span>str, year: u16, clock: <span class="kw-2">&amp;mut </span>Clock) {
+    clock.set_time(time);
+    clock.set_date(day, month, year);
+
+    <span class="macro">println!</span>(<span class="string">"Clock updated successfully to {} {} {} {}."</span>, time, day, month, year);
 }
+
+
+<span class="doccomment">/// Parses a clock set command input and validates its components.
+///
+/// This function takes a command input string in the format `clock set &lt;hh:mm:ss&gt; &lt;day&gt; &lt;month&gt; &lt;year&gt;`,
+/// splits the string into parts, validates each part, and returns the parsed time, day, month, and year 
+/// as a tuple. If the input is invalid, it returns an error message.
+///
+/// # Arguments
+/// 
+/// * `input` - A string slice representing the clock set command. The expected format is:
+///   `"clock set &lt;hh:mm:ss&gt; &lt;day&gt; &lt;month&gt; &lt;year&gt;"`.
+/// 
+/// # Returns
+/// 
+/// * `Ok` - A tuple with the parsed time (as `&amp;str`), day (as `u8`), month (as `&amp;str`), and year (as `u16`).
+/// * `Err` - A `String` containing an error message if any part of the input is invalid.
+///
+/// # Errors
+/// 
+/// This function can return errors for:
+/// * An incomplete command with fewer than 4 parts.
+/// * An invalid time format (does not contain `:` or not in `hh:mm:ss` format).
+/// * An invalid day (not between 1 and 31).
+/// * An invalid month (not a valid month name).
+/// * An invalid year (not between 1993 and 2035).
+/// 
+/// # Example
+/// 
+/// ```rust
+/// let input = "clock set 12:30:45 15 January 2025";
+/// let result = parse_clock_set_input(input);
+/// assert_eq!(result, Ok(("12:30:45", 15, "January", 2025)));
+/// ```
+</span><span class="kw">pub fn </span>parse_clock_set_input(input: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="kw-2">&amp;</span>str, u8, <span class="kw-2">&amp;</span>str, u16), String&gt; {
+
+    <span class="kw">let </span>parts: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = input.split_whitespace().collect();
+
+    <span class="kw">if </span>parts.len() &lt; <span class="number">4 </span>{
+        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"Incomplete command. Usage: clock set &lt;hh:mm:ss&gt; &lt;day&gt; &lt;month&gt; &lt;year&gt;"</span>.to_string());
+    }
+
+    <span class="kw">let </span>time = parts[<span class="number">1</span>];
+    <span class="kw">if </span>!time.contains(<span class="string">':'</span>) || time.split(<span class="string">':'</span>).count() != <span class="number">3 </span>{
+        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"Invalid time format. Expected hh:mm:ss."</span>.to_string());
+    }
+
+    <span class="kw">let </span>day: u8 = parts[<span class="number">2</span>].parse().map_err(|<span class="kw">_</span>| <span class="string">"Invalid day. Expected a number between 1 and 31."</span>.to_string())<span class="question-mark">?</span>;
+    <span class="kw">if </span>!(<span class="number">1</span>..=<span class="number">31</span>).contains(<span class="kw-2">&amp;</span>day) {
+        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"Invalid day. Expected a number between 1 and 31."</span>.to_string());
+    }
+
+    <span class="kw">let </span>month = parts[<span class="number">3</span>];
+    <span class="kw">let </span>valid_months = [
+        <span class="string">"January"</span>, <span class="string">"February"</span>, <span class="string">"March"</span>, <span class="string">"April"</span>, <span class="string">"May"</span>, <span class="string">"June"</span>, <span class="string">"July"</span>, <span class="string">"August"</span>, <span class="string">"September"</span>,
+        <span class="string">"October"</span>, <span class="string">"November"</span>, <span class="string">"December"</span>,
+    ];
+    <span class="kw">if </span>!valid_months.contains(<span class="kw-2">&amp;</span>month) {
+        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"Invalid month. Expected a valid month name."</span>.to_string());
+    }
+
+    <span class="kw">let </span>year: u16 = parts[<span class="number">4</span>].parse().map_err(|<span class="kw">_</span>| <span class="string">"Invalid year. Expected a number between 1993 and 2035."</span>.to_string())<span class="question-mark">?</span>;
+    <span class="kw">if </span>!(<span class="number">1993</span>..=<span class="number">2035</span>).contains(<span class="kw-2">&amp;</span>year) {
+        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"Invalid year. Expected a number between 1993 and 2035."</span>.to_string());
+    }
+
+    <span class="prelude-val">Ok</span>((time, day, month, year))
+}
+
 
 
 <span class="doccomment">/// Handles the `show clock` command to display the current date and time stored in the `CustomClock` structure.
@@ -147,7 +311,7 @@
 /// handle_show_clock(&amp;clock);
 /// // Output: Current clock: 2024-06-01 12:00
 /// ```
-</span><span class="kw">pub fn </span>handle_show_clock(clock: <span class="kw-2">&amp;</span>CustomClock) {
+</span><span class="kw">pub fn </span>handle_show_clock(clock: <span class="kw-2">&amp;</span>Clock) {
     <span class="macro">println!</span>(<span class="string">"Current clock: {} {}"</span>, clock.date, clock.time);
 }
 </code></pre></div></section></main></body></html>

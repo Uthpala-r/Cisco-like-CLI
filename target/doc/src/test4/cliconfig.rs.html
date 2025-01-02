@@ -153,7 +153,14 @@
 <a href="#152" id="152">152</a>
 <a href="#153" id="153">153</a>
 <a href="#154" id="154">154</a>
-<a href="#155" id="155">155</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
 </span><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span><span class="kw">crate</span>::execute::Mode;
@@ -176,8 +183,8 @@
 /// 
 </span><span class="attr">#[derive(Serialize, Deserialize, Clone)]
 </span><span class="kw">pub struct </span>CliConfig {
-    <span class="kw">pub </span>running_config: HashMap&lt;String, String&gt;,
-    <span class="kw">pub </span>startup_config: HashMap&lt;String, String&gt;,
+    <span class="kw">pub </span>running_config: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="kw">pub </span>startup_config: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="kw">pub </span>hostname: String,
     <span class="kw">pub </span>crypto_ipsec_profile: <span class="prelude-ty">Option</span>&lt;String&gt;, 
     <span class="kw">pub </span>transform_sets: <span class="prelude-ty">Option</span>&lt;Vec&lt;String&gt;&gt;,  
@@ -187,9 +194,12 @@
     <span class="kw">pub </span>tunnel_protection_profile: <span class="prelude-ty">Option</span>&lt;String&gt;, 
     <span class="kw">pub </span>virtual_template: <span class="prelude-ty">Option</span>&lt;String&gt;,  
     <span class="kw">pub </span>enable_password: <span class="prelude-ty">Option</span>&lt;String&gt;,          
-    <span class="kw">pub </span>enable_secret: <span class="prelude-ty">Option</span>&lt;String&gt;,            
+    <span class="kw">pub </span>enable_secret: <span class="prelude-ty">Option</span>&lt;String&gt;,  
+    <span class="kw">pub </span>encrypted_password: <span class="prelude-ty">Option</span>&lt;String&gt;,          
+    <span class="kw">pub </span>encrypted_secret: <span class="prelude-ty">Option</span>&lt;String&gt;,          
     <span class="kw">pub </span>password_encryption: bool,
-    <span class="kw">pub </span>domain_name: <span class="prelude-ty">Option</span>&lt;String&gt;,      
+    <span class="kw">pub </span>domain_name: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="kw">pub </span>last_written: <span class="prelude-ty">Option</span>&lt;String&gt;,     
   
 }
 
@@ -214,8 +224,8 @@
     /// - `domain_name: None`,
     </span><span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
-            running_config: HashMap::new(),
-            startup_config: HashMap::new(),
+            running_config: <span class="prelude-val">None</span>,
+            startup_config: <span class="prelude-val">None</span>,
             hostname: <span class="string">"Router"</span>.to_string(),
             crypto_ipsec_profile: <span class="prelude-val">None</span>,
             transform_sets: <span class="prelude-val">None</span>,
@@ -225,9 +235,13 @@
             tunnel_protection_profile: <span class="prelude-val">None</span>,
             virtual_template: <span class="prelude-val">None</span>,
             enable_password: <span class="prelude-val">None</span>,          
-            enable_secret: <span class="prelude-val">None</span>,            
+            enable_secret: <span class="prelude-val">None</span>,   
+            encrypted_password: <span class="prelude-val">None</span>,          
+            encrypted_secret: <span class="prelude-val">None</span>,         
             password_encryption: <span class="bool-val">false</span>, 
             domain_name: <span class="prelude-val">None</span>,
+            last_written: <span class="prelude-val">None</span>,
+            
         }
     }
 }

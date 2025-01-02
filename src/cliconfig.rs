@@ -36,7 +36,8 @@ pub struct CliConfig {
     pub encrypted_password: Option<String>,          
     pub encrypted_secret: Option<String>,          
     pub password_encryption: bool,
-    pub domain_name: Option<String>,    
+    pub domain_name: Option<String>,
+    pub last_written: Option<String>,     
   
 }
 
@@ -77,6 +78,7 @@ impl Default for CliConfig {
             encrypted_secret: None,         
             password_encryption: false, 
             domain_name: None,
+            last_written: None,
             
         }
     }

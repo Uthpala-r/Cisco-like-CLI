@@ -2283,21 +2283,208 @@
 <a href="#2282" id="2282">2282</a>
 <a href="#2283" id="2283">2283</a>
 <a href="#2284" id="2284">2284</a>
-<a href="#2285" id="2285">2285</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
+<a href="#2285" id="2285">2285</a>
+<a href="#2286" id="2286">2286</a>
+<a href="#2287" id="2287">2287</a>
+<a href="#2288" id="2288">2288</a>
+<a href="#2289" id="2289">2289</a>
+<a href="#2290" id="2290">2290</a>
+<a href="#2291" id="2291">2291</a>
+<a href="#2292" id="2292">2292</a>
+<a href="#2293" id="2293">2293</a>
+<a href="#2294" id="2294">2294</a>
+<a href="#2295" id="2295">2295</a>
+<a href="#2296" id="2296">2296</a>
+<a href="#2297" id="2297">2297</a>
+<a href="#2298" id="2298">2298</a>
+<a href="#2299" id="2299">2299</a>
+<a href="#2300" id="2300">2300</a>
+<a href="#2301" id="2301">2301</a>
+<a href="#2302" id="2302">2302</a>
+<a href="#2303" id="2303">2303</a>
+<a href="#2304" id="2304">2304</a>
+<a href="#2305" id="2305">2305</a>
+<a href="#2306" id="2306">2306</a>
+<a href="#2307" id="2307">2307</a>
+<a href="#2308" id="2308">2308</a>
+<a href="#2309" id="2309">2309</a>
+<a href="#2310" id="2310">2310</a>
+<a href="#2311" id="2311">2311</a>
+<a href="#2312" id="2312">2312</a>
+<a href="#2313" id="2313">2313</a>
+<a href="#2314" id="2314">2314</a>
+<a href="#2315" id="2315">2315</a>
+<a href="#2316" id="2316">2316</a>
+<a href="#2317" id="2317">2317</a>
+<a href="#2318" id="2318">2318</a>
+<a href="#2319" id="2319">2319</a>
+<a href="#2320" id="2320">2320</a>
+<a href="#2321" id="2321">2321</a>
+<a href="#2322" id="2322">2322</a>
+<a href="#2323" id="2323">2323</a>
+<a href="#2324" id="2324">2324</a>
+<a href="#2325" id="2325">2325</a>
+<a href="#2326" id="2326">2326</a>
+<a href="#2327" id="2327">2327</a>
+<a href="#2328" id="2328">2328</a>
+<a href="#2329" id="2329">2329</a>
+<a href="#2330" id="2330">2330</a>
+<a href="#2331" id="2331">2331</a>
+<a href="#2332" id="2332">2332</a>
+<a href="#2333" id="2333">2333</a>
+<a href="#2334" id="2334">2334</a>
+<a href="#2335" id="2335">2335</a>
+<a href="#2336" id="2336">2336</a>
+<a href="#2337" id="2337">2337</a>
+<a href="#2338" id="2338">2338</a>
+<a href="#2339" id="2339">2339</a>
+<a href="#2340" id="2340">2340</a>
+<a href="#2341" id="2341">2341</a>
+<a href="#2342" id="2342">2342</a>
+<a href="#2343" id="2343">2343</a>
+<a href="#2344" id="2344">2344</a>
+<a href="#2345" id="2345">2345</a>
+<a href="#2346" id="2346">2346</a>
+<a href="#2347" id="2347">2347</a>
+<a href="#2348" id="2348">2348</a>
+<a href="#2349" id="2349">2349</a>
+<a href="#2350" id="2350">2350</a>
+<a href="#2351" id="2351">2351</a>
+<a href="#2352" id="2352">2352</a>
+<a href="#2353" id="2353">2353</a>
+<a href="#2354" id="2354">2354</a>
+<a href="#2355" id="2355">2355</a>
+<a href="#2356" id="2356">2356</a>
+<a href="#2357" id="2357">2357</a>
+<a href="#2358" id="2358">2358</a>
+<a href="#2359" id="2359">2359</a>
+<a href="#2360" id="2360">2360</a>
+<a href="#2361" id="2361">2361</a>
+<a href="#2362" id="2362">2362</a>
+<a href="#2363" id="2363">2363</a>
+<a href="#2364" id="2364">2364</a>
+<a href="#2365" id="2365">2365</a>
+<a href="#2366" id="2366">2366</a>
+<a href="#2367" id="2367">2367</a>
+<a href="#2368" id="2368">2368</a>
+<a href="#2369" id="2369">2369</a>
+<a href="#2370" id="2370">2370</a>
+<a href="#2371" id="2371">2371</a>
+<a href="#2372" id="2372">2372</a>
+<a href="#2373" id="2373">2373</a>
+<a href="#2374" id="2374">2374</a>
+<a href="#2375" id="2375">2375</a>
+<a href="#2376" id="2376">2376</a>
+<a href="#2377" id="2377">2377</a>
+<a href="#2378" id="2378">2378</a>
+<a href="#2379" id="2379">2379</a>
+<a href="#2380" id="2380">2380</a>
+<a href="#2381" id="2381">2381</a>
+<a href="#2382" id="2382">2382</a>
+<a href="#2383" id="2383">2383</a>
+<a href="#2384" id="2384">2384</a>
+<a href="#2385" id="2385">2385</a>
+<a href="#2386" id="2386">2386</a>
+<a href="#2387" id="2387">2387</a>
+<a href="#2388" id="2388">2388</a>
+<a href="#2389" id="2389">2389</a>
+<a href="#2390" id="2390">2390</a>
+<a href="#2391" id="2391">2391</a>
+<a href="#2392" id="2392">2392</a>
+<a href="#2393" id="2393">2393</a>
+<a href="#2394" id="2394">2394</a>
+<a href="#2395" id="2395">2395</a>
+<a href="#2396" id="2396">2396</a>
+<a href="#2397" id="2397">2397</a>
+<a href="#2398" id="2398">2398</a>
+<a href="#2399" id="2399">2399</a>
+<a href="#2400" id="2400">2400</a>
+<a href="#2401" id="2401">2401</a>
+<a href="#2402" id="2402">2402</a>
+<a href="#2403" id="2403">2403</a>
+<a href="#2404" id="2404">2404</a>
+<a href="#2405" id="2405">2405</a>
+<a href="#2406" id="2406">2406</a>
+<a href="#2407" id="2407">2407</a>
+<a href="#2408" id="2408">2408</a>
+<a href="#2409" id="2409">2409</a>
+<a href="#2410" id="2410">2410</a>
+<a href="#2411" id="2411">2411</a>
+<a href="#2412" id="2412">2412</a>
+<a href="#2413" id="2413">2413</a>
+<a href="#2414" id="2414">2414</a>
+<a href="#2415" id="2415">2415</a>
+<a href="#2416" id="2416">2416</a>
+<a href="#2417" id="2417">2417</a>
+<a href="#2418" id="2418">2418</a>
+<a href="#2419" id="2419">2419</a>
+<a href="#2420" id="2420">2420</a>
+<a href="#2421" id="2421">2421</a>
+<a href="#2422" id="2422">2422</a>
+<a href="#2423" id="2423">2423</a>
+<a href="#2424" id="2424">2424</a>
+<a href="#2425" id="2425">2425</a>
+<a href="#2426" id="2426">2426</a>
+<a href="#2427" id="2427">2427</a>
+<a href="#2428" id="2428">2428</a>
+<a href="#2429" id="2429">2429</a>
+<a href="#2430" id="2430">2430</a>
+<a href="#2431" id="2431">2431</a>
+<a href="#2432" id="2432">2432</a>
+<a href="#2433" id="2433">2433</a>
+<a href="#2434" id="2434">2434</a>
+<a href="#2435" id="2435">2435</a>
+<a href="#2436" id="2436">2436</a>
+<a href="#2437" id="2437">2437</a>
+<a href="#2438" id="2438">2438</a>
+<a href="#2439" id="2439">2439</a>
+<a href="#2440" id="2440">2440</a>
+<a href="#2441" id="2441">2441</a>
+<a href="#2442" id="2442">2442</a>
+<a href="#2443" id="2443">2443</a>
+<a href="#2444" id="2444">2444</a>
+<a href="#2445" id="2445">2445</a>
+<a href="#2446" id="2446">2446</a>
+<a href="#2447" id="2447">2447</a>
+<a href="#2448" id="2448">2448</a>
+<a href="#2449" id="2449">2449</a>
+<a href="#2450" id="2450">2450</a>
+<a href="#2451" id="2451">2451</a>
+<a href="#2452" id="2452">2452</a>
+<a href="#2453" id="2453">2453</a>
+<a href="#2454" id="2454">2454</a>
+<a href="#2455" id="2455">2455</a>
+<a href="#2456" id="2456">2456</a>
+<a href="#2457" id="2457">2457</a>
+<a href="#2458" id="2458">2458</a>
+<a href="#2459" id="2459">2459</a>
+<a href="#2460" id="2460">2460</a>
+<a href="#2461" id="2461">2461</a>
+<a href="#2462" id="2462">2462</a>
+<a href="#2463" id="2463">2463</a>
+<a href="#2464" id="2464">2464</a>
+<a href="#2465" id="2465">2465</a>
+<a href="#2466" id="2466">2466</a>
+<a href="#2467" id="2467">2467</a>
+<a href="#2468" id="2468">2468</a>
+<a href="#2469" id="2469">2469</a>
+<a href="#2470" id="2470">2470</a>
+<a href="#2471" id="2471">2471</a>
+<a href="#2472" id="2472">2472</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
 </span><span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::net::Ipv4Addr;
 <span class="kw">use </span>std::path::Path;
-<span class="kw">use </span>std::fs;
+<span class="kw">use </span>std::fs::{<span class="self">self</span>, File};
+<span class="kw">use </span>std::io::Write;
 <span class="kw">use </span>std::str::FromStr;
-<span class="kw">use </span>std::sync::{Arc, Mutex};
 <span class="kw">use </span>rpassword::read_password;
+<span class="kw">use </span>chrono::Local;
 
-<span class="kw">use </span><span class="kw">crate</span>::run_config::save_config;
-<span class="kw">use </span><span class="kw">crate</span>::run_config::load_config;
-<span class="kw">use </span><span class="kw">crate</span>::execute::Command;
+<span class="kw">use </span><span class="kw">crate</span>::run_config::{save_config, get_running_config, default_startup_config};
+<span class="comment">//use crate::run_config::load_config;
+</span><span class="kw">use </span><span class="kw">crate</span>::execute::Command;
 <span class="kw">use </span><span class="kw">crate</span>::execute::Mode;
-<span class="kw">use </span><span class="kw">crate</span>::clock_settings::handle_show_clock;
-<span class="kw">use </span><span class="kw">crate</span>::clock_settings::handle_clock_set;
+<span class="kw">use </span><span class="kw">crate</span>::clock_settings::{handle_clock_set, parse_clock_set_input, handle_show_clock};
 <span class="kw">use </span><span class="kw">crate</span>::network_config::{calculate_broadcast, STATUS_MAP, IFCONFIG_STATE, IP_ADDRESS_STATE, ROUTE_TABLE, OSPF_CONFIG, ACL_STORE, encrypt_password, PASSWORD_STORAGE, set_enable_password, set_enable_secret, get_enable_password, get_enable_secret};
 <span class="kw">use </span><span class="kw">crate</span>::network_config::{InterfaceConfig, OSPFConfig, AclEntry, AccessControlList, NtpAssociation};
 
@@ -2364,7 +2551,9 @@
 /// - `enable password`: Configures a password for privileged EXEC mode access. This password is weaker than the `enable secret` and should be avoided when possible.
 /// - `ip domain-name`: Sets the domain name for the device, which is used in various operations such as DNS resolution.
 /// - `crypto key`: Generates or manages cryptographic keys used in various security protocols, including VPNs and encryption.
-///
+/// - `show processes`: Shows the system processes and memories
+/// - `ping`: Confirms the connection between ip addresses
+/// 
 /// # Returns
 /// A `HashMap` where the keys are command names (as `&amp;'static str`) and the values are the corresponding `Command` structs.
 /// Each `Command` struct contains the `name`, `description`, `suggestions`, and an `execute` function.
@@ -2636,28 +2825,15 @@
         <span class="string">"show running-config"</span>,
         Command {
             name: <span class="string">"show running-config"</span>,
-            description: <span class="string">"Display the current running configuration (from JSON file)"</span>,
+            description: <span class="string">"Display the current running configuration"</span>,
             suggestions: <span class="prelude-val">None</span>,
             execute: |<span class="kw">_</span>, context, <span class="kw">_</span>| {
                 <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::PrivilegedMode) {
-                    <span class="kw">let </span>file_path = Path::new(<span class="string">"startup-config.json"</span>); 
-
-                    <span class="kw">if </span>file_path.exists() {
-                        
-                        <span class="kw">match </span>fs::read_to_string(file_path) {
-                            <span class="prelude-val">Ok</span>(file_content) =&gt; {
-                                <span class="macro">println!</span>(<span class="string">"{}"</span>, file_content); 
-                                <span class="prelude-val">Ok</span>(())
-                            }
-                            <span class="prelude-val">Err</span>(err) =&gt; {
-                                <span class="macro">eprintln!</span>(<span class="string">"Error reading the file: {}"</span>, err); 
-                                <span class="prelude-val">Err</span>(err.to_string())
-                            }
-                        }
-                    } <span class="kw">else </span>{
-                        <span class="macro">eprintln!</span>(<span class="string">"The JSON configuration file does not exist."</span>);
-                        <span class="prelude-val">Err</span>(<span class="string">"File not found"</span>.to_string())
-                    }
+                    <span class="macro">println!</span>(<span class="string">"Building configuration...\n"</span>);
+                    <span class="macro">println!</span>(<span class="string">"Current configuration : 0 bytes\n"</span>);
+                    <span class="kw">let </span>running_config = get_running_config(<span class="kw-2">&amp;</span>context);
+                    <span class="macro">println!</span>(<span class="string">"{}"</span>, running_config);
+                    <span class="prelude-val">Ok</span>(())
                 } <span class="kw">else </span>{
                     <span class="prelude-val">Err</span>(<span class="string">"The 'show running-config' command is only available in Privileged EXEC mode."</span>.into())
                 }
@@ -2666,6 +2842,36 @@
     );
 
     commands.insert(
+        <span class="string">"show startup-config"</span>,
+        Command {
+            name: <span class="string">"show startup-config"</span>,
+            description: <span class="string">"Display the startup configuration (from memory)"</span>,
+            suggestions: <span class="prelude-val">None</span>,
+            execute: |<span class="kw">_</span>, context, <span class="kw">_</span>| {
+                <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::PrivilegedMode) {
+                    <span class="macro">println!</span>(<span class="string">"Building configuration...\n"</span>);
+    
+                    <span class="comment">// Check if write memory has been executed
+                    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(last_written) = <span class="kw-2">&amp;</span>context.config.last_written {
+                        <span class="macro">println!</span>(
+                            <span class="string">"Startup configuration (last saved: {}):\n"</span>,
+                            last_written
+                        );
+                        <span class="kw">let </span>startup_config = get_running_config(<span class="kw-2">&amp;</span>context);
+                        <span class="macro">println!</span>(<span class="string">"{}"</span>, startup_config);
+                    } <span class="kw">else </span>{
+                        <span class="macro">println!</span>(<span class="string">"Startup configuration (default):\n"</span>);
+                        <span class="macro">println!</span>(<span class="string">"{}"</span>, default_startup_config(context));
+                    }
+                    <span class="prelude-val">Ok</span>(())
+                } <span class="kw">else </span>{
+                    <span class="prelude-val">Err</span>(<span class="string">"The 'show startup-config' command is only available in Privileged EXEC mode."</span>.into())
+                }
+            },
+        },
+    );
+    
+    commands.insert(
         <span class="string">"write"</span>,
         Command {
             name: <span class="string">"write memory"</span>,
@@ -2673,15 +2879,56 @@
             suggestions: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"memory"</span>]),
             execute: |<span class="kw">_</span>, context, <span class="kw">_</span>| {
                 <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::PrivilegedMode) {
-                    context.config.startup_config = context.config.running_config.clone();
-                    save_config(<span class="kw-2">&amp;</span>context.config).map_err(|e| <span class="macro">format!</span>(<span class="string">"Failed to save configuration: {}"</span>, e))<span class="question-mark">?</span>;
+                    <span class="comment">// Save the running configuration to the startup configuration
+                    </span><span class="kw">let </span>running_config = get_running_config(context);
+                    context.config.startup_config = <span class="prelude-val">Some</span>(running_config.clone());
+    
+                    <span class="comment">// Update the last written timestamp
+                    </span>context.config.last_written = <span class="prelude-val">Some</span>(chrono::Local::now().to_string());
+    
                     <span class="macro">println!</span>(<span class="string">"Configuration saved successfully."</span>);
                     <span class="prelude-val">Ok</span>(())
                 } <span class="kw">else </span>{
                     <span class="prelude-val">Err</span>(<span class="string">"The 'write memory' command is only available in Privileged EXEC mode."</span>.into())
-                }    
+                }
             },
+        },
+    );
+    
 
+    commands.insert(
+        <span class="string">"copy running-config"</span>,
+        Command {
+            name: <span class="string">"copy running-config"</span>,
+            description: <span class="string">"Copy the running configuration to a file"</span>,
+            suggestions: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"&lt;file_name&gt;"</span>]),
+            execute: |args, context, <span class="kw">_</span>| {
+                <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::PrivilegedMode) {
+                    
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>(file_name) = args.get(<span class="number">0</span>) {
+                        <span class="kw">let </span>running_config = get_running_config(context); 
+                        <span class="kw">let </span>file_path = Path::new(file_name);
+                        <span class="kw">match </span>File::create(file_path) {
+                            <span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>file) =&gt; {
+                                <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = file.write_all(running_config.as_bytes()) {
+                                    <span class="macro">eprintln!</span>(<span class="string">"Error writing to the file: {}"</span>, err);
+                                    <span class="kw">return </span><span class="prelude-val">Err</span>(err.to_string());
+                                }
+                                <span class="macro">println!</span>(<span class="string">"Running configuration copied to {}"</span>, file_name);
+                                <span class="prelude-val">Ok</span>(())
+                            }
+                            <span class="prelude-val">Err</span>(err) =&gt; {
+                                <span class="macro">eprintln!</span>(<span class="string">"Error creating the file: {}"</span>, err);
+                                <span class="prelude-val">Err</span>(err.to_string())
+                            }
+                        }
+                    } <span class="kw">else </span>{
+                        <span class="prelude-val">Err</span>(<span class="string">"No file name provided. Usage: copy running-config &lt;file-name&gt;"</span>.into())
+                    }
+                } <span class="kw">else </span>{
+                    <span class="prelude-val">Err</span>(<span class="string">"The 'copy running-config' command is only available in Privileged EXEC mode."</span>.into())
+                }
+            },
         },
     );
 
@@ -2726,16 +2973,24 @@
             suggestions: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"set"</span>]),
             execute: |args, _context, clock| {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(clock) = clock {
-                    handle_clock_set(<span class="kw-2">&amp;</span>args.join(<span class="string">" "</span>), clock);
-                    <span class="prelude-val">Ok</span>(())
+
+                    <span class="kw">let </span>input = args.join(<span class="string">" "</span>);
+    
+                    <span class="kw">match </span>parse_clock_set_input(<span class="kw-2">&amp;</span>input) {
+                        <span class="prelude-val">Ok</span>((time, day, month, year)) =&gt; {
+                  
+                            handle_clock_set(time, day, month, year, clock);
+                            <span class="prelude-val">Ok</span>(())
+                        }
+                        <span class="prelude-val">Err</span>(err) =&gt; <span class="prelude-val">Err</span>(err), 
+                    }
                 } <span class="kw">else </span>{
                     <span class="prelude-val">Err</span>(<span class="string">"Clock functionality is unavailable."</span>.to_string())
-                }  
-             
+                }
             },
-
         },
     );
+    
 
     commands.insert(
         <span class="string">"show clock"</span>,
@@ -4451,8 +4706,15 @@
                 <span class="kw">let </span>stored_secret = storage.enable_secret.clone();
                 drop(storage);
                 
-                <span class="kw">let </span>encrypted_password = encrypt_password(<span class="kw-2">&amp;</span>stored_password.unwrap());
-                <span class="kw">let </span>encrypted_secret = encrypt_password(<span class="kw-2">&amp;</span>stored_secret.unwrap());
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(password) = stored_password {
+                    <span class="kw">let </span>encrypted_password = encrypt_password(<span class="kw-2">&amp;</span>password);
+                    context.config.encrypted_password = <span class="prelude-val">Some</span>(encrypted_password);
+                }
+                
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(secret) = stored_secret {
+                    <span class="kw">let </span>encrypted_secret = encrypt_password(<span class="kw-2">&amp;</span>secret);
+                    context.config.encrypted_secret = <span class="prelude-val">Some</span>(encrypted_secret);  <span class="comment">// Update encrypted secret
+                </span>}
     
                 context.config.password_encryption = <span class="bool-val">true</span>;
                 <span class="macro">println!</span>(<span class="string">"Password encryption enabled."</span>);
@@ -4563,6 +4825,118 @@
         },
     });
     
+    commands.insert(
+        <span class="string">"show processes"</span>,
+        Command {
+            name: <span class="string">"show processes"</span>,
+            description: <span class="string">"Display process information or CPU/memory utilization"</span>,
+            suggestions: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"cpu"</span>, <span class="string">"cpu history"</span>, <span class="string">"memory"</span>]),
+            execute: |_args, context, <span class="kw">_</span>| {
+                <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::PrivilegedMode) {
+                                        
+                    <span class="kw">if </span>_args.is_empty() {
+                            
+                        <span class="macro">println!</span>(<span class="string">"CPU utilization for five seconds: 0%/0%; one minute: 0%; five minutes: 0%"</span>);
+                        <span class="macro">println!</span>(
+                            <span class="string">" PID Q  Ty       PC  Runtime(uS)    Invoked   uSecs    Stacks TTY Process\n\
+                              1 C  sp 602F3AF0            0       1627       0 2600/3000   0 Load Meter\n\
+                              2 L  we 60C5BE00            4        136      29 5572/6000   0 CEF Scanner\n\
+                              3 L  st 602D90F8         1676        837    2002 5740/6000   0 Check heaps\n\
+                              4 C  we 602D08F8            0          1       0 5568/6000   0 Chunk Manager\n\
+                              5 C  we 602DF0E8            0          1       0 5592/6000   0 Pool Manager"
+                        </span>); 
+                        <span class="prelude-val">Ok</span>(())     
+                    }
+
+                    <span class="kw">else</span>{
+                        <span class="kw">match </span><span class="kw-2">&amp;</span>_args[<span class="number">0</span>] <span class="kw">as </span><span class="kw-2">&amp;</span>str { 
+                            <span class="string">"cpu" </span>=&gt; {
+                            
+                                <span class="macro">println!</span>(<span class="string">"CPU utilization for five seconds: 8%/4%; one minute: 6%; five minutes: 5%"</span>);
+                                <span class="macro">println!</span>(
+                                    <span class="string">" PID Runtime(uS)   Invoked  uSecs    5Sec   1Min   5Min TTY Process\n\
+                                    1         384     32789     11   0.00%  0.00%  0.00%   0 Load Meter\n\
+                                    2        2752      1179   2334   0.73%  1.06%  0.29%   0 Exec\n\
+                                    3      318592      5273  60419   0.00%  0.15%  0.17%   0 Check heaps\n\
+                                    4           4         1   4000   0.00%  0.00%  0.00%   0 Pool Manager\n\
+                                    5        6472      6568    985   0.00%  0.00%  0.00%   0 ARP Input"
+                                </span>);
+                                <span class="prelude-val">Ok</span>(())
+                            }
+                            
+                            <span class="string">"cpu history" </span>=&gt; {
+                                
+                                <span class="macro">println!</span>(
+                                    <span class="string">"CPU% per minute (last 60 minutes)\n\
+                                    100\n 90\n 80         *  *                     * *     *  * *  *\n\
+                                    70  * * ***** *  ** ***** ***  **** ******  *  *******     * *\n\
+                                    60  #***##*##*#***#####*#*###*****#*###*#*#*##*#*##*#*##*****#\n\
+                                    50  ##########################################################\n\
+                                    40  ##########################################################\n\
+                                    30  ##########################################################\n\
+                                    20  ##########################################################\n\
+                                    10  ##########################################################\n\
+                                        0....5....1....1....2....2....3....3....4....4....5....5....\n\
+                                                0    5    0    5    0    5    0    5    0    5"
+                                </span>);
+                                <span class="prelude-val">Ok</span>(())
+                            }
+                            
+                            <span class="string">"memory" </span>=&gt; {
+                                
+                                <span class="macro">println!</span>(
+                                    <span class="string">"Total: 106206400, Used: 7479116, Free: 98727284\n\
+                                    PID TTY  Allocated      Freed    Holding    Getbufs    Retbufs Process\n\
+                                    0   0      81648       1808    6577644          0          0 *Init*\n\
+                                    0   0        572     123196        572          0          0 *Sched*\n\
+                                    0   0   10750692    3442000       5812    2813524          0 *Dead*\n\
+                                    1   0        276        276       3804          0          0 Load Meter"
+                                </span>);
+                                <span class="prelude-val">Ok</span>(())
+                            }
+                            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(<span class="string">"Invalid subcommand for 'show processes'. Valid subcommands are 'cpu', 'cpu history', and 'memory'."</span>.into()),
+                        }
+                    }
+                } <span class="kw">else </span>{
+                    <span class="prelude-val">Err</span>(<span class="string">"The 'show processes' command is only available in Privileged EXEC mode."</span>.into())
+                }
+            },
+        },
+    );
+    
+    commands.insert(<span class="string">"ping"</span>, Command {
+        name: <span class="string">"ping"</span>,
+        description: <span class="string">"Ping a specific IP address to check reachability"</span>,
+        suggestions: <span class="prelude-val">None</span>,
+        execute: |args, context, <span class="kw">_</span>| {
+            <span class="kw">if </span>args.len() == <span class="number">1 </span>{
+                <span class="kw">let </span>ip: String = args[<span class="number">0</span>].to_string();
+                <span class="kw">let </span>route_table = ROUTE_TABLE.lock().unwrap();
+    
+                <span class="kw">if </span>route_table.contains_key(<span class="kw-2">&amp;</span>ip) {
+                    <span class="macro">println!</span>(<span class="string">"Pinging {} with 32 bytes of data:"</span>, ip);
+                    <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">4 </span>{
+                        <span class="macro">println!</span>(<span class="string">"Reply from {}: bytes=32 time&lt;1ms TTL=128"</span>, ip);
+                    }
+                    <span class="macro">println!</span>(<span class="string">"\nPing statistics for {}:"</span>, ip);
+                    <span class="macro">println!</span>(<span class="string">"    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),"</span>);
+                    <span class="macro">println!</span>(<span class="string">"Approximate round trip times in milli-seconds:"</span>);
+                    <span class="macro">println!</span>(<span class="string">"    Minimum = 0ms, Maximum = 1ms, Average = 0ms"</span>);
+                    <span class="prelude-val">Ok</span>(())
+                } <span class="kw">else </span>{
+                    <span class="macro">println!</span>(<span class="string">"Pinging {} with 32 bytes of data:"</span>, ip);
+                    <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">4 </span>{
+                        <span class="macro">println!</span>(<span class="string">"Request timed out."</span>);
+                    }
+                    <span class="macro">println!</span>(<span class="string">"\nPing statistics for {}:"</span>, ip);
+                    <span class="macro">println!</span>(<span class="string">"    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss),"</span>);
+                    <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">"IP address {} is not reachable."</span>, ip).into())
+                }
+            } <span class="kw">else </span>{
+                <span class="prelude-val">Err</span>(<span class="string">"Invalid syntax. Usage: ping &lt;ip&gt;"</span>.into())
+            }
+        },
+    });
     
 
 
