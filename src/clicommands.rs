@@ -2,18 +2,18 @@
 use std::collections::HashMap;
 use std::net::Ipv4Addr;
 use std::path::Path;
-use std::fs::{self, File};
+use std::fs::{File};
 use std::io::Write;
+use std::io;
 use std::str::FromStr;
 use rpassword::read_password;
-use chrono::Local;
 
-use crate::run_config::{save_config, get_running_config, default_startup_config};
+use crate::run_config::{get_running_config, default_startup_config};
 //use crate::run_config::load_config;
 use crate::execute::Command;
 use crate::execute::Mode;
 use crate::clock_settings::{handle_clock_set, parse_clock_set_input, handle_show_clock};
-use crate::network_config::{calculate_broadcast, STATUS_MAP, IFCONFIG_STATE, IP_ADDRESS_STATE, ROUTE_TABLE, OSPF_CONFIG, ACL_STORE, encrypt_password, PASSWORD_STORAGE, set_enable_password, set_enable_secret, get_enable_password, get_enable_secret};
+use crate::network_config::{calculate_broadcast, STATUS_MAP, IFCONFIG_STATE, IP_ADDRESS_STATE, ROUTE_TABLE, OSPF_CONFIG, ACL_STORE, encrypt_password, PASSWORD_STORAGE, set_enable_password, set_enable_secret};
 use crate::network_config::{InterfaceConfig, OSPFConfig, AclEntry, AccessControlList, NtpAssociation};
 
 
@@ -92,7 +92,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         name: "enable",
         description: "Enter privileged EXEC mode",
         suggestions: None,
-        execute: |args, context, _| {
+        execute: |_args, context, _| {
             if matches!(context.current_mode, Mode::UserMode) {
                 // Retrieve stored passwords
                 let storage = PASSWORD_STORAGE.lock().unwrap();
@@ -154,7 +154,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         suggestions: Some(vec!["terminal"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::PrivilegedMode) {
-                if args.len() != 2 {
+                if args.len() == 1 && args[0] == "terminal" {
                     context.current_mode = Mode::ConfigMode;
                     context.prompt = format!("{}(config)#", context.config.hostname);
                     println!("Enter configuration commands, one per line.  End with CNTL/Z");
@@ -179,11 +179,16 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                 }
     
                 let input = args.join(" ");
-                if input.starts_with("range") {
+                if input.starts_with("r") {
                     // Handle interface range
-                    let range_args = input.strip_prefix("range").unwrap().trim();
-                    let range_parts: Vec<&str> = range_args.split('-').map(|s| s.trim()).collect();
     
+                    let after_range = match input.find(' ') {
+                        Some(pos) => input[pos..].trim(),
+                        None => return Err("Invalid range format. Use 'interface range f0/0 - 24'.".into())
+                    };
+    
+                    let range_parts: Vec<&str> = after_range.split('-').map(|s| s.trim()).collect();
+
                     if range_parts.len() != 2 {
                         return Err("Invalid range format. Use 'interface range f0/0 - 24'.".into());
                     }
@@ -350,50 +355,353 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
     );
 
     commands.insert(
-        "show running-config",
+        "show",
         Command {
-            name: "show running-config",
-            description: "Display the current running configuration",
-            suggestions: None,
-            execute: |_, context, _| {
-                if matches!(context.current_mode, Mode::PrivilegedMode) {
-                    println!("Building configuration...\n");
-                    println!("Current configuration : 0 bytes\n");
-                    let running_config = get_running_config(&context);
-                    println!("{}", running_config);
-                    Ok(())
-                } else {
-                    Err("The 'show running-config' command is only available in Privileged EXEC mode.".into())
+            name: "show",
+            description: "Display all the show commands when specific command is passed",
+            suggestions: Some(vec![
+                "running-config",
+                "startup-config",
+                "access-lists",
+                "ip",
+                "version",
+                "ntp",
+                "processes",
+                "clock",
+                "vlan",
+                "interfaces"
+            ]),
+            execute: |args, context, clock| {
+                if !matches!(context.current_mode, Mode::PrivilegedMode) {
+                    return Err("Show commands are only available in Privileged EXEC mode.".into());
                 }
-            },
-        },
-    );
-
-    commands.insert(
-        "show startup-config",
-        Command {
-            name: "show startup-config",
-            description: "Display the startup configuration (from memory)",
-            suggestions: None,
-            execute: |_, context, _| {
-                if matches!(context.current_mode, Mode::PrivilegedMode) {
-                    println!("Building configuration...\n");
     
-                    // Check if write memory has been executed
-                    if let Some(last_written) = &context.config.last_written {
-                        println!(
-                            "Startup configuration (last saved: {}):\n",
-                            last_written
-                        );
-                        let startup_config = get_running_config(&context);
-                        println!("{}", startup_config);
-                    } else {
-                        println!("Startup configuration (default):\n");
-                        println!("{}", default_startup_config(context));
-                    }
-                    Ok(())
-                } else {
-                    Err("The 'show startup-config' command is only available in Privileged EXEC mode.".into())
+                match args.get(0) {
+                    Some(&"running-config") => {
+                        println!("Building configuration...\n");
+                        println!("Current configuration : 0 bytes\n");
+                        let running_config = get_running_config(&context);
+                        println!("{}", running_config);
+                        Ok(())
+                    },
+                    Some(&"startup-config") => {
+                        println!("Building configuration...\n");
+                        if let Some(last_written) = &context.config.last_written {
+                            println!("Startup configuration (last saved: {}):\n", last_written);
+                            let startup_config = get_running_config(&context);
+                            println!("{}", startup_config);
+                        } else {
+                            println!("Startup configuration (default):\n");
+                            println!("{}", default_startup_config(context));
+                        }
+                        Ok(())
+                    },
+                    Some(&"clock") => {
+                        if let Some(clock) = clock {
+                            handle_show_clock(clock);
+                            Ok(())
+                        } else {
+                            Err("Clock functionality is unavailable.".to_string())
+                        }
+                    },
+                    Some(&"version") => {
+                        println!("Software Version: Cisco IOS 15.2(3)T");
+                        println!("Compiled on: 2024-12-01");
+                        Ok(())
+                    },
+                    Some(&"interfaces") => {
+                        let ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
+                        let Some(interface_name) = &context.selected_interface else {
+                            return Err("No interface selected. Use the 'interface' command first.".into());
+                        };
+                
+                        if ip_address_state.is_empty() {
+                            println!("No interfaces found.");
+                            return Ok(()); 
+                        } else {
+                            for (interface_name, (ip_address, _)) in ip_address_state.iter() {
+                                println!("{} is up, line protocol is up", interface_name);
+                                println!("  Internet address is {}, subnet mask 255.255.255.0", ip_address);
+                                println!("  MTU 1500 bytes, BW 10000 Kbit, DLY 100000 usec");
+                                println!("  Encapsulation ARPA, loopback not set, keepalive set (10 sec)");
+                                println!("  Last clearing of \"show interface\" counters: never");
+                                println!("  Input queue: 0/2000/0/0 (size/max/drops/flushes); Total output drops: 0");
+                                println!("  5 minute input rate 1000 bits/sec, 10 packets/sec");
+                                println!("  5 minute output rate 500 bits/sec, 5 packets/sec");
+                                println!("  100 packets input, 1000 bytes, 10 no buffer");
+                                println!("  50 packets output, 500 bytes, 0 underruns");
+                            }
+                        }
+                
+                        Ok(()) 
+                    },
+                    Some(&"ip") => {
+                        match args.get(1) {
+                            Some(&"ospf") => {
+                                match args.get(2) {
+                                    Some(&"neighbor") => {
+                                        let mut ospf_config = OSPF_CONFIG.lock().unwrap();
+                                        println!("Current OSPF Configuration:");
+                                        println!("Router ID: {:?}", ospf_config.router_id.clone().unwrap_or("Not set".to_string()));
+                                        println!("Administrative Distance: {:?}", ospf_config.distance.unwrap_or(110));
+                                        println!("Default Information Originate: {}", ospf_config.default_information_originate);
+                                        println!("Passive Interfaces: {:?}", ospf_config.passive_interfaces);
+                                        Ok(())
+                                    },
+                                    _ => Err("Invalid OSPF subcommand. Use 'neighbor'".into())
+                                }
+                            },
+                            Some(&"route") => {
+                                let route_table = ROUTE_TABLE.lock().unwrap();
+        
+                                if args.len() == 2 {
+                                    println!("Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP");
+                                    println!("       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area");
+                                    println!("       N1 - OSPF NSSA external type 1, N2 - OSPF NSSA external type 2");
+                                    println!("       E1 - OSPF external type 1, E2 - OSPF external type 2, E - EGP");
+                                    println!("       i - IS-IS, L1 - IS-IS level-1, L2 - IS-IS level-2, ia - IS-IS inter area");
+                                    println!("       * - candidate default, U - per-user static route, o - ODR");
+                                    println!("       P - periodic downloaded static route");
+                                    println!();
+                    
+                                    if route_table.is_empty() {
+                                        println!("No routes configured.");
+                                    } else {
+                                        for (destination, (netmask, next_hop_or_iface)) in route_table.iter() {
+                                            let route_type = if next_hop_or_iface.contains("exit_interface") {
+                                                "C"
+                                            } else {
+                                                "S"
+                                            };
+                    
+                                            println!(
+                                                "{}\t{} {} via {}",
+                                                route_type, destination, netmask, next_hop_or_iface
+                                            );
+                                        }
+                                    }
+                                } else if args.len() == 3 {
+                                    let destination_ip = args[2];
+                                    if let Some((netmask, next_hop_or_iface)) = route_table.get(destination_ip) {
+                                        let route_type = if next_hop_or_iface.contains("exit_interface") {
+                                            "connected"
+                                        } else {
+                                            "static"
+                                        };
+                    
+                                        println!("Routing entry for {}/{}", destination_ip, netmask);
+                                        println!("Known via \"{}\"", route_type);
+                                        println!("  Routing Descriptor Blocks:");
+                                        println!("  * {}", next_hop_or_iface);
+                                    } else {
+                                        println!("No route found for {}.", destination_ip);
+                                    }
+                                } else {
+                                    println!("Invalid arguments. Use 'show ip route' or 'show ip route <ip-address>'.");
+                                }
+                    
+                                Ok(())
+                            },
+                            Some(&"interface") => {
+                                match args.get(2) {
+                                    Some(&"brief") => {
+                                        let ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
+                                        let status_map = STATUS_MAP.lock().unwrap();
+                            
+                                        println!(
+                                            "{:<22} {:<15} {:<8} {:<20} {:<10}",
+                                            "Interface", "IP-Address", "OK?", "Method", "Status"
+                                        );
+                            
+                                        for (interface_name, (ip_address, _)) in ip_address_state.iter() {
+                                            let is_up = status_map.get(interface_name).copied().unwrap_or(false);
+                                            let status = if is_up {
+                                                "administratively up"
+                                            } else {
+                                                "administratively down"
+                                            };
+                            
+                                            println!(
+                                                "{:<22} {:<15} YES     unset               {}",
+                                                interface_name, ip_address, status
+                                            );
+                                        }
+                                        Ok(())
+                                    },
+                                    _ => Err("Invalid interface subcommand. Use 'brief'".into())
+                                }
+                            },
+                            _ => Err("Invalid IP subcommand. Use 'ospf neighbor', 'route', or 'interface brief'".into())
+                        }
+                    },
+                    Some(&"ntp") => {
+                        match args.get(1) {
+                            Some(&"associations") => {
+                                if context.ntp_associations.is_empty() {
+                                    println!("No NTP associations configured.");
+                                } else {
+                                    println!("address         ref clock       st   when     poll    reach  delay          offset            disp");
+                                    for assoc in &context.ntp_associations {
+                                        println!(" ~{}       {}          {}   {}        {}      {}      {:.2}           {:.2}              {:.2}",
+                                            assoc.address, assoc.ref_clock, assoc.st, assoc.when, assoc.poll,
+                                            assoc.reach, assoc.delay, assoc.offset, assoc.disp);
+                                    }
+                                    println!(" * sys.peer, # selected, + candidate, - outlyer, x falseticker, ~ configured");
+                                }
+                                Ok(())
+                            },
+                            None => {
+                                println!("NTP Master: {}", if context.ntp_master { "Enabled" } else { "Disabled" });
+                                println!("NTP Authentication: {}", if context.ntp_authentication_enabled { "Enabled" } else { "Disabled" });
+                                
+                                if !context.ntp_authentication_keys.is_empty() {
+                                    println!("NTP Authentication Keys:");
+                                    for (key_number, key) in &context.ntp_authentication_keys {
+                                        println!("Key {}: {}", key_number, key);
+                                    }
+                                }
+                                
+                                if !context.ntp_trusted_keys.is_empty() {
+                                    println!("NTP Trusted Keys:");
+                                    for key_number in &context.ntp_trusted_keys {
+                                        println!("Trusted Key {}", key_number);
+                                    }
+                                }
+                                Ok(())
+                            },
+                            _ => Err("Invalid NTP subcommand. Use 'associations' or no subcommand".into())
+                        }
+                    },
+                    Some(&"vlan") => {
+                        if let (Some(vlan_names), Some(vlan_states)) = (&context.vlan_names, &context.vlan_states) {
+                            // Display table header for VLANs
+                            println!("{:<6} {:<30} {:<10} {}", "VLAN", "Name", "Status", "Ports");
+    
+                            for (vlan_id_str, vlan_name) in vlan_names {
+                                let vlan_id: u16 = vlan_id_str.parse().unwrap_or_default(); 
+                                let unknown_status = "active".to_string();
+                                let status = vlan_states.get(&vlan_id).unwrap_or(&unknown_status); 
+                                let ports = " ";  // temporary
+        
+                                println!("{:<6} {:<30} {:<10} {}", vlan_id, vlan_name, status, ports);
+                            }
+        
+                            Ok(())
+                        } else if let Some(vlan_names) = &context.vlan_names {
+                            println!("{:<6} {:<30} {:<10} {}", "VLAN", "Name", "Status", "Ports");
+    
+                            for vlan_id_str in vlan_names.keys() {
+                                let vlan_id: u16 = vlan_id_str.parse().unwrap_or_default();
+                                let vlan_name = format!("VLAN{}", vlan_id);
+                                let status = "active"; 
+                                let ports = " "; // temporary
+        
+                                println!("{:<6} {:<30} {:<10} {}", vlan_id, vlan_name, status, ports);
+                            }
+    
+                            Ok(())
+                        } else {
+                            Err("No VLAN information available.".into())
+                        }
+                    },
+                    Some(&"access-lists") => {
+                        let acl_store = ACL_STORE.lock().unwrap();
+                        if acl_store.is_empty() {
+                            println!("No access lists configured.");
+                            return Ok(());
+                        }
+            
+                        for (name, acl) in acl_store.iter() {
+                            println!("\nAccess list: {}", acl.number_or_name);
+                            for entry in &acl.entries {
+                                let protocol = entry.protocol.clone().unwrap_or("ip".to_string());
+                                let source_op = entry.source_operator.clone().unwrap_or_default();
+                                let source_port = entry.source_port.clone().unwrap_or_default();
+                                let destination_op = entry.destination_operator.clone().unwrap_or_default();
+                                let destination_port = entry.destination_port.clone().unwrap_or_default();
+                                let matches = entry.matches.map_or(String::new(), |m| format!("({} matches)", m));
+            
+                                println!(
+                                    "  {} {} {} {} {} {} {} {} {}",
+                                    entry.action,
+                                    protocol,
+                                    entry.source,
+                                    source_op,
+                                    source_port,
+                                    entry.destination,
+                                    destination_op,
+                                    destination_port,
+                                    matches
+                                );
+                            }
+                        }
+            
+                        Ok(())
+                    },
+                    Some(&"processes") => {
+                        if args.len() == 1 {
+                            
+                            println!("CPU utilization for five seconds: 0%/0%; one minute: 0%; five minutes: 0%");
+                            println!(
+                                " PID Q  Ty       PC  Runtime(uS)    Invoked   uSecs    Stacks TTY Process\n\
+                                  1 C  sp 602F3AF0            0       1627       0 2600/3000   0 Load Meter\n\
+                                  2 L  we 60C5BE00            4        136      29 5572/6000   0 CEF Scanner\n\
+                                  3 L  st 602D90F8         1676        837    2002 5740/6000   0 Check heaps\n\
+                                  4 C  we 602D08F8            0          1       0 5568/6000   0 Chunk Manager\n\
+                                  5 C  we 602DF0E8            0          1       0 5592/6000   0 Pool Manager"
+                            ); 
+                            Ok(())     
+                        }
+    
+                        else if args.len() == 2 && args[1] == "cpu"{
+                                
+                            println!("CPU utilization for five seconds: 8%/4%; one minute: 6%; five minutes: 5%");
+                            println!(
+                                " PID Runtime(uS)   Invoked  uSecs    5Sec   1Min   5Min TTY Process\n\
+                                1         384     32789     11   0.00%  0.00%  0.00%   0 Load Meter\n\
+                                2        2752      1179   2334   0.73%  1.06%  0.29%   0 Exec\n\
+                                3      318592      5273  60419   0.00%  0.15%  0.17%   0 Check heaps\n\
+                                4           4         1   4000   0.00%  0.00%  0.00%   0 Pool Manager\n\
+                                5        6472      6568    985   0.00%  0.00%  0.00%   0 ARP Input"
+                            );
+                            Ok(())
+                        }
+                                
+                        else if args.len() == 3 && args[1] == "cpu" && args[2] == "history"{
+                            println!(
+                                "CPU% per minute (last 60 minutes)\n\
+                                100\n 90\n 80         *  *                     * *     *  * *  *\n\
+                                70  * * ***** *  ** ***** ***  **** ******  *  *******     * *\n\
+                                60  #***##*##*#***#####*#*###*****#*###*#*#*##*#*##*#*##*****#\n\
+                                50  ##########################################################\n\
+                                40  ##########################################################\n\
+                                30  ##########################################################\n\
+                                20  ##########################################################\n\
+                                10  ##########################################################\n\
+                                    0....5....1....1....2....2....3....3....4....4....5....5....\n\
+                                            0    5    0    5    0    5    0    5    0    5"
+                            );
+                            Ok(())
+                        }
+
+                        else if args.len() == 2 && args[1] == "memory"{
+                            println!(
+                                "Total: 106206400, Used: 7479116, Free: 98727284\n\
+                                PID TTY  Allocated      Freed    Holding    Getbufs    Retbufs Process\n\
+                                0   0      81648       1808    6577644          0          0 *Init*\n\
+                                0   0        572     123196        572          0          0 *Sched*\n\
+                                0   0   10750692    3442000       5812    2813524          0 *Dead*\n\
+                                1   0        276        276       3804          0          0 Load Meter"
+                            );
+                            Ok(())
+                        }
+                        else{
+                            Err("Invalid subcommand for 'show processes'. Valid subcommands are 'cpu', 'cpu history', and 'memory'.".into())
+                        }
+                        
+                    },
+                    
+                    _ => Err("Invalid or incomplete show command".into())
                 }
             },
         },
@@ -405,17 +713,21 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             name: "write memory",
             description: "Save the running configuration to the startup configuration",
             suggestions: Some(vec!["memory"]),
-            execute: |_, context, _| {
-                if matches!(context.current_mode, Mode::PrivilegedMode) {
-                    // Save the running configuration to the startup configuration
-                    let running_config = get_running_config(context);
-                    context.config.startup_config = Some(running_config.clone());
-    
-                    // Update the last written timestamp
-                    context.config.last_written = Some(chrono::Local::now().to_string());
-    
-                    println!("Configuration saved successfully.");
-                    Ok(())
+            execute: |args, context, _| {
+                if matches!(context.current_mode, Mode::PrivilegedMode | Mode::ConfigMode | Mode::InterfaceMode) {
+                    if args.len() == 1 && args[0] == "memory" {
+                        // Save the running configuration to the startup configuration
+                        let running_config = get_running_config(context);
+                        context.config.startup_config = Some(running_config.clone());
+        
+                        // Update the last written timestamp
+                        context.config.last_written = Some(chrono::Local::now().to_string());
+        
+                        println!("Configuration saved successfully.");
+                        Ok(())
+                    } else {
+                        Err("Invalid arguments provided to 'write memory'. This command does not accept additional arguments.".into())
+                    }
                 } else {
                     Err("The 'write memory' command is only available in Privileged EXEC mode.".into())
                 }
@@ -425,36 +737,43 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
     
 
     commands.insert(
-        "copy running-config",
+        "copy",
         Command {
-            name: "copy running-config",
-            description: "Copy the running configuration to a file",
-            suggestions: Some(vec!["<file_name>"]),
+            name: "copy",
+            description: "Copy running configuration",
+            suggestions: Some(vec!["running-config", "startup-config"]),
             execute: |args, context, _| {
-                if matches!(context.current_mode, Mode::PrivilegedMode) {
-                    
-                    if let Some(file_name) = args.get(0) {
-                        let running_config = get_running_config(context); 
-                        let file_path = Path::new(file_name);
-                        match File::create(file_path) {
-                            Ok(mut file) => {
-                                if let Err(err) = file.write_all(running_config.as_bytes()) {
-                                    eprintln!("Error writing to the file: {}", err);
-                                    return Err(err.to_string());
-                                }
-                                println!("Running configuration copied to {}", file_name);
-                                Ok(())
-                            }
-                            Err(err) => {
-                                eprintln!("Error creating the file: {}", err);
-                                Err(err.to_string())
-                            }
+                if !matches!(context.current_mode, Mode::PrivilegedMode) {
+                    return Err("The 'copy' command is only available in Privileged EXEC mode.".into());
+                }
+
+                if args.len() < 2 {
+                    return Err("Incomplete command. Usage: copy running-config FILENAME".into());
+                }
+
+                // Handle both full and abbreviated versions of 'running-config'
+                let source = args[0];
+                if !source.starts_with("run") {
+                    return Err("Invalid source. Use 'running-config'".into());
+                }
+
+                let file_name = args[1];
+                let running_config = get_running_config(context); 
+                let file_path = Path::new(file_name);
+                
+                match File::create(file_path) {
+                    Ok(mut file) => {
+                        if let Err(err) = file.write_all(running_config.as_bytes()) {
+                            eprintln!("Error writing to the file: {}", err);
+                            return Err(err.to_string());
                         }
-                    } else {
-                        Err("No file name provided. Usage: copy running-config <file-name>".into())
+                        println!("Running configuration copied to {}", file_name);
+                        Ok(())
                     }
-                } else {
-                    Err("The 'copy running-config' command is only available in Privileged EXEC mode.".into())
+                    Err(err) => {
+                        eprintln!("Error creating the file: {}", err);
+                        Err(err.to_string())
+                    }
                 }
             },
         },
@@ -480,192 +799,317 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
     );
 
     commands.insert(
-        "show version",
-        Command {
-            name: "show version",
-            description: "Display the software version",
-            suggestions: None,
-            execute: |_, _, _| {
-                println!("Software Version: Cisco IOS 15.2(3)T");
-                println!("Compiled on: 2024-12-01");
-                Ok(())
-            },
-        },
-    );
-
-    commands.insert(
         "clock",
         Command {
             name: "clock set",
             description: "Change the clock date and time",
             suggestions: Some(vec!["set"]),
-            execute: |args, _context, clock| {
-                if let Some(clock) = clock {
-
-                    let input = args.join(" ");
-    
-                    match parse_clock_set_input(&input) {
-                        Ok((time, day, month, year)) => {
-                  
-                            handle_clock_set(time, day, month, year, clock);
-                            Ok(())
-                        }
-                        Err(err) => Err(err), 
-                    }
-                } else {
-                    Err("Clock functionality is unavailable.".to_string())
-                }
-            },
-        },
-    );
-    
-
-    commands.insert(
-        "show clock",
-        Command {
-            name: "show clock",
-            description: "Show the current clock date and time",
-            suggestions: None,
-            execute: |_args, context, clock| {
+            execute: |args, context, clock| {
                 if matches!(context.current_mode, Mode::PrivilegedMode) {
-                    if let Some(clock) = clock {
-                        handle_show_clock(clock);
-                        Ok(())
+                    if args.len() > 1 && args[0] == "set" {   
+                        if let Some(clock) = clock {
+
+                            let input = args.join(" ");
+            
+                            match parse_clock_set_input(&input) {
+                                Ok((time, day, month, year)) => {
+                        
+                                    handle_clock_set(time, day, month, year, clock);
+                                    Ok(())
+                                }
+                                Err(err) => Err(err), 
+                            }
+                        } else {
+                            Err("Clock functionality is unavailable.".to_string())
+                        }
                     } else {
-                        Err("Clock functionality is unavailable.".to_string())
+                        Err("Correct Usage of 'clock set' command is 'clock set <hh:mm:ss> <day> <month> <year>'.".into())
                     }
                 }
                 else {
-                    Err("The 'show clock' command is only available in Privileged EXEC mode.".into())
+                    Err("The 'clock set' command is only available in Privileged EXEC mode.".into())
                 }
             },
         },
+    );
+    
+    commands.insert(
+        "ip",
+        Command {
+            name: "ip",
+            description: "Define all the ip commands",
+            suggestions: Some(vec![
+                // InterfaceMode commands
+                "address",
+                "ospf",
+                // ConfigMode commands
+                "route",
+                "domain-name",
+                "access-list"
+            ]),
+            execute: |args, context, _| {
+                if args.is_empty() {
+                    return Err("Incomplete command. Use 'ip ?' for help.".into());
+                }
+    
+                match (args[0], &context.current_mode) {
+                    ("address", Mode::InterfaceMode) => {
+                        if args.len() != 3 {
+                            return Err("Usage: ip address  <ip_address> <netmask>".into());
+                        }
+                        let ip_address: Ipv4Addr = args[1]
+                            .parse()
+                            .map_err(|_| "Invalid IP address format.".to_string())?;
+                        let netmask: Ipv4Addr = args[2]
+                            .parse()
+                            .map_err(|_| "Invalid netmask format.".to_string())?;
+        
+                        let mut ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
+        
+                        if let Some(interface) = &context.selected_interface {
+                            if let Some((existing_ip, existing_broadcast)) = ip_address_state.get_mut(interface) {
+                                *existing_ip = ip_address;
+                                *existing_broadcast = netmask;
+                                println!(
+                                    "Updated interface {} with IP {} and netmask {}",
+                                    interface, ip_address, netmask
+                                );
+                            } else {
+                                ip_address_state.insert(interface.clone(), (ip_address, netmask));
+                                println!(
+                                    "Assigned IP {} and netmask {} to interface {}",
+                                    ip_address, netmask, interface
+                                );
+                            }
+                            Ok(())
+                        } else {
+                            Err("No interface selected. Use the 'interface' command first.".into())
+                        }
+                    },
+                    ("ospf", Mode::InterfaceMode) => {
+                        if args.len() == 1 {
+                            Err("The 'ip ospf' command requires a subcommand. Available subcommands: cost, retransmit-interval, transmit-delay, priority, hello-interval, dead-interval, authentication-key, message-digest-key, authentication.".into())
+                        } else {
+                            let subcommand = &args[1][..];
+                            match subcommand {
+                                "cost" => {
+                                    if args.len() == 3 {
+                                        let cost = args[2].parse::<u32>();
+                                        match cost {
+                                            Ok(value) => {
+                                                println!("OSPF cost set to {}.", value);
+                                                Ok(())
+                                            }
+                                            _ => Err("Invalid cost value. It must be a positive integer.".into()),
+                                        }
+                                    } else {
+                                        Err("Usage: ip ospf cost <cost>".into())
+                                    }
+                                }
+                                "retransmit-interval" => {
+                                    if args.len() == 3 {
+                                        let interval = args[2].parse::<u32>();
+                                        match interval {
+                                            Ok(seconds) => {
+                                                println!("OSPF retransmit interval set to {} seconds.", seconds);
+                                                Ok(())
+                                            }
+                                            _ => Err("Invalid retransmit interval. It must be a positive integer.".into()),
+                                        }
+                                    } else {
+                                        Err("Usage: ip ospf retransmit-interval <seconds>".into())
+                                    }
+                                }
+                                "transmit-delay" => {
+                                    if args.len() == 3 {
+                                        let delay = args[2].parse::<u32>();
+                                        match delay {
+                                            Ok(seconds) => {
+                                                println!("OSPF transmit delay set to {} seconds.", seconds);
+                                                Ok(())
+                                            }
+                                            _ => Err("Invalid transmit delay. It must be a positive integer.".into()),
+                                        }
+                                    } else {
+                                        Err("Usage: ip ospf transmit-delay <seconds>".into())
+                                    }
+                                }
+                                "priority" => {
+                                    if args.len() == 3 {
+                                        let priority = args[2].parse::<u8>();
+                                        match priority {
+                                            Ok(value) => {
+                                                println!("OSPF priority set to {}.", value);
+                                                Ok(())
+                                            }
+                                            _ => Err("Invalid priority value. It must be a number between 0 and 255.".into()),
+                                        }
+                                    } else {
+                                        Err("Usage: ip ospf priority <priority>".into())
+                                    }
+                                }
+                                "hello-interval" => {
+                                    if args.len() == 3 {
+                                        let interval = args[2].parse::<u32>();
+                                        match interval {
+                                            Ok(seconds) => {
+                                                println!("OSPF hello interval set to {} seconds.", seconds);
+                                                Ok(())
+                                            }
+                                            _ => Err("Invalid hello interval. It must be a positive integer.".into()),
+                                        }
+                                    } else {
+                                        Err("Usage: ip ospf hello-interval <seconds>".into())
+                                    }
+                                }
+                                "dead-interval" => {
+                                    if args.len() == 3 {
+                                        let interval = args[2].parse::<u32>();
+                                        match interval {
+                                            Ok(seconds) => {
+                                                println!("OSPF dead interval set to {} seconds.", seconds);
+                                                Ok(())
+                                            }
+                                            _ => Err("Invalid dead interval. It must be a positive integer.".into()),
+                                        }
+                                    } else {
+                                        Err("Usage: ip ospf dead-interval <seconds>".into())
+                                    }
+                                }
+                                "authentication-key" => {
+                                    if args.len() == 3 {
+                                        let key = args[2].clone();
+                                        println!("OSPF authentication key set to '{}'.", key);
+                                        Ok(())
+                                    } else {
+                                        Err("Usage: ip ospf authentication-key <key>".into())
+                                    }
+                                }
+                                "message-digest-key" => {
+                                    if args.len() == 5 && args[3] == "md5" {
+                                        let key_id = args[2].parse::<u32>();
+                                        let key = args[4].clone();
+                                        match key_id {
+                                            Ok(id) => {
+                                                println!("OSPF MD5 message-digest-key set with key-id {} and key '{}'.", id, key);
+                                                Ok(())
+                                            }
+                                            _ => Err("Invalid key-id. It must be a positive integer.".into()),
+                                        }
+                                    } else {
+                                        Err("Usage: ip ospf message-digest-key <key-id> md5 <key>".into())
+                                    }
+                                }
+                                "authentication" => {
+                                    if args.len() == 3 {
+                                        let auth_type = &args[2][..];
+                                        match auth_type {
+                                            "message-digest" | "null" => {
+                                                println!("OSPF authentication set to '{}'.", auth_type);
+                                                Ok(())
+                                            }
+                                            _ => Err("Invalid authentication type. Valid options: message-digest, null.".into()),
+                                        }
+                                    } else {
+                                        Err("Usage: ip ospf authentication [message-digest | null]".into())
+                                    }
+                                }
+                                _ => Err(format!("Unknown subcommand '{}'. Use 'ip ospf' to see available subcommands.", subcommand).into()),
+                            }
+                        }
+                    },
+                    ("route", Mode::ConfigMode) => {
+                        let mut route_table = ROUTE_TABLE.lock().unwrap();
+                        if args.len() == 1 {
+                            println!("Invalid command. The correct command is 'ip route <destination_ip> <netmask> <next_hop>");
+                        } 
+                        
+                        else if args.len() == 4 {
+                            let destination_ip: Ipv4Addr = Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format");
+                            let netmask: Ipv4Addr = Ipv4Addr::from_str(&args[2]).expect("Invalid IP address format");
+                            
+                            if let Ok(next_hop) = Ipv4Addr::from_str(&args[3]) {
+                                // Scenario 1: ip route <destination-ip> <netmask> <next-hop>
+                                route_table.insert(destination_ip.to_string(), (netmask, next_hop.to_string()));
+                                println!("Added route: ip route {} {} {}", destination_ip, netmask, next_hop);
+                            }
+                            else {
+                                // Scenario 2: ip route <destination-ip> <netmask> <exit interface>
+                                let exit_interface: String = args[3].to_string();
+                                println!("Added route: ip route {} {} {}", destination_ip, netmask, exit_interface);
+                                route_table.insert(destination_ip.to_string(), (netmask, exit_interface));
+                            }   
+                        } 
+                        
+                        else if args.len() == 5 {
+                            // Scenario 3: ip route <destination-ip> <netmask> <exit interface> <next-hop>
+                            let destination_ip: Ipv4Addr = Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format");
+                            let netmask: Ipv4Addr = Ipv4Addr::from_str(&args[2]).expect("Invalid IP address format");
+                            let exit_interface: String = args[2].to_string();
+                            let next_hop: Ipv4Addr = Ipv4Addr::from_str(&args[4]).expect("Invalid IP address format");
+            
+                            // Insert the route in the route table with exit interface and next hop
+                            route_table.insert(destination_ip.to_string(), (netmask, format!("{} {}", exit_interface, next_hop)));
+                            println!("Added route: ip route {} {} {} {}", destination_ip, netmask, exit_interface, next_hop);
+                        } 
+                        
+                        else {
+                            println!("Invalid arguments provided to 'ip route'. Expected: ip route <ip-address> <netmask> <next-hop | exit-interface> <next-hop>.");
+                        }
+            
+                        Ok(())
+                    },
+                    ("domain-name", Mode::ConfigMode) => {
+                        if args.len() <= 1{
+                            Err("Domain name must be provided.".into())
+                        } else {
+                            let domain_name = args[1].to_string();
+                            context.config.domain_name = Some(domain_name.clone());
+                            println!("Domain name set to: {}", domain_name);
+                            Ok(())
+                        }
+                    },
+                    ("access-list", Mode::ConfigMode | Mode::ConfigStdNaclMode(_) | Mode::ConfigExtNaclMode(_)) => {
+                        if args.len() >= 3 {
+                            let acl_type = args[1].to_lowercase(); // "standard" or "extended"
+                            let acl_name_or_number = args[2].to_string(); // ACL name or number
+            
+                            let mut acl_store = ACL_STORE.lock().unwrap();
+                            acl_store.entry(acl_name_or_number.clone()).or_insert(AccessControlList {
+                                number_or_name: acl_name_or_number.clone(),
+                                entries: vec![],
+                            });
+            
+                            match acl_type.as_str() {
+                                "standard" => {
+                                    // Transition to ConfigStdNaclMode
+                                    context.current_mode = Mode::ConfigStdNaclMode(acl_name_or_number.clone());
+                                    context.prompt = format!("{}(config-std-nacl)#", context.config.hostname);
+                                    println!("Standard ACL '{}' created. Enter ACL configuration mode.", acl_name_or_number);
+                                    Ok(())
+                                }
+                                "extended" => {
+                                    // Transition to ConfigExtNaclMode
+                                    context.current_mode = Mode::ConfigExtNaclMode(acl_name_or_number.clone());
+                                    context.prompt = format!("{}(config-ext-nacl)#", context.config.hostname);
+                                    println!("Extended ACL '{}' created. Enter ACL configuration mode.", acl_name_or_number);
+                                    Ok(())
+                                }
+                                _ => {
+                                    Err("Invalid syntax. Use 'ip access-list standard <acl_name>' or 'ip access-list extended <name_or_number>'.".into())
+                                }
+                            }
+                        } else {
+                            Err("Invalid syntax. Use 'ip access-list standard <acl_name>' or 'ip access-list extended <name_or_number>'.".into())
+                        }
+                    },
+    
+                    _ => Err("Command not available in current mode or invalid command".into())
+                }
+            },
+        }
     );
 
-    commands.insert(
-        "ip address",
-        Command {
-            name: "ip address",
-            description: "Assign an IP address and netmask to the selected network interface",
-            suggestions: None,
-            execute: |args, context, _| {
-                if matches!(context.current_mode, Mode::InterfaceMode) {
-                    if args.len() != 2 {
-                        println!("Usage: ip address <ip> <netmask>");
-                        return Err("Invalid number of arguments".into());
-                    }
-    
-                    let ip_address: Ipv4Addr = args[0]
-                        .parse()
-                        .map_err(|_| "Invalid IP address format.".to_string())?;
-                    let netmask: Ipv4Addr = args[1]
-                        .parse()
-                        .map_err(|_| "Invalid netmask format.".to_string())?;
-    
-                    let mut ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
-    
-                    if let Some(interface) = &context.selected_interface {
-                        if let Some((existing_ip, existing_broadcast)) = ip_address_state.get_mut(interface) {
-                            *existing_ip = ip_address;
-                            *existing_broadcast = netmask;
-                            println!(
-                                "Updated interface {} with IP {} and netmask {}",
-                                interface, ip_address, netmask
-                            );
-                        } else {
-                            ip_address_state.insert(interface.clone(), (ip_address, netmask));
-                            println!(
-                                "Assigned IP {} and netmask {} to interface {}",
-                                ip_address, netmask, interface
-                            );
-                        }
-                        Ok(())
-                    } else {
-                        Err("No interface selected. Use the 'interface' command first.".into())
-                    }
-                } else {
-                    Err("The 'ip address' command is only available in Interface Configuration mode.".into())
-                }
-            },
-        },
-    );
-    
-    commands.insert(
-        "show interfaces",
-        Command {
-            name: "show interfaces",
-            description: "Display detailed statistics for all interfaces configured on the router",
-            suggestions: None,
-            execute: |_, context, _| {
-                if matches!(context.current_mode, Mode::UserMode | Mode::PrivilegedMode) {
-                    let ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
-                    let Some(interface_name) = &context.selected_interface else {
-                        return Err("No interface selected. Use the 'interface' command first.".into());
-                    };
-            
-                    if ip_address_state.is_empty() {
-                        println!("No interfaces found.");
-                        return Ok(()); 
-                    } else {
-                        for (interface_name, (ip_address, _)) in ip_address_state.iter() {
-                            println!("{} is up, line protocol is up", interface_name);
-                            println!("  Internet address is {}, subnet mask 255.255.255.0", ip_address);
-                            println!("  MTU 1500 bytes, BW 10000 Kbit, DLY 100000 usec");
-                            println!("  Encapsulation ARPA, loopback not set, keepalive set (10 sec)");
-                            println!("  Last clearing of \"show interface\" counters: never");
-                            println!("  Input queue: 0/2000/0/0 (size/max/drops/flushes); Total output drops: 0");
-                            println!("  5 minute input rate 1000 bits/sec, 10 packets/sec");
-                            println!("  5 minute output rate 500 bits/sec, 5 packets/sec");
-                            println!("  100 packets input, 1000 bytes, 10 no buffer");
-                            println!("  50 packets output, 500 bytes, 0 underruns");
-                        }
-                    }
-            
-                    Ok(()) 
-                } else {
-                    Err("The 'show interfaces' command is only available in User Exec Mode and Privileged EXEC mode.".into())
-                }
-            },
-        },
-    );
-    
-    commands.insert(
-        "show ip interface brief",
-        Command {
-            name: "show ip interface brief",
-            description: "Display a brief summary of IP interfaces.",
-            suggestions: None,
-            execute: |_, context, _| {
-                if matches!(context.current_mode, Mode::UserMode | Mode::PrivilegedMode) {
-                    let ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
-                    let status_map = STATUS_MAP.lock().unwrap();
-        
-                    println!(
-                        "{:<22} {:<15} {:<8} {:<20} {:<10}",
-                        "Interface", "IP-Address", "OK?", "Method", "Status"
-                    );
-        
-                    for (interface_name, (ip_address, _broadcast_address)) in ip_address_state.iter() {
-                        let is_up = status_map.get(interface_name).copied().unwrap_or(false);
-                        let status = if is_up {
-                            "administratively up"
-                        } else {
-                            "administratively down"
-                        };
-        
-                        println!(
-                            "{:<22} {:<15} YES     unset               {}",
-                            interface_name, ip_address, status
-                        );
-                    }
-        
-                    Ok(())
-                } else {
-                    Err("The 'show ip interface brief' command is only available in User Exec Mode and Privileged EXEC mode.".into())
-                }
-            },
-        },
-    );
 
     commands.insert(
         "shutdown",
@@ -707,168 +1151,44 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
     );
     
     commands.insert(
-        "no shutdown",
+        "no",
         Command {
             name: "no shutdown",
             description: "Enable the selected network interface.",
-            suggestions: None,
-            execute: |_, context, _| {
+            suggestions: Some(vec!["shutdown"]),
+            execute: |args, context, _| {
                 if matches!(context.current_mode, Mode::InterfaceMode) {
-                    if let Some(interface) = &context.selected_interface {
-                        let mut network_state = IP_ADDRESS_STATE.lock().unwrap();
-                        let mut status_map = STATUS_MAP.lock().unwrap();
-    
-                        // Check if the interface exists in `NETWORK_STATE`
-                        if let Some((ip_address, broadcast_address)) = network_state.get(interface) {
-                            // Update the administrative status to "up" in `STATUS_MAP`
-                            status_map.insert(interface.clone(), true);
-    
-                            println!(
-                                "%LINK-5-CHANGED: Interface {}, changed state to up",
-                                interface
-                            );
-                            println!(
-                                "%LINEPROTO-5-UPDOWN: Line protocol on Interface {}, changed state to up",
-                                interface
-                            );
-                            Ok(())
+                    if args.len() == 1 && args[0] == "shutdown" {
+                        if let Some(interface) = &context.selected_interface {
+                            let mut network_state = IP_ADDRESS_STATE.lock().unwrap();
+                            let mut status_map = STATUS_MAP.lock().unwrap();
+        
+                            // Check if the interface exists in `NETWORK_STATE`
+                            if let Some((ip_address, broadcast_address)) = network_state.get(interface) {
+                                // Update the administrative status to "up" in `STATUS_MAP`
+                                status_map.insert(interface.clone(), true);
+        
+                                println!(
+                                    "%LINK-5-CHANGED: Interface {}, changed state to up",
+                                    interface
+                                );
+                                println!(
+                                    "%LINEPROTO-5-UPDOWN: Line protocol on Interface {}, changed state to up",
+                                    interface
+                                );
+                                Ok(())
+                            } else {
+                                println!("Interface {} not found.", interface);
+                                Err("Invalid interface.".into())
+                            }
                         } else {
-                            println!("Interface {} not found.", interface);
-                            Err("Invalid interface.".into())
+                            Err("No interface selected. Use the 'interface' command first.".into())
                         }
                     } else {
-                        Err("No interface selected. Use the 'interface' command first.".into())
+                        Err("Invalid arguments provided to 'no shutdown'. This command does not accept additional arguments.".into())
                     }
                 } else {
                     Err("The 'no shutdown' command is only available in Interface Configuration mode.".into())
-                }
-            },
-        },
-    );
-    
-    commands.insert(
-        "ip",
-        Command {
-            name: "ip route",
-            description: "Add static routes to the routing table",
-            suggestions: Some(vec!["route"]),
-            execute: |args, context, _| {
-                if matches!(context.current_mode, Mode::ConfigMode) {
-                    let mut route_table = ROUTE_TABLE.lock().unwrap();
-        
-                    if args.len() == 0 {
-                        // Display the current route table
-                        if route_table.is_empty() {
-                            println!("No static routes configured.");
-                        } else {
-                            for (route, (netmask, next_hop_or_iface)) in route_table.iter() {
-                                println!("ip route {} {} {}", route, netmask, next_hop_or_iface);
-                            }
-                        }
-                    } 
-                    
-                    else if args.len() == 4 {
-                        let destination_ip: Ipv4Addr = Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format");
-                        let netmask: Ipv4Addr = Ipv4Addr::from_str(&args[2]).expect("Invalid IP address format");
-                        
-                        if let Ok(next_hop) = Ipv4Addr::from_str(&args[3]) {
-                            // Scenario 1: ip route <ip-address> <netmask> <next-hop>
-                            route_table.insert(destination_ip.to_string(), (netmask, next_hop.to_string()));
-                            println!("Added route: ip route {} {} {}", destination_ip, netmask, next_hop);
-                        }
-                        else {
-                            // Scenario 2: ip route <ip-address> <netmask> <exit interface>
-                            let exit_interface: String = args[3].to_string();
-                            println!("Added route: ip route {} {} {}", destination_ip, netmask, exit_interface);
-                            route_table.insert(destination_ip.to_string(), (netmask, exit_interface));
-                        }   
-                    } 
-                    
-                    else if args.len() == 5 {
-                        // Scenario 3: ip route <ip-address> <netmask> <exit interface> <next-hop>
-                        let destination_ip: Ipv4Addr = Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format");
-                        let netmask: Ipv4Addr = Ipv4Addr::from_str(&args[2]).expect("Invalid IP address format");
-                        let exit_interface: String = args[2].to_string();
-                        let next_hop: Ipv4Addr = Ipv4Addr::from_str(&args[4]).expect("Invalid IP address format");
-        
-                        // Insert the route in the route table with exit interface and next hop
-                        route_table.insert(destination_ip.to_string(), (netmask, format!("{} {}", exit_interface, next_hop)));
-                        println!("Added route: ip route {} {} {} {}", destination_ip, netmask, exit_interface, next_hop);
-                    } 
-                    
-                    else {
-                        println!("Invalid arguments provided to 'ip route'. Expected: ip route <ip-address> <netmask> <next-hop | exit-interface> <next-hop>.");
-                    }
-        
-                    Ok(())
-                } else {
-                    Err("The 'ip route' command is only available in Configuration mode.".into())
-                }
-            },
-        },
-    );
-
-
-    commands.insert(
-        "show ip route",
-        Command {
-            name: "show ip route",
-            description: "Display the routing table or details for a specific route",
-            suggestions: None,
-            execute: |args, context, _| {
-                if matches!(context.current_mode, Mode::PrivilegedMode) {
-                    let route_table = ROUTE_TABLE.lock().unwrap();
-        
-                    if args.is_empty() {
-                        println!("Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP");
-                        println!("       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area");
-                        println!("       N1 - OSPF NSSA external type 1, N2 - OSPF NSSA external type 2");
-                        println!("       E1 - OSPF external type 1, E2 - OSPF external type 2, E - EGP");
-                        println!("       i - IS-IS, L1 - IS-IS level-1, L2 - IS-IS level-2, ia - IS-IS inter area");
-                        println!("       * - candidate default, U - per-user static route, o - ODR");
-                        println!("       P - periodic downloaded static route");
-                        println!();
-        
-                        if route_table.is_empty() {
-                            println!("No routes configured.");
-                        } else {
-                            for (destination, (netmask, next_hop_or_iface)) in route_table.iter() {
-                                let route_type = if next_hop_or_iface.contains("exit_interface") {
-                                    "C"
-                                } else {
-                                    "S"
-                                };
-        
-                                println!(
-                                    "{}\t{} {} via {}",
-                                    route_type, destination, netmask, next_hop_or_iface
-                                );
-                            }
-                        }
-                    } else if args.len() == 1 {
-                        let destination_ip = args[0];
-                        if let Some((netmask, next_hop_or_iface)) = route_table.get(destination_ip) {
-                            let route_type = if next_hop_or_iface.contains("exit_interface") {
-                                "connected"
-                            } else {
-                                "static"
-                            };
-        
-                            println!("Routing entry for {}/{}", destination_ip, netmask);
-                            println!("Known via \"{}\"", route_type);
-                            println!("  Routing Descriptor Blocks:");
-                            println!("  * {}", next_hop_or_iface);
-                        } else {
-                            println!("No route found for {}.", destination_ip);
-                        }
-                    } else {
-                        println!("Invalid arguments. Use 'show ip route' or 'show ip route <ip-address>'.");
-                    }
-        
-                    Ok(())
-                }
-                else {
-                    Err("The 'show ip route' command is only available in Priviledged Exec mode.".into())
                 }
             },
         },
@@ -911,7 +1231,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                     Ok(())
                 } else {
                     // Handle single VLAN
-                    let mut vlan_args: Vec<&str> = input.split_whitespace().collect();
+                    let vlan_args: Vec<&str> = input.split_whitespace().collect();
                     let vlan_id: u16 = input.parse().map_err(|_| "Invalid VLAN ID.")?;
     
                     if vlan_id == 1 {
@@ -1028,61 +1348,10 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         },
     });
 
-    commands.insert(
-        "show vlan",
-        Command {
-            name: "show vlan",
-            description: "Displays information and status of VLANs.",
-            suggestions: None,
-            execute: |_, context, _| {
-                if matches!(context.current_mode, Mode::PrivilegedMode) {
-                    if let (Some(vlan_names), Some(vlan_states)) = (&context.vlan_names, &context.vlan_states) {
-                        // Display table header for VLANs
-                        println!("{:<6} {:<30} {:<10} {}", "VLAN", "Name", "Status", "Ports");
-
-                        for (vlan_id_str, vlan_name) in vlan_names {
-                            let vlan_id: u16 = vlan_id_str.parse().unwrap_or_default(); 
-                            let unknown_status = "active".to_string();
-                            let status = vlan_states.get(&vlan_id).unwrap_or(&unknown_status); 
-                            let ports = " ";  // temporary
-    
-                            println!("{:<6} {:<30} {:<10} {}", vlan_id, vlan_name, status, ports);
-                        }
-    
-                        Ok(())
-                    } else if let Some(vlan_names) = &context.vlan_names {
-                        println!("{:<6} {:<30} {:<10} {}", "VLAN", "Name", "Status", "Ports");
-
-                        for vlan_id_str in vlan_names.keys() {
-                            let vlan_id: u16 = vlan_id_str.parse().unwrap_or_default();
-                            let vlan_name = format!("VLAN{}", vlan_id);
-                            let status = "active"; 
-                            let ports = " "; // temporary
-    
-                            println!("{:<6} {:<30} {:<10} {}", vlan_id, vlan_name, status, ports);
-                        }
-
-                        Ok(())
-                    } else {
-                        Err("No VLAN information available.".into())
-                    }
-                    
-                }
-            
-                else {
-                    Err("The 'show vlan' command is only available in Priviledged Exec mode.".into())
-                }
-            },
-        },
-    );
-
     commands.insert("switchport", Command {
         name: "switchport",
         description: "Configure switchport settings on the interface",
-        suggestions: Some(vec![
-            "access", "mode", "nonegotiate", "port-security", 
-            "priority", "protected", "trunk", "voice",
-        ]),
+        suggestions: Some(vec!["mode", "trunk", "access", "nonegotiate", "port-security"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::InterfaceMode) {
                 if args.is_empty() {
@@ -1174,7 +1443,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         suggestions: Some(vec!["ospf"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
-                if args.len() == 2 {
+                if args.len() == 2 && args[0] == "ospf"  {
                     let process_id = args[1].parse::<u32>();
                     match process_id {
                         Ok(id) if id > 0 => {
@@ -1221,7 +1490,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                         Ok(())
                     }
                 } else {
-                    Err("The 'network' command requires three arguments: <ip-address> <wildcard-mask> <area-id>.".into())
+                    Err("The 'network' command requires three arguments: <ip-address> <wildcard-mask> area <area-id>.".into())
                 }
             } else {
                 Err("The 'network' command is only available in Router Configuration mode.".into())
@@ -1229,148 +1498,6 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         },
     });
 
-    commands.insert("ip ospf", Command {
-        name: "ip ospf",
-        description: "Configure OSPF-related settings on an interface",
-        suggestions: None,
-        execute: |args, context, _| {
-            if matches!(context.current_mode, Mode::InterfaceMode) {
-                if args.is_empty() {
-                    Err("The 'ip ospf' command requires a subcommand. Available subcommands: cost, retransmit-interval, transmit-delay, priority, hello-interval, dead-interval, authentication-key, message-digest-key, authentication.".into())
-                } else {
-                    let subcommand = &args[0][..];
-                    match subcommand {
-                        "cost" => {
-                            if args.len() == 2 {
-                                let cost = args[1].parse::<u32>();
-                                match cost {
-                                    Ok(value) => {
-                                        println!("OSPF cost set to {}.", value);
-                                        Ok(())
-                                    }
-                                    _ => Err("Invalid cost value. It must be a positive integer.".into()),
-                                }
-                            } else {
-                                Err("Usage: ip ospf cost <cost>".into())
-                            }
-                        }
-                        "retransmit-interval" => {
-                            if args.len() == 2 {
-                                let interval = args[1].parse::<u32>();
-                                match interval {
-                                    Ok(seconds) => {
-                                        println!("OSPF retransmit interval set to {} seconds.", seconds);
-                                        Ok(())
-                                    }
-                                    _ => Err("Invalid retransmit interval. It must be a positive integer.".into()),
-                                }
-                            } else {
-                                Err("Usage: ip ospf retransmit-interval <seconds>".into())
-                            }
-                        }
-                        "transmit-delay" => {
-                            if args.len() == 2 {
-                                let delay = args[1].parse::<u32>();
-                                match delay {
-                                    Ok(seconds) => {
-                                        println!("OSPF transmit delay set to {} seconds.", seconds);
-                                        Ok(())
-                                    }
-                                    _ => Err("Invalid transmit delay. It must be a positive integer.".into()),
-                                }
-                            } else {
-                                Err("Usage: ip ospf transmit-delay <seconds>".into())
-                            }
-                        }
-                        "priority" => {
-                            if args.len() == 2 {
-                                let priority = args[1].parse::<u8>();
-                                match priority {
-                                    Ok(value) => {
-                                        println!("OSPF priority set to {}.", value);
-                                        Ok(())
-                                    }
-                                    _ => Err("Invalid priority value. It must be a number between 0 and 255.".into()),
-                                }
-                            } else {
-                                Err("Usage: ip ospf priority <priority>".into())
-                            }
-                        }
-                        "hello-interval" => {
-                            if args.len() == 2 {
-                                let interval = args[1].parse::<u32>();
-                                match interval {
-                                    Ok(seconds) => {
-                                        println!("OSPF hello interval set to {} seconds.", seconds);
-                                        Ok(())
-                                    }
-                                    _ => Err("Invalid hello interval. It must be a positive integer.".into()),
-                                }
-                            } else {
-                                Err("Usage: ip ospf hello-interval <seconds>".into())
-                            }
-                        }
-                        "dead-interval" => {
-                            if args.len() == 2 {
-                                let interval = args[1].parse::<u32>();
-                                match interval {
-                                    Ok(seconds) => {
-                                        println!("OSPF dead interval set to {} seconds.", seconds);
-                                        Ok(())
-                                    }
-                                    _ => Err("Invalid dead interval. It must be a positive integer.".into()),
-                                }
-                            } else {
-                                Err("Usage: ip ospf dead-interval <seconds>".into())
-                            }
-                        }
-                        "authentication-key" => {
-                            if args.len() == 2 {
-                                let key = args[1].clone();
-                                println!("OSPF authentication key set to '{}'.", key);
-                                Ok(())
-                            } else {
-                                Err("Usage: ip ospf authentication-key <key>".into())
-                            }
-                        }
-                        "message-digest-key" => {
-                            if args.len() == 4 && args[2] == "md5" {
-                                let key_id = args[1].parse::<u32>();
-                                let key = args[3].clone();
-                                match key_id {
-                                    Ok(id) => {
-                                        println!("OSPF MD5 message-digest-key set with key-id {} and key '{}'.", id, key);
-                                        Ok(())
-                                    }
-                                    _ => Err("Invalid key-id. It must be a positive integer.".into()),
-                                }
-                            } else {
-                                Err("Usage: ip ospf message-digest-key <key-id> md5 <key>".into())
-                            }
-                        }
-                        "authentication" => {
-                            if args.len() == 2 {
-                                let auth_type = &args[1][..];
-                                match auth_type {
-                                    "message-digest" | "null" => {
-                                        println!("OSPF authentication set to '{}'.", auth_type);
-                                        Ok(())
-                                    }
-                                    _ => Err("Invalid authentication type. Valid options: message-digest, null.".into()),
-                                }
-                            } else {
-                                Err("Usage: ip ospf authentication [message-digest | null]".into())
-                            }
-                        }
-                        _ => Err(format!("Unknown subcommand '{}'. Use 'ip ospf' to see available subcommands.", subcommand).into()),
-                    }
-                }
-            } else {
-                Err("The 'ip ospf' command is only available in Interface Configuration mode.".into())
-            }
-        },
-    });
-    
     commands.insert("neighbor", Command {
         name: "neighbor",
         description: "Specify a neighbor and optionally assign a cost.",
@@ -1516,7 +1643,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
     commands.insert("default-information", Command {
         name: "default-information",
         description: "Originate a default route in OSPF",
-        suggestions: None,
+        suggestions: Some(vec!["originate"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::RouterConfigMode) {
                 if args.get(0).map(|s| &s[..]) == Some("originate") {
@@ -1551,41 +1678,38 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         },
     });
 
-    commands.insert("clear ip ospf process", Command {
+    commands.insert("clear", Command {
         name: "clear ip ospf process",
         description: "Reset all OSPF processes",
-        suggestions: None,
-        execute: |_, context, _| {
+        suggestions: Some(vec!["ip ospf process"]),
+        execute: |args, context, _| {
             if matches!(context.current_mode, Mode::PrivilegedMode) {
-                
-                println!("Reset ALL OSPF processes? [no]: yes");
-                let mut ospf_config = OSPF_CONFIG.lock().unwrap();
-                *ospf_config = OSPFConfig::new();  
-                println!("All OSPF processes cleared.");
-                Ok(())
+                if args.len() == 3 && args[0] == "ip" && args[1] == "ospf" && args[2] == "process"  {
+                    print!("Reset ALL OSPF processes? [no]: ");
+                    io::stdout().flush().unwrap();
+                    
+                    let mut response = String::new();
+                    io::stdin().read_line(&mut response).unwrap();
+                    let response = response.trim().to_lowercase();
+                    
+                    // Check for yes/y or empty response
+                    if response == "yes" || response == "y" {
+                        let mut ospf_config = OSPF_CONFIG.lock().unwrap();
+                        *ospf_config = OSPFConfig::new();  
+                        println!("All OSPF processes cleared.");
+                        Ok(())
+                    } else {
+                        println!("Clear process cancelled.");
+                        Ok(())
+                    }
+                } else {
+                    Err("Invalid arguments provided to 'clear ip ospf process'. This command does not accept additional arguments.".into())
+                }
             } else {
                 Err("The 'clear ip ospf process' command is only available in EXEC mode.".into())
             }
         },
     });
-
-
-
-    commands.insert("show ip ospf neighbor", Command {
-        name: "show ip ospf neighbor",
-        description: "Displays OSPF configuration",
-        suggestions: None,
-        execute: |_, _, _| {
-            let mut ospf_config = OSPF_CONFIG.lock().unwrap();
-            println!("Current OSPF Configuration:");
-            println!("Router ID: {:?}", ospf_config.router_id.clone().unwrap_or("Not set".to_string()));
-            println!("Administrative Distance: {:?}", ospf_config.distance.unwrap_or(110));
-            println!("Default Information Originate: {}", ospf_config.default_information_originate);
-            println!("Passive Interfaces: {:?}", ospf_config.passive_interfaces);
-            Ok(())
-        },
-    });
-
 
     commands.insert("access-list", Command {
         name: "access-list",
@@ -1633,94 +1757,6 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         },
     });
 
-    commands.insert("ip access-list", Command {
-        name: "ip access-list",
-        description: "Configure a named or numbered ACL (standard or extended)",
-        suggestions: None,
-        execute: |args, context, _| {
-            if matches!(context.current_mode, Mode::ConfigMode | Mode::ConfigStdNaclMode(_) | Mode::ConfigExtNaclMode(_)) {
-                if args.len() >= 2 {
-                    let acl_type = args[0].to_lowercase(); // "standard" or "extended"
-                    let acl_name_or_number = args[1].to_string(); // ACL name or number
-    
-                    let mut acl_store = ACL_STORE.lock().unwrap();
-                    acl_store.entry(acl_name_or_number.clone()).or_insert(AccessControlList {
-                        number_or_name: acl_name_or_number.clone(),
-                        entries: vec![],
-                    });
-    
-                    match acl_type.as_str() {
-                        "standard" => {
-                            // Transition to ConfigStdNaclMode
-                            context.current_mode = Mode::ConfigStdNaclMode(acl_name_or_number.clone());
-                            context.prompt = format!("{}(config-std-nacl)#", context.config.hostname);
-                            println!("Standard ACL '{}' created. Enter ACL configuration mode.", acl_name_or_number);
-                            Ok(())
-                        }
-                        "extended" => {
-                            // Transition to ConfigExtNaclMode
-                            context.current_mode = Mode::ConfigExtNaclMode(acl_name_or_number.clone());
-                            context.prompt = format!("{}(config-ext-nacl)#", context.config.hostname);
-                            println!("Extended ACL '{}' created. Enter ACL configuration mode.", acl_name_or_number);
-                            Ok(())
-                        }
-                        _ => {
-                            Err("Invalid syntax. Use 'ip access-list standard <acl_name>' or 'ip access-list extended <name_or_number>'.".into())
-                        }
-                    }
-                } else {
-                    Err("Invalid syntax. Use 'ip access-list standard <acl_name>' or 'ip access-list extended <name_or_number>'.".into())
-                }
-            } else {
-                Err("The 'ip access-list' command is only available in global configuration mode.".into())
-            }
-        },
-    });
-    
-    commands.insert("show access-lists", Command {
-        name: "show access-lists",
-        description: "Display all configured access lists",
-        suggestions: None,
-        execute: |_args, context, _| {
-            if matches!(context.current_mode, Mode::PrivilegedMode) {
-                let acl_store = ACL_STORE.lock().unwrap();
-                if acl_store.is_empty() {
-                    println!("No access lists configured.");
-                    return Ok(());
-                }
-    
-                for (name, acl) in acl_store.iter() {
-                    println!("\nAccess list: {}", acl.number_or_name);
-                    for entry in &acl.entries {
-                        let protocol = entry.protocol.clone().unwrap_or("ip".to_string());
-                        let source_op = entry.source_operator.clone().unwrap_or_default();
-                        let source_port = entry.source_port.clone().unwrap_or_default();
-                        let destination_op = entry.destination_operator.clone().unwrap_or_default();
-                        let destination_port = entry.destination_port.clone().unwrap_or_default();
-                        let matches = entry.matches.map_or(String::new(), |m| format!("({} matches)", m));
-    
-                        println!(
-                            "  {} {} {} {} {} {} {} {} {}",
-                            entry.action,
-                            protocol,
-                            entry.source,
-                            source_op,
-                            source_port,
-                            entry.destination,
-                            destination_op,
-                            destination_port,
-                            matches
-                        );
-                    }
-                }
-    
-                Ok(())
-            } else {
-                Err("The 'show access-lists' command is only available in privileged EXEC mode.".into())
-            }
-        },
-    });
-    
 
     commands.insert("deny", Command {
         name: "deny",
@@ -1925,17 +1961,17 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         },
     });
     
-    commands.insert("set transform-set", Command {
+    commands.insert("set", Command {
         name: "set transform-set",
         description: "Specifies which transform sets can be used with the crypto map entry.",
-        suggestions: None,
-        execute: |_args, context, _| {
+        suggestions: Some(vec!["transform-set"]),
+        execute: |args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
-                if _args.is_empty() {
-                    Err("Transform set(s) are required.".into())
+                if args.len() == 1 {
+                    Err("Invalid command. The command should be set transform-set <transform set name>".into())
                 } else {
-                    context.config.transform_sets = Some(_args.iter().map(|s| s.to_string()).collect());
-                    println!("Transform set(s) set to: {:?}", _args);
+                    context.config.transform_sets = Some(args.iter().map(|s| s.to_string()).collect());
+                    println!("Transform set(s) set to: {:?}", args[1]);
                     Ok(())
                 }
             } else {
@@ -1948,7 +1984,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
     commands.insert("tunnel", Command {
         name: "tunnel",
         description: "Configures the tunnel interface with multiple parameters (mode, source, destination, protection, virtual-template).",
-        suggestions: None,
+        suggestions: Some(vec!["mode", "source", "destination", "protection"]),
         execute: |_args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
                 if _args.is_empty() {
@@ -2035,7 +2071,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
     commands.insert("ntp server", Command {
         name: "ntp server",
         description: "Configure an NTP server",
-        suggestions: None,
+        suggestions: Some(vec!["server"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
                 if args.len() == 1 {
@@ -2079,35 +2115,10 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         },
     });
     
-    
-    commands.insert("show ntp associations", Command {
-        name: "show ntp associations",
-        description: "Display NTP associations",
-        suggestions: None,
-        execute: |_args, context, _| {
-            if matches!(context.current_mode, Mode::PrivilegedMode) {
-                if context.ntp_associations.is_empty() {
-                    println!("No NTP associations configured.");
-                } else {
-                    for assoc in &context.ntp_associations {
-                        println!("address         ref clock       st   when     poll    reach  delay          offset            disp");
-                        println!(" ~{}       {}          {}   {}        {}      {}      {:.2}           {:.2}              {:.2}",
-                            assoc.address, assoc.ref_clock, assoc.st, assoc.when, assoc.poll,
-                            assoc.reach, assoc.delay, assoc.offset, assoc.disp);
-                        println!(" * sys.peer, # selected, + candidate, - outlyer, x falseticker, ~ configured");
-                    }
-                }
-                Ok(())
-            } else {
-                Err("This command is only available in Privileged EXEC mode.".into())
-            }
-        },
-    });
-
     commands.insert("ntp master", Command {
         name: "ntp master",
         description: "Configure the device as an NTP master",
-        suggestions: None,
+        suggestions: Some(vec!["master"]),
         execute: |_args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
                 context.ntp_master = true;
@@ -2122,7 +2133,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
     commands.insert("ntp authenticate", Command {
         name: "ntp authenticate",
         description: "Enable or disable NTP authentication",
-        suggestions: None,
+        suggestions: Some(vec!["authenticate"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
                 if args.is_empty() {
@@ -2146,7 +2157,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
     commands.insert("ntp authentication-key", Command {
         name: "ntp authentication-key",
         description: "Define an NTP authentication key",
-        suggestions: None,
+        suggestions: Some(vec!["authentication-key"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
                 if args.len() == 3 && args[1] == "md5" {
@@ -2170,7 +2181,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
     commands.insert("ntp trusted-key", Command {
         name: "ntp trusted-key",
         description: "Specify a trusted NTP authentication key",
-        suggestions: None,
+        suggestions: Some(vec!["trusted-key"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
                 if args.len() == 1 {
@@ -2190,63 +2201,35 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         },
     });
     
-    
-    commands.insert("show ntp", Command {
-        name: "show ntp",
-        description: "Display NTP status and configurations",
-        suggestions: None,
-        execute: |_args, context, _| {
-            if matches!(context.current_mode, Mode::PrivilegedMode) {
-                println!("NTP Master: {}", if context.ntp_master { "Enabled" } else { "Disabled" });
-                println!("NTP Authentication: {}", if context.ntp_authentication_enabled { "Enabled" } else { "Disabled" });
-                
-                if !context.ntp_authentication_keys.is_empty() {
-                    println!("NTP Authentication Keys:");
-                    for (key_number, key) in &context.ntp_authentication_keys {
-                        println!("Key {}: {}", key_number, key);
-                    }
-                }
-                
-                if !context.ntp_trusted_keys.is_empty() {
-                    println!("NTP Trusted Keys:");
-                    for key_number in &context.ntp_trusted_keys {
-                        println!("Trusted Key {}", key_number);
-                    }
-                }
-    
-                Ok(())
-            } else {
-                Err("This command is only available in Privileged EXEC mode.".into())
-            }
-        },
-    });
-    
-    commands.insert("service password-encryption", Command {
+    commands.insert("service", Command {
         name: "service password-encryption",
         description: "Enable password encryption",
-        suggestions: None,
-        execute: |_args, context, _| {
+        suggestions: Some(vec!["password-encryption"]),
+        execute: |args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
-                
-                let storage = PASSWORD_STORAGE.lock().unwrap();
-                
-                let stored_password = storage.enable_password.clone();
-                let stored_secret = storage.enable_secret.clone();
-                drop(storage);
-                
-                if let Some(password) = stored_password {
-                    let encrypted_password = encrypt_password(&password);
-                    context.config.encrypted_password = Some(encrypted_password);
+                if args.len() == 1 && args[0] == "password-encryption" {
+                    let storage = PASSWORD_STORAGE.lock().unwrap();
+                    
+                    let stored_password = storage.enable_password.clone();
+                    let stored_secret = storage.enable_secret.clone();
+                    drop(storage);
+                    
+                    if let Some(password) = stored_password {
+                        let encrypted_password = encrypt_password(&password);
+                        context.config.encrypted_password = Some(encrypted_password);
+                    }
+                    
+                    if let Some(secret) = stored_secret {
+                        let encrypted_secret = encrypt_password(&secret);
+                        context.config.encrypted_secret = Some(encrypted_secret);  // Update encrypted secret
+                    }
+        
+                    context.config.password_encryption = true;
+                    println!("Password encryption enabled.");
+                    Ok(())
+                } else {
+                    Err("Invalid arguments provided to 'service password-encryption'. This command does not accept additional arguments.".into())
                 }
-                
-                if let Some(secret) = stored_secret {
-                    let encrypted_secret = encrypt_password(&secret);
-                    context.config.encrypted_secret = Some(encrypted_secret);  // Update encrypted secret
-                }
-    
-                context.config.password_encryption = true;
-                println!("Password encryption enabled.");
-                Ok(())
             } else {
                 Err("The 'service password-encryption' command is only available in Privileged EXEC mode.".into())
             }
@@ -2256,7 +2239,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
     commands.insert("enable secret", Command {
         name: "enable secret",
         description: "Set the enable secret password",
-        suggestions: None,
+        suggestions: Some(vec!["secret"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
                 if args.len() != 1 {
@@ -2277,7 +2260,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
     commands.insert("enable password", Command {
         name: "enable password",
         description: "Set the enable password for accessing privileged mode",
-        suggestions: None,
+        suggestions: Some(vec!["password"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
                 if args.len() != 1 {
@@ -2295,30 +2278,10 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         },
     });
 
-    commands.insert("ip domain-name", Command {
-        name: "ip domain-name",
-        description: "Set the IP domain name",
-        suggestions: None,
-        execute: |args, context, _| {
-            if matches!(context.current_mode, Mode::ConfigMode) {
-                if args.is_empty() {
-                    Err("Domain name must be provided.".into())
-                } else {
-                    let domain_name = args[0].to_string();
-                    context.config.domain_name = Some(domain_name.clone());
-                    println!("Domain name set to: {}", domain_name);
-                    Ok(())
-                }
-            } else {
-                Err("The 'ip domain-name' command is only available in Config mode.".into())
-            }
-        },
-    });
-
     commands.insert("crypto key", Command {
         name: "crypto key",
         description: "Crypto key management commands",
-        suggestions: None,
+        suggestions: Some(vec!["key"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
                 // Check for subcommands (e.g., 'generate rsa', 'delete')
@@ -2352,91 +2315,12 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             }
         },
     });
-    
-    commands.insert(
-        "show processes",
-        Command {
-            name: "show processes",
-            description: "Display process information or CPU/memory utilization",
-            suggestions: Some(vec!["cpu", "cpu history", "memory"]),
-            execute: |_args, context, _| {
-                if matches!(context.current_mode, Mode::PrivilegedMode) {
-                                        
-                    if _args.is_empty() {
-                            
-                        println!("CPU utilization for five seconds: 0%/0%; one minute: 0%; five minutes: 0%");
-                        println!(
-                            " PID Q  Ty       PC  Runtime(uS)    Invoked   uSecs    Stacks TTY Process\n\
-                              1 C  sp 602F3AF0            0       1627       0 2600/3000   0 Load Meter\n\
-                              2 L  we 60C5BE00            4        136      29 5572/6000   0 CEF Scanner\n\
-                              3 L  st 602D90F8         1676        837    2002 5740/6000   0 Check heaps\n\
-                              4 C  we 602D08F8            0          1       0 5568/6000   0 Chunk Manager\n\
-                              5 C  we 602DF0E8            0          1       0 5592/6000   0 Pool Manager"
-                        ); 
-                        Ok(())     
-                    }
-
-                    else{
-                        match &_args[0] as &str { 
-                            "cpu" => {
-                            
-                                println!("CPU utilization for five seconds: 8%/4%; one minute: 6%; five minutes: 5%");
-                                println!(
-                                    " PID Runtime(uS)   Invoked  uSecs    5Sec   1Min   5Min TTY Process\n\
-                                    1         384     32789     11   0.00%  0.00%  0.00%   0 Load Meter\n\
-                                    2        2752      1179   2334   0.73%  1.06%  0.29%   0 Exec\n\
-                                    3      318592      5273  60419   0.00%  0.15%  0.17%   0 Check heaps\n\
-                                    4           4         1   4000   0.00%  0.00%  0.00%   0 Pool Manager\n\
-                                    5        6472      6568    985   0.00%  0.00%  0.00%   0 ARP Input"
-                                );
-                                Ok(())
-                            }
-                            
-                            "cpu history" => {
-                                
-                                println!(
-                                    "CPU% per minute (last 60 minutes)\n\
-                                    100\n 90\n 80         *  *                     * *     *  * *  *\n\
-                                    70  * * ***** *  ** ***** ***  **** ******  *  *******     * *\n\
-                                    60  #***##*##*#***#####*#*###*****#*###*#*#*##*#*##*#*##*****#\n\
-                                    50  ##########################################################\n\
-                                    40  ##########################################################\n\
-                                    30  ##########################################################\n\
-                                    20  ##########################################################\n\
-                                    10  ##########################################################\n\
-                                        0....5....1....1....2....2....3....3....4....4....5....5....\n\
-                                                0    5    0    5    0    5    0    5    0    5"
-                                );
-                                Ok(())
-                            }
-                            
-                            "memory" => {
-                                
-                                println!(
-                                    "Total: 106206400, Used: 7479116, Free: 98727284\n\
-                                    PID TTY  Allocated      Freed    Holding    Getbufs    Retbufs Process\n\
-                                    0   0      81648       1808    6577644          0          0 *Init*\n\
-                                    0   0        572     123196        572          0          0 *Sched*\n\
-                                    0   0   10750692    3442000       5812    2813524          0 *Dead*\n\
-                                    1   0        276        276       3804          0          0 Load Meter"
-                                );
-                                Ok(())
-                            }
-                            _ => Err("Invalid subcommand for 'show processes'. Valid subcommands are 'cpu', 'cpu history', and 'memory'.".into()),
-                        }
-                    }
-                } else {
-                    Err("The 'show processes' command is only available in Privileged EXEC mode.".into())
-                }
-            },
-        },
-    );
-    
+ 
     commands.insert("ping", Command {
         name: "ping",
         description: "Ping a specific IP address to check reachability",
         suggestions: None,
-        execute: |args, context, _| {
+        execute: |args, _context, _| {
             if args.len() == 1 {
                 let ip: String = args[0].to_string();
                 let route_table = ROUTE_TABLE.lock().unwrap();

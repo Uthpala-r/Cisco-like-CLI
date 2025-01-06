@@ -195,12 +195,10 @@
 <a href="#194" id="194">194</a>
 <a href="#195" id="195">195</a>
 <a href="#196" id="196">196</a>
-<a href="#197" id="197">197</a>
-<a href="#198" id="198">198</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
+<a href="#197" id="197">197</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
 </span><span class="kw">use </span><span class="kw">crate</span>::cliconfig::{CliConfig, CliContext};
 <span class="kw">use </span>std::fs::{File, OpenOptions};
 <span class="kw">use </span>std::io::{Read, Write};
-<span class="kw">use </span>std::net::Ipv4Addr;
 <span class="kw">use </span><span class="kw">crate</span>::network_config::{STATUS_MAP, IP_ADDRESS_STATE, ROUTE_TABLE};
 
 
@@ -366,7 +364,7 @@ ip classes
 /// let startup_config = default_startup_config();
 /// println!("Startup Configuration: {}", startup_config);
 /// ```
-</span><span class="kw">pub fn </span>default_startup_config(context: <span class="kw-2">&amp;mut </span>CliContext) -&gt; String {
+</span><span class="kw">pub fn </span>default_startup_config(_context: <span class="kw-2">&amp;mut </span>CliContext) -&gt; String {
     
     <span class="kw">let </span>startup_config = (
         

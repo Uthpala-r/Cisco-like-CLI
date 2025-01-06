@@ -125,7 +125,18 @@
 <a href="#124" id="124">124</a>
 <a href="#125" id="125">125</a>
 <a href="#126" id="126">126</a>
-<a href="#127" id="127">127</a></pre></div><pre class="rust"><code><span class="doccomment">//! # Cisco-like Command-Line Interface (CLI) Application
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a></pre></div><pre class="rust"><code><span class="doccomment">//! # Cisco-like Command-Line Interface (CLI) Application
 //!
 //! This file serves as the main module that initializes and links all other sub-modules.
 //! The CLI provides a hierarchical command structure similar to Cisco's networking devices.
@@ -195,6 +206,7 @@
     <span class="comment">// Configure the Rustyline editor with history behavior
     </span><span class="kw">let </span>config = rustyline::Config::builder()
     .history_ignore_space(<span class="bool-val">true</span>) 
+    .completion_type(rustyline::CompletionType::List)
     .build();
 
     <span class="comment">// Initialize the command-line editor with a custom command completer
@@ -202,8 +214,12 @@
         .expect(<span class="string">"Failed to initialize editor"</span>);
 
     <span class="kw">let </span><span class="kw-2">mut </span>commands_map: HashMap&lt;String, Vec&lt;String&gt;&gt; = HashMap::new();
-    <span class="kw">for </span>command <span class="kw">in </span>command_names {commands_map.insert(command.clone(), <span class="macro">vec!</span>[command.clone()]);}
-    rl.set_helper(<span class="prelude-val">Some</span>(CommandCompleter { commands: commands_map }));
+    <span class="kw">for </span>command <span class="kw">in </span>command_names {
+        commands_map.insert(command.clone(), <span class="macro">vec!</span>[command.clone()]);
+    }
+    
+    <span class="kw">let </span>completer = CommandCompleter::new(commands_map, Mode::UserMode);
+    rl.set_helper(<span class="prelude-val">Some</span>(completer));
     rl.load_history(<span class="string">"history.txt"</span>).ok();
 
     <span class="comment">// Set up the initial clock settings
@@ -224,16 +240,22 @@
         <span class="kw">let </span>prompt = context.prompt.clone();
         <span class="kw">match </span>rl.readline(<span class="kw-2">&amp;</span>prompt) {
             <span class="prelude-val">Ok</span>(buffer) =&gt; {
-                rl.add_history_entry(buffer.as_str());
                 <span class="kw">let </span>input = buffer.trim();
-                <span class="kw">let </span>completer = rl.helper().unwrap() <span class="kw">as </span><span class="kw-2">&amp;</span>CommandCompleter;
+                <span class="kw">if </span>input.is_empty() {
+                    <span class="kw">continue</span>;
+                }
 
+                rl.add_history_entry(input);
+                
                 <span class="kw">if </span>input == <span class="string">"exit cli" </span>{
                     <span class="macro">println!</span>(<span class="string">"Exiting CLI..."</span>);
                     <span class="kw">break</span>;
                 }
 
-                execute_command(input, <span class="kw-2">&amp;</span>commands, <span class="kw-2">&amp;mut </span>context, <span class="kw-2">&amp;mut </span>clock, completer);
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(helper) = rl.helper_mut() {
+                    execute_command(input, <span class="kw-2">&amp;</span>commands, <span class="kw-2">&amp;mut </span>context, <span class="kw-2">&amp;mut </span>clock, helper);
+                    helper.current_mode = context.current_mode.clone();
+                }
                       
             }
 

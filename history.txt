@@ -1,101 +1,101 @@
 #V2
+no shutdown
+ip address 192.168.1.1 255.255.255.90
+no shutdown
+write memory
 exit
-ip route 192.168.1.1 255.255.255.0 192.168.1.2 
+show running-config
+inte g0/0
+conf t
+inte g0/0
+shutdown
+exit exit
+sh run
 exit
-ping 192.168.1.1
-exit
-?
-enable
-configure terminal
-?
-exit
-?
+sh run
 exit cli
-?
-configure terminal
-enable
-configure terminal
-?
-exit
-?
-exit cli
-enable password
 en
-enable
-?
-show?
-show ?
-?
-exit cli
-enable
-?
-exit cli
-enable password
-?
-enable
-?
-con?
-configure?
-configure ?
-configure terminal
-?
-interface g0/0
-?
+conf t
+vlan 5
+name Uthpala
+state active
+exit exit
 exit
-show ?
+show vlan
+conf t
+int g0/0
+switchport mode access
+switchport port-security
 exit cli
-enable password
-enable
-clock set
-show clock
-clock set 16:17:23 02 01 2025
-clock set 04:17:23 02 01 2025
-clock set 04:17:23 02 January 2025
+en
+conf t
+router ospf 5
+network
+network 192.168.1.1 0.0.0.0 area 5
+neighbor
+neighbor 192.168.1.1 cost 100
+area
+area 5 authenticate
+area 5 authentication
+area 5 stub
+area 5 stub no-summary
+passive-interface
+passive-interface g0/0
+distance 6
+default-information originate
+router-id 3
+exit
+show ip route
+show ip ospf neighbor
+clear ip ospf process
+clear ip
+show ip ospf neighbor
 exit cli
-enable
-clock set 16:17:34 1 January 2024
+en
+clear ip ospf process
 exit cli
-enable secret
-enable
-clock set 23:23:23 01 January 2023
-clock set 23:23:23 1 January 2023
+en
+conf t
+exit
+clear ip ospf process
+conf t
+access-list 12 192.168.1.1 0.0.0.0
+ip access-list standard hi
+deny
+deny 192.168.191.1 0.0.0.0
+permit 192.17.1.1 0.0.0.0
+exit
+show access-lists
 exit cli
-enable secret
-enable
-clock set 16:25:2024 1 January 2025
-show clock
+ping 192.168.1.1
 exit cli
-enable
-configure terminal
-interface g0/0
+pi 192.178.1.1
+en
+conf t
+int 0
 ip address 192.168.1.1 255.255.255.0
 exit
-ip route 192.168.1.1 255.255.255.0 192.168.2.2
-exit
-show ip route
-show running-config
+pi 192.168.1.1
+ip route 192.168.1.1 255.255.255.0
+ip route 192.168.1.1 255.255.255.0 192.168.1.2
+pi 192.168.1.1
+virtual-template 0
+tunnel mode ipsec ipv4
 exit cli
-enable secret
-enable
-configure terminal
-ip route 192.168.1.1 255.255.255.0 192.168.2.2
-exit
-show ip route
-show running-config
+en
+conf t
+tunnel mode ipsec ipv4
+tunnel source 0
 exit cli
-enable password
-enable
-configure terminal
-interface g0/0
+en
+conf t
+set transform-set hi
 exit
-ip route 192.168.1.1 255.255.255.0 192.168.2.2
-exit
-show running-config
 exit cli
-enable
-configure terminal
-ip route 192.168.1.1 255.255.255.0 192.168.2.3
-exit
-show ip route
-show running-config
+en
+exit cli
+en
+conf t
+service password-encryption
+set transform-set 6
 exit cli

@@ -275,7 +275,75 @@
 <a href="#274" id="274">274</a>
 <a href="#275" id="275">275</a>
 <a href="#276" id="276">276</a>
-<a href="#277" id="277">277</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
+<a href="#277" id="277">277</a>
+<a href="#278" id="278">278</a>
+<a href="#279" id="279">279</a>
+<a href="#280" id="280">280</a>
+<a href="#281" id="281">281</a>
+<a href="#282" id="282">282</a>
+<a href="#283" id="283">283</a>
+<a href="#284" id="284">284</a>
+<a href="#285" id="285">285</a>
+<a href="#286" id="286">286</a>
+<a href="#287" id="287">287</a>
+<a href="#288" id="288">288</a>
+<a href="#289" id="289">289</a>
+<a href="#290" id="290">290</a>
+<a href="#291" id="291">291</a>
+<a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
+<a href="#329" id="329">329</a>
+<a href="#330" id="330">330</a>
+<a href="#331" id="331">331</a>
+<a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
+<a href="#334" id="334">334</a>
+<a href="#335" id="335">335</a>
+<a href="#336" id="336">336</a>
+<a href="#337" id="337">337</a>
+<a href="#338" id="338">338</a>
+<a href="#339" id="339">339</a>
+<a href="#340" id="340">340</a>
+<a href="#341" id="341">341</a>
+<a href="#342" id="342">342</a>
+<a href="#343" id="343">343</a></pre></div><pre class="rust"><code><span class="comment">//execute.rs
+
+</span><span class="doccomment">/// External crates for the CLI application
 </span><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span><span class="kw">crate</span>::Clock;
 <span class="kw">use </span><span class="kw">crate</span>::CliContext;
@@ -297,6 +365,7 @@
 <span class="doccomment">/// An Enum representing the different modes in the CLI.
 ///
 /// Modes determine the scope of available commands and their behavior.
+</span><span class="attr">#[derive(Clone, Debug)]
 </span><span class="kw">pub enum </span>Mode {
     UserMode,
     PrivilegedMode,
@@ -307,6 +376,7 @@
     ConfigStdNaclMode(String),
     ConfigExtNaclMode(String),
 }
+
 
 
 <span class="doccomment">/// Executes a command or provides suggestions based on the current input.
@@ -321,235 +391,296 @@
 /// - If the input ends with `?`, it provides autocompletion suggestions based on the current mode.
 /// - Otherwise, it matches the input to a command and executes it if found.
 /// - Prints appropriate messages for invalid commands or execution errors.
-</span><span class="kw">pub fn </span>execute_command(input: <span class="kw-2">&amp;</span>str, commands: <span class="kw-2">&amp;</span>HashMap&lt;<span class="kw-2">&amp;</span>str, Command&gt;, context: <span class="kw-2">&amp;mut </span>CliContext, clock: <span class="kw-2">&amp;mut </span><span class="prelude-ty">Option</span>&lt;Clock&gt;, completer: <span class="kw-2">&amp;</span>CommandCompleter,) {
+</span><span class="kw">pub fn </span>execute_command(input: <span class="kw-2">&amp;</span>str, commands: <span class="kw-2">&amp;</span>HashMap&lt;<span class="kw-2">&amp;</span>str, Command&gt;, context: <span class="kw-2">&amp;mut </span>CliContext, clock: <span class="kw-2">&amp;mut </span><span class="prelude-ty">Option</span>&lt;Clock&gt;, completer: <span class="kw-2">&amp;mut </span>CommandCompleter) {
+    <span class="kw">let </span><span class="kw-2">mut </span>normalized_input = input.trim();
+    <span class="kw">let </span>showing_suggestions = normalized_input.ends_with(<span class="string">'?'</span>);
     
-    <span class="comment">// Normalize the input by trimming whitespace.
-    </span><span class="kw">let </span>normalized_input = input.trim();
-
-    <span class="comment">// Handle subcommand suggestions if the input ends with a space.
-    </span><span class="kw">if </span>input.ends_with(<span class="string">' '</span>) {
-        <span class="kw">let </span>parts: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = normalized_input.split_whitespace().collect();
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(suggestions) = completer.commands.get(parts[<span class="number">0</span>]) {
-            <span class="macro">println!</span>(<span class="string">"Possible subcommands:"</span>);
-            <span class="kw">for </span>suggestion <span class="kw">in </span>suggestions {
-                <span class="macro">println!</span>(<span class="string">"  {}"</span>, suggestion);
-            }
-        } <span class="kw">else </span>{
-            <span class="macro">println!</span>(<span class="string">"No subcommands available for '{}'"</span>, parts[<span class="number">0</span>]);
-        }
-        <span class="kw">return</span>;
+    <span class="comment">// If we're showing suggestions, remove the '?' for further processing
+    </span><span class="kw">if </span>showing_suggestions {
+        normalized_input = normalized_input.trim_end_matches(<span class="string">'?'</span>).trim();
     }
 
-    <span class="comment">// Handle autocompletion when the input ends with `?`.
-    </span><span class="kw">if </span>normalized_input.ends_with(<span class="string">'?'</span>) {
-        <span class="kw">let </span>prefix = normalized_input.trim_end_matches(<span class="string">'?'</span>).trim();
-
-        <span class="comment">// Collect suggestions based on the current mode. 
-        </span><span class="kw">let </span>suggestions: Vec&lt;<span class="kw">_</span>&gt; = <span class="kw">match </span>context.current_mode {
-            
+    <span class="comment">// Get available commands for current mode
+    </span><span class="kw">fn </span>get_mode_commands&lt;<span class="lifetime">'a</span>&gt;(commands: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>HashMap&lt;<span class="kw-2">&amp;</span>str, Command&gt;, mode: <span class="kw-2">&amp;</span>Mode) -&gt; Vec&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt; {
+        <span class="kw">match </span>mode {
             Mode::UserMode =&gt; {
-                commands
-                    .keys()
-                    <span class="comment">// Only enable command can be executed in the User Exec Mode
-                    </span>.filter(|cmd| cmd.starts_with(prefix) &amp;&amp; <span class="kw-2">**</span>cmd == <span class="string">"enable"</span>)
-                    .map(|cmd| cmd.to_string())
+                commands.keys()
+                    .filter(|&amp;&amp;cmd| {
+                        cmd == <span class="string">"enable" </span>||
+                        cmd == <span class="string">"ping" </span>||
+                        cmd == <span class="string">"exit"
+                    </span>})
+                    .copied()
                     .collect()
-            }
-
+            },
             Mode::PrivilegedMode =&gt; {
-                <span class="kw">let </span><span class="kw-2">mut </span>unique_commands = HashSet::new();
-                commands
-                    .keys()
-                    <span class="comment">// Commands configure terminal, help, write memory, ifconfig and the show command can be ecxecuted in the Pirviledged Exec Mode
-                    </span>.filter(|cmd| cmd.starts_with(prefix) &amp;&amp; (cmd.starts_with(<span class="string">"configure"</span>) || <span class="kw-2">**</span>cmd == <span class="string">"exit" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"help" </span>|| cmd.starts_with(<span class="string">"write"</span>) || cmd.starts_with(<span class="string">"copy"</span>) || cmd.starts_with(<span class="string">"clear"</span>) || cmd.starts_with(<span class="string">"ifconfig"</span>) || cmd.starts_with(<span class="string">"show"</span>)))
-                    .filter_map(|cmd| {
-                        <span class="kw">let </span>second_word = cmd.split_whitespace().nth(<span class="number">1</span>).unwrap_or_default();
-                        <span class="kw">let </span>fist_word = cmd.split_whitespace().nth(<span class="number">0</span>).unwrap_or_default();
-                        <span class="kw">if </span>cmd.starts_with(prefix) &amp;&amp; (prefix.contains(<span class="string">' '</span>) || prefix.contains(fist_word)){
-                            <span class="kw">if </span>second_word.is_empty() {
-                                <span class="prelude-val">Some</span>(fist_word.to_string())
-                            } <span class="kw">else </span>{
-                                <span class="prelude-val">Some</span>(second_word.to_string())
-                            }
-                        } <span class="kw">else </span>{
-                            <span class="prelude-val">Some</span>(fist_word.to_string())
-                        }
+                commands.keys()
+                    .filter(|&amp;&amp;cmd| {
+                        cmd == <span class="string">"configure" </span>||
+                        cmd == <span class="string">"ping" </span>|| 
+                        cmd == <span class="string">"exit" </span>|| 
+                        cmd == <span class="string">"write" </span>||
+                        cmd == <span class="string">"help" </span>||
+                        cmd == <span class="string">"show" </span>||
+                        cmd == <span class="string">"copy" </span>||
+                        cmd == <span class="string">"clock" </span>||
+                        cmd == <span class="string">"clear" </span>||
+                        cmd.starts_with(<span class="string">"ifconfig"</span>) 
+                        
                     })
-                    .filter(|cmd| unique_commands.insert(cmd.clone())) 
-                    .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;() 
-            }
-
+                    .copied()
+                    .collect()
+            },
             Mode::ConfigMode =&gt; {
-                <span class="kw">let </span><span class="kw-2">mut </span>unique_commands = HashSet::new();
-                commands
-                    .keys()
-                    <span class="comment">// Filter only the relevant commands that can be executed in Config Mode
-                    </span>.filter(|cmd| cmd.starts_with(prefix) &amp;&amp; (<span class="kw-2">**</span>cmd == <span class="string">"hostname" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"interface" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"exit" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"tunnel" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"virtual-template" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"help" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"write memory" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"vlan" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"access-list" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"router" </span>|| cmd.starts_with(<span class="string">"ip"</span>) || cmd.starts_with(<span class="string">"ifconfig"</span>) || cmd.starts_with(<span class="string">"enable"</span>) || cmd.starts_with(<span class="string">"service"</span>) || cmd.starts_with(<span class="string">"ntp"</span>) || cmd.starts_with(<span class="string">"crypto"</span>) || cmd.starts_with(<span class="string">"set"</span>)))
-                    .filter_map(|cmd| {
-                        <span class="kw">let </span>second_word = cmd.split_whitespace().nth(<span class="number">1</span>).unwrap_or_default();
-                        <span class="kw">let </span>first_word = cmd.split_whitespace().nth(<span class="number">0</span>).unwrap_or_default();
-                        <span class="kw">if </span>cmd.starts_with(prefix) &amp;&amp; (prefix.contains(<span class="string">' '</span>) || prefix.contains(first_word)) {
-                            <span class="kw">if </span>second_word.is_empty() {
-                                <span class="prelude-val">Some</span>(first_word.to_string())
-                            } <span class="kw">else </span>{
-                                <span class="prelude-val">Some</span>(second_word.to_string())
-                            }
-                        } <span class="kw">else </span>{
-                            <span class="prelude-val">Some</span>(first_word.to_string())
-                        }
+                commands.keys()
+                    .filter(|&amp;&amp;cmd| {
+                        cmd == <span class="string">"hostname" </span>|| 
+                        cmd == <span class="string">"interface" </span>||
+                        cmd == <span class="string">"ping" </span>||
+                        cmd == <span class="string">"exit" </span>||
+                        cmd == <span class="string">"tunnel" </span>||
+                        cmd == <span class="string">"access-list" </span>||
+                        cmd == <span class="string">"router" </span>||
+                        cmd == <span class="string">"virtual-template" </span>||
+                        cmd == <span class="string">"help" </span>||
+                        cmd == <span class="string">"write" </span>||
+                        cmd == <span class="string">"vlan" </span>||
+                        cmd == <span class="string">"ip" </span>||
+                        cmd == <span class="string">"service" </span>||
+                        cmd == <span class="string">"set" </span>||
+                        cmd.starts_with(<span class="string">"ifconfig"</span>) || 
+                        cmd.starts_with(<span class="string">"enable"</span>) || 
+                        cmd.starts_with(<span class="string">"ntp"</span>) || 
+                        cmd.starts_with(<span class="string">"crypto"</span>)
                     })
-                    .filter(|cmd| unique_commands.insert(cmd.clone())) 
-                    .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;() 
-            }
-
+                    .copied()
+                    .collect()
+            },
             Mode::InterfaceMode =&gt; {
-                commands
-                    .keys()
-                    <span class="comment">// Commands shutdown, no shutdown, help, write memory and ip address can be executed in the Interface Config Mode 
-                    </span>.filter(|cmd| cmd.starts_with(prefix) &amp;&amp; (<span class="kw-2">**</span>cmd == <span class="string">"shutdown" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"no shutdown" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"exit" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"switchport" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"help" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"write memory" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"interface" </span>|| cmd.starts_with(<span class="string">"ip"</span>)))
-                    .map(|cmd| {
-                        <span class="kw">let </span>second_word = cmd.split_whitespace().nth(<span class="number">1</span>).unwrap_or_default();
-                        <span class="kw">let </span>fist_word = cmd.split_whitespace().nth(<span class="number">0</span>).unwrap_or_default();
-                        <span class="kw">if </span>cmd.starts_with(prefix) &amp;&amp; (prefix.contains(<span class="string">' '</span>) || prefix.contains(fist_word)){
-                            <span class="kw">let </span>second_word = cmd.split_whitespace().nth(<span class="number">1</span>).unwrap_or_default();
-                            <span class="kw">if </span>second_word.is_empty() {
-                                fist_word.to_string()
-                            } <span class="kw">else </span>{
-                                second_word.to_string()
-                            }
-                        } <span class="kw">else </span>{
-                            fist_word.to_string()
-                        }
-                    })
+                commands.keys()
+                    .filter(|&amp;&amp;cmd| {
+                        cmd == <span class="string">"shutdown" </span>||
+                        cmd == <span class="string">"no" </span>||
+                        cmd == <span class="string">"exit" </span>||
+                        cmd == <span class="string">"help" </span>||
+                        cmd == <span class="string">"switchport" </span>||
+                        cmd == <span class="string">"write" </span>||
+                        cmd == <span class="string">"ip" 
+
+                    </span>})
+                    .copied()
                     .collect()
             }
-
             Mode::VlanMode =&gt; {
-                commands
-                    .keys()
-                    <span class="comment">// Commands vlan, name and state can be executed in the Vlan Mode
-                    </span>.filter(|cmd| cmd.starts_with(prefix) &amp;&amp; (<span class="kw-2">**</span>cmd == <span class="string">"name" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"exit" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"state" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"vlan" </span>))
-                    .map(|cmd| {
-                        <span class="kw">let </span>second_word = cmd.split_whitespace().nth(<span class="number">1</span>).unwrap_or_default();
-                        <span class="kw">let </span>fist_word = cmd.split_whitespace().nth(<span class="number">0</span>).unwrap_or_default();
-                        <span class="kw">if </span>cmd.starts_with(prefix) &amp;&amp; (prefix.contains(<span class="string">' '</span>) || prefix.contains(fist_word)){
-                            <span class="kw">let </span>second_word = cmd.split_whitespace().nth(<span class="number">1</span>).unwrap_or_default();
-                            <span class="kw">if </span>second_word.is_empty() {
-                                fist_word.to_string()
-                            } <span class="kw">else </span>{
-                                second_word.to_string()
-                            }
-                        } <span class="kw">else </span>{
-                            fist_word.to_string()
-                        }
-                    })
+                commands.keys()
+                    .filter(|&amp;&amp;cmd| {
+                        cmd == <span class="string">"name" </span>||
+                        cmd == <span class="string">"state" </span>||
+                        cmd == <span class="string">"exit" </span>||
+                        cmd == <span class="string">"vlan" 
+
+                    </span>})
+                    .copied()
                     .collect()
             }
-
             Mode::RouterConfigMode =&gt; {
-                commands
-                    .keys()
-                    <span class="comment">// Commands vlan, name and state can be executed in the Vlan Mode
-                    </span>.filter(|cmd| cmd.starts_with(prefix) &amp;&amp; (<span class="kw-2">**</span>cmd == <span class="string">"network" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"exit" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"neighbor" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"area" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"passive-interface" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"distance" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"default-information" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"router-id" </span>))
-                    .map(|cmd| {
-                        <span class="kw">let </span>second_word = cmd.split_whitespace().nth(<span class="number">1</span>).unwrap_or_default();
-                        <span class="kw">let </span>fist_word = cmd.split_whitespace().nth(<span class="number">0</span>).unwrap_or_default();
-                        <span class="kw">if </span>cmd.starts_with(prefix) &amp;&amp; (prefix.contains(<span class="string">' '</span>) || prefix.contains(fist_word)){
-                            <span class="kw">let </span>second_word = cmd.split_whitespace().nth(<span class="number">1</span>).unwrap_or_default();
-                            <span class="kw">if </span>second_word.is_empty() {
-                                fist_word.to_string()
-                            } <span class="kw">else </span>{
-                                second_word.to_string()
-                            }
-                        } <span class="kw">else </span>{
-                            fist_word.to_string()
-                        }
-                    })
+                commands.keys()
+                    .filter(|&amp;&amp;cmd| {
+                        cmd == <span class="string">"network" </span>||
+                        cmd == <span class="string">"neighbor" </span>||
+                        cmd == <span class="string">"exit" </span>||
+                        cmd == <span class="string">"area" </span>||
+                        cmd == <span class="string">"passive-interface" </span>||
+                        cmd == <span class="string">"distance" </span>||
+                        cmd == <span class="string">"default-information" </span>||
+                        cmd == <span class="string">"router-id"
+
+                    </span>})
+                    .copied()
                     .collect()
             }
-
             Mode::ConfigStdNaclMode(<span class="kw">_</span>) =&gt; {
-                commands
-                    .keys()
-                    <span class="comment">// Commands vlan, name and state can be executed in the Vlan Mode
-                    </span>.filter(|cmd| cmd.starts_with(prefix) &amp;&amp; (<span class="kw-2">**</span>cmd == <span class="string">"deny" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"permit" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"exit" </span>))
-                    .map(|cmd| {
-                        <span class="kw">let </span>second_word = cmd.split_whitespace().nth(<span class="number">1</span>).unwrap_or_default();
-                        <span class="kw">let </span>fist_word = cmd.split_whitespace().nth(<span class="number">0</span>).unwrap_or_default();
-                        <span class="kw">if </span>cmd.starts_with(prefix) &amp;&amp; (prefix.contains(<span class="string">' '</span>) || prefix.contains(fist_word)){
-                            <span class="kw">let </span>second_word = cmd.split_whitespace().nth(<span class="number">1</span>).unwrap_or_default();
-                            <span class="kw">if </span>second_word.is_empty() {
-                                fist_word.to_string()
-                            } <span class="kw">else </span>{
-                                second_word.to_string()
-                            }
-                        } <span class="kw">else </span>{
-                            fist_word.to_string()
-                        }
-                    })
+                commands.keys()
+                    .filter(|&amp;&amp;cmd| {
+                        cmd == <span class="string">"deny" </span>||
+                        cmd == <span class="string">"permit" </span>||
+                        cmd == <span class="string">"exit" </span>||
+                        cmd == <span class="string">"ip"
+
+                    </span>})
+                    .copied()
                     .collect()
             }
-
             Mode::ConfigExtNaclMode(<span class="kw">_</span>) =&gt; {
-                commands
-                    .keys()
-                    <span class="comment">// Commands vlan, name and state can be executed in the Vlan Mode
-                    </span>.filter(|cmd| cmd.starts_with(prefix) &amp;&amp; (<span class="kw-2">**</span>cmd == <span class="string">"deny" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"permit" </span>|| <span class="kw-2">**</span>cmd == <span class="string">"exit" </span>))
-                    .map(|cmd| {
-                        <span class="kw">let </span>second_word = cmd.split_whitespace().nth(<span class="number">1</span>).unwrap_or_default();
-                        <span class="kw">let </span>fist_word = cmd.split_whitespace().nth(<span class="number">0</span>).unwrap_or_default();
-                        <span class="kw">if </span>cmd.starts_with(prefix) &amp;&amp; (prefix.contains(<span class="string">' '</span>) || prefix.contains(fist_word)){
-                            <span class="kw">let </span>second_word = cmd.split_whitespace().nth(<span class="number">1</span>).unwrap_or_default();
-                            <span class="kw">if </span>second_word.is_empty() {
-                                fist_word.to_string()
-                            } <span class="kw">else </span>{
-                                second_word.to_string()
-                            }
-                        } <span class="kw">else </span>{
-                            fist_word.to_string()
-                        }
-                    })
+                commands.keys()
+                    .filter(|&amp;&amp;cmd| {
+                        cmd == <span class="string">"deny" </span>||
+                        cmd == <span class="string">"permit" </span>||
+                        cmd == <span class="string">"exit" </span>||
+                        cmd == <span class="string">"ip"
+
+                    </span>})
+                    .copied()
                     .collect()
             }
 
-            <span class="kw">_ </span>=&gt; Vec::new(), 
-        };
+        }
+    }
 
-        <span class="comment">// Display suggestions or notify the user if none are found.
-        </span><span class="kw">if </span>suggestions.is_empty() {
-            <span class="macro">println!</span>(<span class="string">"No matching commands found for '{}?'"</span>, prefix);
+    <span class="comment">// Function to find a unique command match
+    </span><span class="kw">fn </span>find_unique_command&lt;<span class="lifetime">'a</span>&gt;(partial: <span class="kw-2">&amp;</span>str, available_commands: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str]) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt; {
+        <span class="kw">let </span>matches: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = available_commands
+            .iter()
+            .filter(|&amp;&amp;cmd| cmd.starts_with(partial))
+            .copied()
+            .collect();
+
+        <span class="kw">if </span>matches.len() == <span class="number">1 </span>{
+            <span class="prelude-val">Some</span>(matches[<span class="number">0</span>])
         } <span class="kw">else </span>{
-            <span class="macro">println!</span>(<span class="string">"Possible completions for '{}?':"</span>, prefix);
-            <span class="kw">for </span>suggestion <span class="kw">in </span>suggestions {
-                <span class="macro">println!</span>(<span class="string">"  {}"</span>, suggestion);
+            <span class="prelude-val">None
+        </span>}
+    }
+
+    <span class="comment">// Function to find a unique subcommand match
+    </span><span class="kw">fn </span>find_unique_subcommand&lt;<span class="lifetime">'a</span>&gt;(partial: <span class="kw-2">&amp;</span>str, suggestions: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>[<span class="kw-2">&amp;</span>str]) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt; {
+        <span class="kw">let </span>matches: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = suggestions
+            .iter()
+            .filter(|&amp;&amp;s| s.starts_with(partial))
+            .copied()
+            .collect();
+
+        <span class="kw">if </span>matches.len() == <span class="number">1 </span>{
+            <span class="prelude-val">Some</span>(matches[<span class="number">0</span>])
+        } <span class="kw">else </span>{
+            <span class="prelude-val">None
+        </span>}
+    }
+
+    <span class="kw">let </span>parts: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = normalized_input.split_whitespace().collect();
+    <span class="kw">if </span>parts.is_empty() {
+        <span class="macro">println!</span>(<span class="string">"No command entered."</span>);
+        <span class="kw">return</span>;
+    }
+
+    <span class="kw">let </span>available_commands = get_mode_commands(commands, <span class="kw-2">&amp;</span>context.current_mode);
+
+    <span class="comment">// Handle suggestions if '?' was present
+    </span><span class="kw">if </span>showing_suggestions {
+        <span class="kw">match </span>parts.len() {
+            <span class="number">0 </span>=&gt; {
+                <span class="macro">println!</span>(<span class="string">"No commands entered."</span>);
+                <span class="kw">return</span>;
+            },            
+            <span class="number">1 </span>=&gt; {
+                <span class="comment">// Handle single word with ? (e.g., "configure ?")
+                </span><span class="kw">let </span>available_commands = get_mode_commands(commands, <span class="kw-2">&amp;</span>context.current_mode);
+                <span class="kw">if </span>available_commands.contains(<span class="kw-2">&amp;</span>normalized_input) {
+                    <span class="comment">// If it's an exact command match, show its subcommands
+                    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(cmd) = commands.get(normalized_input) {
+                        <span class="kw">if let </span><span class="prelude-val">Some</span>(suggestions) = <span class="kw-2">&amp;</span>cmd.suggestions {
+                            <span class="macro">println!</span>(<span class="string">"Possible completions:"</span>);
+                            <span class="kw">for </span>suggestion <span class="kw">in </span>suggestions {
+                                <span class="macro">println!</span>(<span class="string">"  {}"</span>, suggestion);
+                            }
+                        } <span class="kw">else </span>{
+                            <span class="macro">println!</span>(<span class="string">"No subcommands available"</span>);
+                        }
+                    }
+                } <span class="kw">else </span>{
+                    <span class="comment">// If it's a partial command, show matching commands
+                    </span><span class="kw">let </span>suggestions: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = available_commands
+                        .into_iter()
+                        .filter(|cmd| cmd.starts_with(normalized_input))
+                        .collect();
+
+                    <span class="kw">if </span>!suggestions.is_empty() {
+                        <span class="macro">println!</span>(<span class="string">"Possible completions for '{}?':"</span>, normalized_input);
+                        <span class="kw">for </span>suggestion <span class="kw">in </span>suggestions {
+                            <span class="macro">println!</span>(<span class="string">"  {}"</span>, suggestion);
+                        }
+                    } <span class="kw">else </span>{
+                        <span class="macro">println!</span>(<span class="string">"No matching commands found for '{}?'"</span>, normalized_input);
+                    }
+                }
+            },
+            <span class="number">2 </span>=&gt; {
+                <span class="comment">// Command with partial subcommand (e.g., "configure t?", "configure term?")
+                </span><span class="kw">let </span>available_commands = get_mode_commands(commands, <span class="kw-2">&amp;</span>context.current_mode);
+                <span class="kw">if </span>available_commands.contains(<span class="kw-2">&amp;</span>parts[<span class="number">0</span>]) {
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>(cmd) = commands.get(parts[<span class="number">0</span>]) {
+                        <span class="kw">if let </span><span class="prelude-val">Some</span>(suggestions) = <span class="kw-2">&amp;</span>cmd.suggestions {
+                            <span class="kw">let </span>partial = parts[<span class="number">1</span>];
+                            <span class="kw">let </span>matching: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = suggestions
+                                .iter()
+                                .filter(|&amp;&amp;s| s.starts_with(partial))
+                                .map(|<span class="kw-2">&amp;</span>s| s)
+                                .collect();
+
+                            <span class="kw">if </span>!matching.is_empty() {
+                                <span class="macro">println!</span>(<span class="string">"Possible completions:"</span>);
+                                <span class="kw">for </span>suggestion <span class="kw">in </span>matching {
+                                    <span class="macro">println!</span>(<span class="string">"  {}"</span>, suggestion);
+                                }
+                            } <span class="kw">else </span>{
+                                <span class="macro">println!</span>(<span class="string">"No matching commands found"</span>);
+                            }
+                        } <span class="kw">else </span>{
+                            <span class="macro">println!</span>(<span class="string">"No subcommands available"</span>);
+                        }
+                    }
+                } <span class="kw">else </span>{
+                    <span class="macro">println!</span>(<span class="string">"Command not available in current mode"</span>);
+                }
+            },
+            <span class="kw">_ </span>=&gt; {
+                <span class="comment">// Full command with ? (e.g., "configure terminal ?")
+                </span><span class="macro">println!</span>(<span class="string">"No additional parameters available"</span>);
             }
         }
         <span class="kw">return</span>;
     }
 
-    <span class="comment">// Attempt to match the input with a command in the registry.
-    </span><span class="kw">let </span>matching_command = commands
-        .keys()
-        .filter(|cmd| normalized_input.starts_with(<span class="kw-2">*</span>cmd))
-        .max_by_key(|cmd| cmd.len());
-
-    <span class="kw">if let </span><span class="prelude-val">Some</span>(command_key) = matching_command {
-        <span class="kw">let </span>cmd = commands.get(command_key).unwrap();
-
-        <span class="kw">let </span>args = normalized_input[command_key.len()..].trim();
-        <span class="kw">let </span>args_vec: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = <span class="kw">if </span>args.is_empty() {
-            Vec::new()
-        } <span class="kw">else </span>{
-            args.split_whitespace().collect()
-        };
-
-        <span class="comment">// Execute the command and handle the result.
-        </span><span class="kw">match </span>(cmd.execute)(<span class="kw-2">&amp;</span>args_vec, context, clock) {
-            <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="macro">println!</span>(<span class="string">"Command '{}' executed successfully."</span>, cmd.name),
-            <span class="prelude-val">Err</span>(err) =&gt; <span class="macro">println!</span>(<span class="string">"Error: {}"</span>, err),
-        }
+    <span class="comment">// Handle command execution (when no '?' is present)
+    </span><span class="kw">let </span>cmd_key = <span class="kw">if let </span><span class="prelude-val">Some</span>(matched_cmd) = find_unique_command(parts[<span class="number">0</span>], <span class="kw-2">&amp;</span>available_commands) {
+        matched_cmd
     } <span class="kw">else </span>{
-        <span class="macro">println!</span>(<span class="string">"Invalid command: {}"</span>, input);
+        <span class="macro">println!</span>(<span class="string">"Ambiguous command or command not available in current mode: {}"</span>, parts[<span class="number">0</span>]);
+        <span class="kw">return</span>;
+    };
+
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(cmd) = commands.get(cmd_key) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(suggestions) = <span class="kw-2">&amp;</span>cmd.suggestions {
+            <span class="kw">match </span>parts.len() {
+                <span class="number">1 </span>=&gt; {
+                    <span class="macro">println!</span>(<span class="string">"Incomplete command. Subcommand required."</span>);
+                }
+                <span class="number">2 </span>=&gt; {
+                    <span class="kw">if </span>suggestions.is_empty() {
+                        <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = (cmd.execute)(<span class="kw-2">&amp;</span>parts[<span class="number">1</span>..], context, clock) {
+                            <span class="macro">println!</span>(<span class="string">"Error: {}"</span>, err);
+                        }
+                    } <span class="kw">else </span>{
+                        <span class="comment">// For commands with specific subcommands, require a match
+                        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(matched_subcommand) = find_unique_subcommand(parts[<span class="number">1</span>], suggestions) {
+                            <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = (cmd.execute)(<span class="kw-2">&amp;</span>[matched_subcommand], context, clock) {
+                                <span class="macro">println!</span>(<span class="string">"Error: {}"</span>, err);
+                            }
+                        } <span class="kw">else </span>{
+                            <span class="macro">println!</span>(<span class="string">"Ambiguous or invalid subcommand: {}"</span>, parts[<span class="number">1</span>]);
+                        }
+                    }
+                }
+                <span class="kw">_ </span>=&gt; {
+                    <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = (cmd.execute)(<span class="kw-2">&amp;</span>parts[<span class="number">1</span>..], context, clock) {
+                        <span class="macro">println!</span>(<span class="string">"Error: {}"</span>, err);
+                    }
+                }
+            }
+        } <span class="kw">else </span>{
+            <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = (cmd.execute)(<span class="kw-2">&amp;</span>parts[<span class="number">1</span>..], context, clock) {
+                <span class="macro">println!</span>(<span class="string">"Error: {}"</span>, err);
+            }
+        }
     }
-}
-</code></pre></div></section></main></body></html>
+}</code></pre></div></section></main></body></html>

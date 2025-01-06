@@ -68,6 +68,7 @@ fn main() {
     // Configure the Rustyline editor with history behavior
     let config = rustyline::Config::builder()
     .history_ignore_space(true) 
+    .completion_type(rustyline::CompletionType::List)
     .build();
 
     // Initialize the command-line editor with a custom command completer
@@ -75,8 +76,12 @@ fn main() {
         .expect("Failed to initialize editor");
 
     let mut commands_map: HashMap<String, Vec<String>> = HashMap::new();
-    for command in command_names {commands_map.insert(command.clone(), vec![command.clone()]);}
-    rl.set_helper(Some(CommandCompleter { commands: commands_map }));
+    for command in command_names {
+        commands_map.insert(command.clone(), vec![command.clone()]);
+    }
+    
+    let completer = CommandCompleter::new(commands_map, Mode::UserMode);
+    rl.set_helper(Some(completer));
     rl.load_history("history.txt").ok();
 
     // Set up the initial clock settings
@@ -97,16 +102,22 @@ fn main() {
         let prompt = context.prompt.clone();
         match rl.readline(&prompt) {
             Ok(buffer) => {
-                rl.add_history_entry(buffer.as_str());
                 let input = buffer.trim();
-                let completer = rl.helper().unwrap() as &CommandCompleter;
+                if input.is_empty() {
+                    continue;
+                }
 
+                rl.add_history_entry(input);
+                
                 if input == "exit cli" {
                     println!("Exiting CLI...");
                     break;
                 }
 
-                execute_command(input, &commands, &mut context, &mut clock, completer);
+                if let Some(helper) = rl.helper_mut() {
+                    execute_command(input, &commands, &mut context, &mut clock, helper);
+                    helper.current_mode = context.current_mode.clone();
+                }
                       
             }
 

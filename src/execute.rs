@@ -1,3 +1,5 @@
+//execute.rs
+
 /// External crates for the CLI application
 use std::collections::{HashMap, HashSet};
 use crate::Clock;
@@ -20,6 +22,7 @@ pub struct Command {
 /// An Enum representing the different modes in the CLI.
 ///
 /// Modes determine the scope of available commands and their behavior.
+#[derive(Clone, Debug)]
 pub enum Mode {
     UserMode,
     PrivilegedMode,
@@ -30,6 +33,7 @@ pub enum Mode {
     ConfigStdNaclMode(String),
     ConfigExtNaclMode(String),
 }
+
 
 
 /// Executes a command or provides suggestions based on the current input.
@@ -44,234 +48,296 @@ pub enum Mode {
 /// - If the input ends with `?`, it provides autocompletion suggestions based on the current mode.
 /// - Otherwise, it matches the input to a command and executes it if found.
 /// - Prints appropriate messages for invalid commands or execution errors.
-pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: &mut CliContext, clock: &mut Option<Clock>, completer: &CommandCompleter,) {
+pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: &mut CliContext, clock: &mut Option<Clock>, completer: &mut CommandCompleter) {
+    let mut normalized_input = input.trim();
+    let showing_suggestions = normalized_input.ends_with('?');
     
-    // Normalize the input by trimming whitespace.
-    let normalized_input = input.trim();
-
-    // Handle subcommand suggestions if the input ends with a space.
-    if input.ends_with(' ') {
-        let parts: Vec<&str> = normalized_input.split_whitespace().collect();
-        if let Some(suggestions) = completer.commands.get(parts[0]) {
-            println!("Possible subcommands:");
-            for suggestion in suggestions {
-                println!("  {}", suggestion);
-            }
-        } else {
-            println!("No subcommands available for '{}'", parts[0]);
-        }
-        return;
+    // If we're showing suggestions, remove the '?' for further processing
+    if showing_suggestions {
+        normalized_input = normalized_input.trim_end_matches('?').trim();
     }
 
-    // Handle autocompletion when the input ends with `?`.
-    if normalized_input.ends_with('?') {
-        let prefix = normalized_input.trim_end_matches('?').trim();
-
-        // Collect suggestions based on the current mode. 
-        let suggestions: Vec<_> = match context.current_mode {
-            
+    // Get available commands for current mode
+    fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) -> Vec<&'a str> {
+        match mode {
             Mode::UserMode => {
-                commands
-                    .keys()
-                    // Only enable command can be executed in the User Exec Mode
-                    .filter(|cmd| cmd.starts_with(prefix) && **cmd == "enable")
-                    .map(|cmd| cmd.to_string())
+                commands.keys()
+                    .filter(|&&cmd| {
+                        cmd == "enable" ||
+                        cmd == "ping" ||
+                        cmd == "exit"
+                    })
+                    .copied()
                     .collect()
-            }
-
+            },
             Mode::PrivilegedMode => {
-                let mut unique_commands = HashSet::new();
-                commands
-                    .keys()
-                    // Commands configure terminal, help, write memory, ifconfig and the show command can be ecxecuted in the Pirviledged Exec Mode
-                    .filter(|cmd| cmd.starts_with(prefix) && (cmd.starts_with("configure") || **cmd == "exit" || **cmd == "help" || cmd.starts_with("write") || cmd.starts_with("copy") || cmd.starts_with("clear") || cmd.starts_with("ifconfig") || cmd.starts_with("show")))
-                    .filter_map(|cmd| {
-                        let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
-                        let fist_word = cmd.split_whitespace().nth(0).unwrap_or_default();
-                        if cmd.starts_with(prefix) && (prefix.contains(' ') || prefix.contains(fist_word)){
-                            if second_word.is_empty() {
-                                Some(fist_word.to_string())
-                            } else {
-                                Some(second_word.to_string())
-                            }
-                        } else {
-                            Some(fist_word.to_string())
-                        }
+                commands.keys()
+                    .filter(|&&cmd| {
+                        cmd == "configure" ||
+                        cmd == "ping" || 
+                        cmd == "exit" || 
+                        cmd == "write" ||
+                        cmd == "help" ||
+                        cmd == "show" ||
+                        cmd == "copy" ||
+                        cmd == "clock" ||
+                        cmd == "clear" ||
+                        cmd.starts_with("ifconfig") 
+                        
                     })
-                    .filter(|cmd| unique_commands.insert(cmd.clone())) 
-                    .collect::<Vec<_>>() 
-            }
-
+                    .copied()
+                    .collect()
+            },
             Mode::ConfigMode => {
-                let mut unique_commands = HashSet::new();
-                commands
-                    .keys()
-                    // Filter only the relevant commands that can be executed in Config Mode
-                    .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "hostname" || **cmd == "interface" || **cmd == "exit" || **cmd == "tunnel" || **cmd == "virtual-template" || **cmd == "help" || **cmd == "write memory" || **cmd == "vlan" || **cmd == "access-list" || **cmd == "router" || cmd.starts_with("ip") || cmd.starts_with("ifconfig") || cmd.starts_with("enable") || cmd.starts_with("service") || cmd.starts_with("ntp") || cmd.starts_with("crypto") || cmd.starts_with("set")))
-                    .filter_map(|cmd| {
-                        let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
-                        let first_word = cmd.split_whitespace().nth(0).unwrap_or_default();
-                        if cmd.starts_with(prefix) && (prefix.contains(' ') || prefix.contains(first_word)) {
-                            if second_word.is_empty() {
-                                Some(first_word.to_string())
-                            } else {
-                                Some(second_word.to_string())
-                            }
-                        } else {
-                            Some(first_word.to_string())
-                        }
+                commands.keys()
+                    .filter(|&&cmd| {
+                        cmd == "hostname" || 
+                        cmd == "interface" ||
+                        cmd == "ping" ||
+                        cmd == "exit" ||
+                        cmd == "tunnel" ||
+                        cmd == "access-list" ||
+                        cmd == "router" ||
+                        cmd == "virtual-template" ||
+                        cmd == "help" ||
+                        cmd == "write" ||
+                        cmd == "vlan" ||
+                        cmd == "ip" ||
+                        cmd == "service" ||
+                        cmd == "set" ||
+                        cmd.starts_with("ifconfig") || 
+                        cmd.starts_with("enable") || 
+                        cmd.starts_with("ntp") || 
+                        cmd.starts_with("crypto")
                     })
-                    .filter(|cmd| unique_commands.insert(cmd.clone())) 
-                    .collect::<Vec<_>>() 
-            }
-
+                    .copied()
+                    .collect()
+            },
             Mode::InterfaceMode => {
-                commands
-                    .keys()
-                    // Commands shutdown, no shutdown, help, write memory and ip address can be executed in the Interface Config Mode 
-                    .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "shutdown" || **cmd == "no shutdown" || **cmd == "exit" || **cmd == "switchport" || **cmd == "help" || **cmd == "write memory" || **cmd == "interface" || cmd.starts_with("ip")))
-                    .map(|cmd| {
-                        let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
-                        let fist_word = cmd.split_whitespace().nth(0).unwrap_or_default();
-                        if cmd.starts_with(prefix) && (prefix.contains(' ') || prefix.contains(fist_word)){
-                            let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
-                            if second_word.is_empty() {
-                                fist_word.to_string()
-                            } else {
-                                second_word.to_string()
-                            }
-                        } else {
-                            fist_word.to_string()
-                        }
+                commands.keys()
+                    .filter(|&&cmd| {
+                        cmd == "shutdown" ||
+                        cmd == "no" ||
+                        cmd == "exit" ||
+                        cmd == "help" ||
+                        cmd == "switchport" ||
+                        cmd == "write" ||
+                        cmd == "ip" 
+
                     })
+                    .copied()
                     .collect()
             }
-
             Mode::VlanMode => {
-                commands
-                    .keys()
-                    // Commands vlan, name and state can be executed in the Vlan Mode
-                    .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "name" || **cmd == "exit" || **cmd == "state" || **cmd == "vlan" ))
-                    .map(|cmd| {
-                        let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
-                        let fist_word = cmd.split_whitespace().nth(0).unwrap_or_default();
-                        if cmd.starts_with(prefix) && (prefix.contains(' ') || prefix.contains(fist_word)){
-                            let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
-                            if second_word.is_empty() {
-                                fist_word.to_string()
-                            } else {
-                                second_word.to_string()
-                            }
-                        } else {
-                            fist_word.to_string()
-                        }
+                commands.keys()
+                    .filter(|&&cmd| {
+                        cmd == "name" ||
+                        cmd == "state" ||
+                        cmd == "exit" ||
+                        cmd == "vlan" 
+
                     })
+                    .copied()
                     .collect()
             }
-
             Mode::RouterConfigMode => {
-                commands
-                    .keys()
-                    // Commands vlan, name and state can be executed in the Vlan Mode
-                    .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "network" || **cmd == "exit" || **cmd == "neighbor" || **cmd == "area" || **cmd == "passive-interface" || **cmd == "distance" || **cmd == "default-information" || **cmd == "router-id" ))
-                    .map(|cmd| {
-                        let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
-                        let fist_word = cmd.split_whitespace().nth(0).unwrap_or_default();
-                        if cmd.starts_with(prefix) && (prefix.contains(' ') || prefix.contains(fist_word)){
-                            let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
-                            if second_word.is_empty() {
-                                fist_word.to_string()
-                            } else {
-                                second_word.to_string()
-                            }
-                        } else {
-                            fist_word.to_string()
-                        }
+                commands.keys()
+                    .filter(|&&cmd| {
+                        cmd == "network" ||
+                        cmd == "neighbor" ||
+                        cmd == "exit" ||
+                        cmd == "area" ||
+                        cmd == "passive-interface" ||
+                        cmd == "distance" ||
+                        cmd == "default-information" ||
+                        cmd == "router-id"
+
                     })
+                    .copied()
                     .collect()
             }
-
             Mode::ConfigStdNaclMode(_) => {
-                commands
-                    .keys()
-                    // Commands vlan, name and state can be executed in the Vlan Mode
-                    .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "deny" || **cmd == "permit" || **cmd == "exit" ))
-                    .map(|cmd| {
-                        let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
-                        let fist_word = cmd.split_whitespace().nth(0).unwrap_or_default();
-                        if cmd.starts_with(prefix) && (prefix.contains(' ') || prefix.contains(fist_word)){
-                            let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
-                            if second_word.is_empty() {
-                                fist_word.to_string()
-                            } else {
-                                second_word.to_string()
-                            }
-                        } else {
-                            fist_word.to_string()
-                        }
+                commands.keys()
+                    .filter(|&&cmd| {
+                        cmd == "deny" ||
+                        cmd == "permit" ||
+                        cmd == "exit" ||
+                        cmd == "ip"
+
                     })
+                    .copied()
                     .collect()
             }
-
             Mode::ConfigExtNaclMode(_) => {
-                commands
-                    .keys()
-                    // Commands vlan, name and state can be executed in the Vlan Mode
-                    .filter(|cmd| cmd.starts_with(prefix) && (**cmd == "deny" || **cmd == "permit" || **cmd == "exit" ))
-                    .map(|cmd| {
-                        let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
-                        let fist_word = cmd.split_whitespace().nth(0).unwrap_or_default();
-                        if cmd.starts_with(prefix) && (prefix.contains(' ') || prefix.contains(fist_word)){
-                            let second_word = cmd.split_whitespace().nth(1).unwrap_or_default();
-                            if second_word.is_empty() {
-                                fist_word.to_string()
-                            } else {
-                                second_word.to_string()
-                            }
-                        } else {
-                            fist_word.to_string()
-                        }
+                commands.keys()
+                    .filter(|&&cmd| {
+                        cmd == "deny" ||
+                        cmd == "permit" ||
+                        cmd == "exit" ||
+                        cmd == "ip"
+
                     })
+                    .copied()
                     .collect()
             }
 
-            _ => Vec::new(), 
-        };
+        }
+    }
 
-        // Display suggestions or notify the user if none are found.
-        if suggestions.is_empty() {
-            println!("No matching commands found for '{}?'", prefix);
+    // Function to find a unique command match
+    fn find_unique_command<'a>(partial: &str, available_commands: &[&'a str]) -> Option<&'a str> {
+        let matches: Vec<&str> = available_commands
+            .iter()
+            .filter(|&&cmd| cmd.starts_with(partial))
+            .copied()
+            .collect();
+
+        if matches.len() == 1 {
+            Some(matches[0])
         } else {
-            println!("Possible completions for '{}?':", prefix);
-            for suggestion in suggestions {
-                println!("  {}", suggestion);
+            None
+        }
+    }
+
+    // Function to find a unique subcommand match
+    fn find_unique_subcommand<'a>(partial: &str, suggestions: &'a [&str]) -> Option<&'a str> {
+        let matches: Vec<&str> = suggestions
+            .iter()
+            .filter(|&&s| s.starts_with(partial))
+            .copied()
+            .collect();
+
+        if matches.len() == 1 {
+            Some(matches[0])
+        } else {
+            None
+        }
+    }
+
+    let parts: Vec<&str> = normalized_input.split_whitespace().collect();
+    if parts.is_empty() {
+        println!("No command entered.");
+        return;
+    }
+
+    let available_commands = get_mode_commands(commands, &context.current_mode);
+
+    // Handle suggestions if '?' was present
+    if showing_suggestions {
+        match parts.len() {
+            0 => {
+                println!("No commands entered.");
+                return;
+            },            
+            1 => {
+                // Handle single word with ? (e.g., "configure ?")
+                let available_commands = get_mode_commands(commands, &context.current_mode);
+                if available_commands.contains(&normalized_input) {
+                    // If it's an exact command match, show its subcommands
+                    if let Some(cmd) = commands.get(normalized_input) {
+                        if let Some(suggestions) = &cmd.suggestions {
+                            println!("Possible completions:");
+                            for suggestion in suggestions {
+                                println!("  {}", suggestion);
+                            }
+                        } else {
+                            println!("No subcommands available");
+                        }
+                    }
+                } else {
+                    // If it's a partial command, show matching commands
+                    let suggestions: Vec<&str> = available_commands
+                        .into_iter()
+                        .filter(|cmd| cmd.starts_with(normalized_input))
+                        .collect();
+
+                    if !suggestions.is_empty() {
+                        println!("Possible completions for '{}?':", normalized_input);
+                        for suggestion in suggestions {
+                            println!("  {}", suggestion);
+                        }
+                    } else {
+                        println!("No matching commands found for '{}?'", normalized_input);
+                    }
+                }
+            },
+            2 => {
+                // Command with partial subcommand (e.g., "configure t?", "configure term?")
+                let available_commands = get_mode_commands(commands, &context.current_mode);
+                if available_commands.contains(&parts[0]) {
+                    if let Some(cmd) = commands.get(parts[0]) {
+                        if let Some(suggestions) = &cmd.suggestions {
+                            let partial = parts[1];
+                            let matching: Vec<&str> = suggestions
+                                .iter()
+                                .filter(|&&s| s.starts_with(partial))
+                                .map(|&s| s)
+                                .collect();
+
+                            if !matching.is_empty() {
+                                println!("Possible completions:");
+                                for suggestion in matching {
+                                    println!("  {}", suggestion);
+                                }
+                            } else {
+                                println!("No matching commands found");
+                            }
+                        } else {
+                            println!("No subcommands available");
+                        }
+                    }
+                } else {
+                    println!("Command not available in current mode");
+                }
+            },
+            _ => {
+                // Full command with ? (e.g., "configure terminal ?")
+                println!("No additional parameters available");
             }
         }
         return;
     }
 
-    // Attempt to match the input with a command in the registry.
-    let matching_command = commands
-        .keys()
-        .filter(|cmd| normalized_input.starts_with(*cmd))
-        .max_by_key(|cmd| cmd.len());
-
-    if let Some(command_key) = matching_command {
-        let cmd = commands.get(command_key).unwrap();
-
-        let args = normalized_input[command_key.len()..].trim();
-        let args_vec: Vec<&str> = if args.is_empty() {
-            Vec::new()
-        } else {
-            args.split_whitespace().collect()
-        };
-
-        // Execute the command and handle the result.
-        match (cmd.execute)(&args_vec, context, clock) {
-            Ok(_) => println!("Command '{}' executed successfully.", cmd.name),
-            Err(err) => println!("Error: {}", err),
-        }
+    // Handle command execution (when no '?' is present)
+    let cmd_key = if let Some(matched_cmd) = find_unique_command(parts[0], &available_commands) {
+        matched_cmd
     } else {
-        println!("Invalid command: {}", input);
+        println!("Ambiguous command or command not available in current mode: {}", parts[0]);
+        return;
+    };
+
+    if let Some(cmd) = commands.get(cmd_key) {
+        if let Some(suggestions) = &cmd.suggestions {
+            match parts.len() {
+                1 => {
+                    println!("Incomplete command. Subcommand required.");
+                }
+                2 => {
+                    if suggestions.is_empty() {
+                        if let Err(err) = (cmd.execute)(&parts[1..], context, clock) {
+                            println!("Error: {}", err);
+                        }
+                    } else {
+                        // For commands with specific subcommands, require a match
+                        if let Some(matched_subcommand) = find_unique_subcommand(parts[1], suggestions) {
+                            if let Err(err) = (cmd.execute)(&[matched_subcommand], context, clock) {
+                                println!("Error: {}", err);
+                            }
+                        } else {
+                            println!("Ambiguous or invalid subcommand: {}", parts[1]);
+                        }
+                    }
+                }
+                _ => {
+                    if let Err(err) = (cmd.execute)(&parts[1..], context, clock) {
+                        println!("Error: {}", err);
+                    }
+                }
+            }
+        } else {
+            if let Err(err) = (cmd.execute)(&parts[1..], context, clock) {
+                println!("Error: {}", err);
+            }
+        }
     }
 }

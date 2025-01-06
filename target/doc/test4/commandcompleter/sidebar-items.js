@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["CommandCompleter"]};
+window.SIDEBAR_ITEMS = {"fn":["is_command_allowed_in_mode"],"struct":["CommandCompleter"]};

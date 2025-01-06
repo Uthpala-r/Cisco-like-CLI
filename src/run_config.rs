@@ -2,7 +2,6 @@
 use crate::cliconfig::{CliConfig, CliContext};
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
-use std::net::Ipv4Addr;
 use crate::network_config::{STATUS_MAP, IP_ADDRESS_STATE, ROUTE_TABLE};
 
 
@@ -168,7 +167,7 @@ ip classes
 /// let startup_config = default_startup_config();
 /// println!("Startup Configuration: {}", startup_config);
 /// ```
-pub fn default_startup_config(context: &mut CliContext) -> String {
+pub fn default_startup_config(_context: &mut CliContext) -> String {
     
     let startup_config = (
         
