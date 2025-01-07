@@ -32,9 +32,45 @@ use std::collections::{HashSet, HashMap};
 use ctrlc;
 
 
-/// The main function serves as the entry point of the CLI application.
-/// 
-/// It initializes the environment, sets up the command-line editor, and enters the REPL loop.
+/// Main function of the CLI application.
+///
+/// This function initializes the Command-Line Interface (CLI) environment, processes user input,
+/// and manages the interaction loop. The CLI supports commands for various configurations and
+/// operations, with features such as command completion, history, and real-time mode switching.
+///
+/// # Functionality
+/// - Builds a registry of commands and retrieves their names for command completion.
+/// - Configures the CLI context, including hostname, modes, and other configurations.
+/// - Sets up a Rustyline editor for user input with custom history and completion behavior.
+/// - Configures signal handling for `Ctrl+C`, ensuring the CLI does not exit abruptly.
+/// - Processes user input in a loop, executing commands, handling history, and responding to errors.
+///
+/// # Key Components
+/// - **Command Registry**: A collection of available CLI commands, dynamically used for completion.
+/// - **CLI Context**: Contains the current CLI state, including modes, selected interfaces, and VLANs.
+/// - **Rustyline Editor**: Provides user input handling with features like auto-completion and history.
+/// - **Clock Settings**: Maintains an optional system clock for configuration purposes.
+/// - **Graceful Exit**: Handles the `Ctrl+C` signal and waits for the user to explicitly issue the 
+///   `exit cli` command to terminate the session.
+///
+/// # Example Usage
+/// ```bash
+/// > Router> enable
+/// > Router# configure terminal
+/// > Router(config)# exit
+/// > Router# exit cli
+/// Exiting CLI...
+/// ```
+///
+/// # Signals
+/// - `Ctrl+C`: Displays a message and prevents immediate exit. The user must type `exit cli` to terminate.
+///
+/// # Errors
+/// - Any error during initialization or user input handling (e.g., `ReadlineError`) is logged and
+///   terminates the CLI gracefully.
+///
+/// # History
+/// - Command history is stored in `history.txt` and is reloaded on subsequent runs.
 fn main() {
 
     // Build the registry of commands and retrieve their names

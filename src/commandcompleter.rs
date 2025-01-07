@@ -27,7 +27,32 @@ pub struct CommandCompleter {
     pub current_mode: Mode,
 }
 
+/// Implementation of the `CommandCompleter` struct.
+///
+/// Provides a constructor for creating a new `CommandCompleter` instance, which is responsible
+/// for handling command completion based on the available commands and the current CLI mode.
 impl CommandCompleter {
+    /// Creates a new `CommandCompleter` instance.
+    ///
+    /// # Arguments
+    /// - `commands`: A `HashMap` where the keys are command names (as `String`) and the values are
+    ///   vectors of possible completions or subcommands associated with each command.
+    /// - `current_mode`: The current CLI mode (`Mode`), which influences the available commands
+    ///   and their completion behavior.
+    ///
+    /// # Returns
+    /// A new instance of `CommandCompleter` initialized with the provided commands and current mode.
+    ///
+    /// # Example
+    /// ```rust
+    /// use std::collections::HashMap;
+    /// 
+    /// let mut commands = HashMap::new();
+    /// commands.insert("show".to_string(), vec!["ip".to_string(), "version".to_string()]);
+    /// commands.insert("configure".to_string(), vec!["terminal".to_string()]);
+    /// 
+    /// let completer = CommandCompleter::new(commands, Mode::UserMode);
+    /// ```
     pub fn new(commands: HashMap<String, Vec<String>>, current_mode: Mode) -> Self {
         CommandCompleter {
             commands,
@@ -37,6 +62,8 @@ impl CommandCompleter {
 
 }
 
+
+/// Implements the `Completer` trait for the `CommandCompleter` struct.
 impl Completer for CommandCompleter {
     type Candidate = Pair;
 
@@ -133,25 +160,68 @@ impl Completer for CommandCompleter {
 }
 
 
+/// Determines if a command is allowed in the current CLI mode.
+///
+/// This function checks whether a given command is valid and permitted for execution
+/// in the specified CLI mode. Each mode has a predefined set of commands that are allowed.
+///
+/// # Arguments
+/// - `command`: A reference to a `String` representing the command to check.
+/// - `mode`: A reference to the current `Mode` in which the CLI is operating.
+///
+/// # Returns
+/// - `true` if the command is allowed in the given mode.
+/// - `false` if the command is not allowed in the given mode.
+///
+/// # Supported Modes and Commands
+/// - **UserMode**: Basic commands like `enable`, `exit`, `help`, and `ping`.
+/// - **PrivilegedMode**: Advanced commands like `configure`, `write`, `copy`, `show`, and others.
+/// - **ConfigMode**: Configuration commands like `hostname`, `interface`, `ip`, and more.
+/// - **InterfaceMode**: Interface-specific commands like `shutdown`, `switchport`, `ip`, etc.
+/// - **VlanMode**: VLAN-specific commands like `name`, `state`, and `vlan`.
+/// - **RouterConfigMode**: Router configuration commands like `network`, `neighbor`, and `area`.
+/// - **ConfigStdNaclMode**: Standard ACL commands like `deny`, `permit`, and `ip`.
+/// - **ConfigExtNaclMode**: Extended ACL commands like `deny`, `permit`, and `ip`.
+///
+/// # Example
+/// ```rust
+/// let command = "enable".to_string();
+/// let mode = Mode::UserMode;
+///
+/// if is_command_allowed_in_mode(&command, &mode) {
+///     println!("Command '{}' is allowed in {:?} mode.", command, mode);
+/// } else {
+///     println!("Command '{}' is not allowed in {:?} mode.", command, mode);
+/// }
+/// ```
+///
+/// # Notes
+/// - Modes not explicitly defined in the match statement will return `false` for all commands.
+/// - The `Mode` enum may include additional modes that are not currently covered.
+///
+/// # Performance
+/// The function uses the `matches!` macro to provide concise and efficient pattern matching
+/// for the commands within each mode.
 fn is_command_allowed_in_mode(command: &String, mode: &Mode) -> bool {
     match mode {
-        Mode::UserMode => matches!(command.as_str(), "enable" | "exit" | "ping"),
+        Mode::UserMode => matches!(command.as_str(), "enable" | "exit" | "help" | "ping"),
         Mode::PrivilegedMode => matches!(command.as_str(), "configure" | "exit" | "help" | "write" | "copy" | "clock" | "clear" | "ping" | "show" | "ifconfig"),
-        Mode::ConfigMode => matches!(command.as_str(), "hostname" | "interface" | "exit" | "tunnel" | "virtual-template" | "help" | "write" | "ping" | "vlan" | "access-list" | "router" | "enable" | "ip route" | "ip domain-name" | "ip access-list" | "service" | "set" | "ifconfig" | "ntp" | "crypto"),
-        Mode::InterfaceMode => matches!(command.as_str(), "exit" | "shutdown" | "no" | "switchport" | "help" | "write" | "interface" | "ip address" | "ip ospf"), 
-        Mode::VlanMode => matches!(command.as_str(), "name" | "exit" | "state" | "vlan"),
-        Mode::RouterConfigMode => matches!(command.as_str(), "network" | "exit" | "neighbor" | "area" | "passive-interface" | "distance" | "default-information" | "router-id"),
-        Mode::ConfigStdNaclMode(_) => matches!(command.as_str(), "deny" | "permit" | "exit" | "ip access-list"),
-        Mode::ConfigExtNaclMode(_) => matches!(command.as_str(), "deny" | "permit" | "exit" | "ip access-list"),
+        Mode::ConfigMode => matches!(command.as_str(), "hostname" | "interface" | "ip" | "no" | "exit" | "tunnel" | "virtual-template" | "help" | "write" | "ping" | "vlan" | "access-list" | "router" | "enable" | "service" | "set" | "ifconfig" | "ntp" | "crypto"),
+        Mode::InterfaceMode => matches!(command.as_str(), "exit" | "shutdown" | "no" | "switchport" | "help" | "write" | "interface" | "ip"), 
+        Mode::VlanMode => matches!(command.as_str(), "name" | "exit" | "help" | "state" | "vlan"),
+        Mode::RouterConfigMode => matches!(command.as_str(), "network" | "exit" | "help" | "neighbor" | "area" | "passive-interface" | "distance" | "default-information" | "router-id"),
+        Mode::ConfigStdNaclMode(_) => matches!(command.as_str(), "deny" | "permit" | "help" | "exit" | "ip"),
+        Mode::ConfigExtNaclMode(_) => matches!(command.as_str(), "deny" | "permit" | "help" | "exit" | "ip"),
         
         _ => false,
     }
 }
 
 
+/// Implements the `Helper` trait for the `CommandCompleter` struct.
 impl Helper for CommandCompleter {}
 
-
+/// Implements the `Hinter` trait for the `CommandCompleter` struct.
 impl Hinter for CommandCompleter {
     type Hint = String;
 
@@ -169,10 +239,11 @@ impl Hinter for CommandCompleter {
     }
 }
 
-
+/// Implements the `Highlighter` trait for the `CommandCompleter` struct.
 impl Highlighter for CommandCompleter {}
 
 
+/// Implements the `Validator` trait for the `CommandCompleter` struct.
 impl Validator for CommandCompleter {
 
     /// Validates the current input line.

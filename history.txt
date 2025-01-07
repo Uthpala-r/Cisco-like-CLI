@@ -1,101 +1,101 @@
 #V2
-area 5 authentication
-area 5 stub
-area 5 stub no-summary
-passive-interface
-passive-interface g0/0
-distance 6
-default-information originate
-router-id 3
+conf t
+int g0/0
+no shut
 exit
-show ip route
-show ip ospf neighbor
-clear ip ospf process
-clear ip
-show ip ospf neighbor
-exit cli
-en
-clear ip ospf process
-exit cli
-en
+sh ip interface brief
+sh run
 conf t
+int g0/0
+shutdown
 exit
-clear ip ospf process
+sh ip interface brief
+sh run
+exit cli
+en
 conf t
-access-list 12 192.168.1.1 0.0.0.0
-ip access-list standard hi
-deny
-deny 192.168.191.1 0.0.0.0
-permit 192.17.1.1 0.0.0.0
+int g0/0
+ip add 192.1.2.2 .4.4.4.4
 exit
-show access-lists
-exit cli
-ping 192.168.1.1
-exit cli
-pi 192.178.1.1
-en
-conf t
-int 0
-ip address 192.168.1.1 255.255.255.0
+int g0/0
+ip add 192.1.2.2 4.4.4.4
+ip address 192.2.2.2 4.4.4.4
 exit
-pi 192.168.1.1
-ip route 192.168.1.1 255.255.255.0
-ip route 192.168.1.1 255.255.255.0 192.168.1.2
-pi 192.168.1.1
-virtual-template 0
-tunnel mode ipsec ipv4
+sh ip inerface brief
+show ip inerface brief
+sh ip interface brief
 exit cli
 en
+sh ip interface brief
 conf t
-tunnel mode ipsec ipv4
-tunnel source 0
-exit cli
-en
-conf t
-set transform-set hi
+int g0/0
+ip address 1.1.1.1 2.2.2.2
 exit
-exit cli
-en
-exit cli
-en
-conf t
-service password-encryption
-set transform-set 6
-exit cli
-en
-en pass
-enable
+sh ip interface brief
 exit cli
 en
 conf t
-?
-e?
-en pas Uthpi
-en password Uthpi
-en secret Hi
-exit
-en
-conf t
-service password-encryption
+host R1
 exit
 sh run
 sh star
-write memory
-sh star
+cop run startup-config
+sh sta
+exit cli
+help
+exit cli
+help[
+help
+exit cli
+he
+exit cli
+en
 conf t
-crypto ipsec profile Hi
-crypto key
-crypto key generate rsa
-crypto key zeroize rsa
-ntp server
-ntp server 192.168.1.1
-no ntp server
-ntp master
-ntp authenticat
-ntp authenticate
-ntp authentication-key 5 md5 6
-ntp trusted-key
-ntp trusted-key 5
+int g0/0
+exit cli
+en
+conf t
+int g0/0
+exit cli
+en
+conf t
+router ospf 4
+passive-interface l0
 exit
 sh run
+exit cli
+en
+conf t
+exit
+sh run
+conf t
+router ospf 7
+passive-interface l0
+network 10.0.0.0 0.0.0.0 area 3
+exit
+sh run
+exit cli
+en
+conf t
+ip access-list standard Hi
+deny 192.168.1.1 0.0.0.0
+exit
+ip access-list entended Boo
+ip access-list extended Boo
+permit tcp 192.168.1.2 eq 50 192.168.1.3 eq 67
+exit
+sh run
+exit cli
+en
+conf t
+access-list 4 permit tcp 19.2.2.2 2.2.2.2
+exit
+sh run
+exit cli
+en
+conf t
+interface g0/0
+help
+exit
+configure terminal
 exit cli

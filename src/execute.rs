@@ -6,11 +6,29 @@ use crate::Clock;
 use crate::CliContext;
 use crate::commandcompleter::{CommandCompleter};
 
-/// Represents a command in the CLI.
+/// Represents a command that can be executed in the CLI.
 ///
-/// Each command has a name, description, optional suggestions for autocompletion,
-/// and an execution function that defines the command's behavior.
-/// 
+/// The `Command` struct defines the properties and behavior of a CLI command. Each command includes 
+/// metadata, such as its name and description, along with the logic for its execution.
+///
+/// # Fields
+/// - `name`:  
+///   The name of the command as a static string. This is the keyword used to invoke the command in the CLI.
+///
+/// - `description`:  
+///   A brief description of the command's purpose or functionality, displayed in help menus.
+///
+/// - `suggestions`:  
+///   An optional list of related or commonly used commands that can be suggested to the user.  
+///   If `None`, no suggestions will be provided for the command.
+///
+/// - `execute`:  
+///   A function pointer defining the command's logic. This function is executed when the command is invoked.  
+///   It accepts the following arguments:
+///     - `&[&str]`: The list of arguments provided with the command.
+///     - `&mut CliContext`: The current CLI context, including mode, configuration, and state.
+///     - `&mut Option<Clock>`: An optional mutable reference to the clock, allowing the command to manipulate system time settings if needed.  
+///   Returns a `Result<(), String>`, where `Ok(())` indicates success and `Err(String)` contains an error message if execution fails.
 pub struct Command {
     pub name: &'static str,
     pub description: &'static str,
@@ -19,9 +37,45 @@ pub struct Command {
 }
 
 
-/// An Enum representing the different modes in the CLI.
+/// Represents the various operational modes for the CLI.
 ///
-/// Modes determine the scope of available commands and their behavior.
+/// The `Mode` enum defines the hierarchical modes of operation in the CLI, allowing commands to be executed 
+/// based on the current context. Each mode corresponds to a specific configuration or operational level.
+///
+/// # Variants
+/// - `UserMode`:  
+///   Represents the basic user mode with limited commands, primarily for non-privileged tasks.
+/// - `PrivilegedMode`:  
+///   Represents the privileged mode, providing access to higher-level configuration and operational commands.
+/// - `ConfigMode`:  
+///   Represents the global configuration mode where system-wide settings can be modified.
+/// - `InterfaceMode`:  
+///   Represents the interface configuration mode for managing individual network interfaces.
+/// - `VlanMode`:  
+///   Represents the VLAN configuration mode for managing VLANs.
+/// - `RouterConfigMode`:  
+///   Represents the router configuration mode for managing routing protocols such as OSPF or BGP.
+/// - `ConfigStdNaclMode(String)`:  
+///   Represents the configuration mode for standard Access Control Lists (ACLs). The `String` parameter 
+///   specifies the ACL name or ID.
+/// - `ConfigExtNaclMode(String)`:  
+///   Represents the configuration mode for extended Access Control Lists (ACLs). The `String` parameter 
+///   specifies the ACL name or ID.
+///
+/// # Example
+/// ```rust
+/// let mode = Mode::UserMode;
+/// match mode {
+///     Mode::UserMode => println!("In user mode"),
+///     Mode::PrivilegedMode => println!("In privileged mode"),
+///     Mode::ConfigMode => println!("In configuration mode"),
+///     Mode::InterfaceMode => println!("In interface configuration mode"),
+///     Mode::VlanMode => println!("In VLAN configuration mode"),
+///     Mode::RouterConfigMode => println!("In router configuration mode"),
+///     Mode::ConfigStdNaclMode(acl) => println!("Configuring standard ACL: {}", acl),
+///     Mode::ConfigExtNaclMode(acl) => println!("Configuring extended ACL: {}", acl),
+/// }
+/// ```
 #[derive(Clone, Debug)]
 pub enum Mode {
     UserMode,
@@ -36,18 +90,44 @@ pub enum Mode {
 
 
 
-/// Executes a command or provides suggestions based on the current input.
+/// Executes a given command in the CLI, handling suggestions and command execution.
+///
+/// The function processes the user's input to either show possible command completions
+/// (when a '?' is used) or execute a command with its arguments. It also handles different
+/// modes (e.g., user mode, privileged mode) to filter available commands accordingly.
 ///
 /// # Arguments
-/// - `input`: The user's input string.
-/// - `commands`: A `HashMap` of available commands, indexed by their names.
-/// - `context`: The CLI context, which holds the current mode and other state information.
-/// - `clock`: An optional mutable reference to the `CustomClock` structure.
+/// - `input`: A string representing the user's input command (possibly with arguments or suggestions).
+/// - `commands`: A `HashMap` containing all available commands, where the key is the command name
+///   and the value is a `Command` struct representing the command's metadata and execution logic.
+/// - `context`: A mutable reference to the `CliContext` that holds the current CLI state and mode.
+/// - `clock`: A mutable reference to an optional `Clock`, which may be used by some commands for time-related operations.
+/// - `completer`: A mutable reference to `CommandCompleter` which can be used for auto-completion of commands.
 ///
-/// # Behavior
-/// - If the input ends with `?`, it provides autocompletion suggestions based on the current mode.
-/// - Otherwise, it matches the input to a command and executes it if found.
-/// - Prints appropriate messages for invalid commands or execution errors.
+/// # Notes
+/// - If the input ends with a `?`, the function will display possible command completions based on
+///   the available commands for the current mode or show subcommand suggestions for a specific command.
+/// - If no `?` is present, the function will attempt to execute the command, passing any additional
+///   arguments to the command's `execute` function.
+///
+/// # Example
+/// ```rust
+/// let mut context = CliContext::new(Mode::UserMode);
+/// let mut clock: Option<Clock> = None;
+/// let mut completer = CommandCompleter::new();
+/// let commands = HashMap::new(); // A filled HashMap of commands
+///
+/// // Example input with suggestions
+/// execute_command("configure ?", &commands, &mut context, &mut clock, &mut completer);
+/// 
+/// // Example command execution
+/// execute_command("ping 8.8.8.8", &commands, &mut context, &mut clock, &mut completer);
+/// ```
+///
+/// # Errors
+/// - If an ambiguous or unrecognized command is entered, a message will be printed indicating the error.
+/// - If the command requires additional arguments or subcommands, appropriate messages will be shown.
+/// - Errors encountered during command execution will be printed.
 pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: &mut CliContext, clock: &mut Option<Clock>, completer: &mut CommandCompleter) {
     let mut normalized_input = input.trim();
     let showing_suggestions = normalized_input.ends_with('?');
@@ -65,6 +145,7 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                     .filter(|&&cmd| {
                         cmd == "enable" ||
                         cmd == "ping" ||
+                        cmd == "help" ||
                         cmd == "exit"
                     })
                     .copied()
@@ -107,7 +188,8 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                         cmd == "set" ||
                         cmd == "enable" ||
                         cmd == "ifconfig" ||  
-                        cmd == "ntp" || 
+                        cmd == "ntp" ||
+                        cmd == "no" || 
                         cmd == "crypto"
                     })
                     .copied()
@@ -134,6 +216,7 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                         cmd == "name" ||
                         cmd == "state" ||
                         cmd == "exit" ||
+                        cmd == "help" ||
                         cmd == "vlan" 
 
                     })
@@ -149,6 +232,7 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                         cmd == "area" ||
                         cmd == "passive-interface" ||
                         cmd == "distance" ||
+                        cmd == "help" ||
                         cmd == "default-information" ||
                         cmd == "router-id"
 
@@ -161,6 +245,7 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                     .filter(|&&cmd| {
                         cmd == "deny" ||
                         cmd == "permit" ||
+                        cmd == "help" ||
                         cmd == "exit" ||
                         cmd == "ip"
 
@@ -173,6 +258,7 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                     .filter(|&&cmd| {
                         cmd == "deny" ||
                         cmd == "permit" ||
+                        cmd == "help" ||
                         cmd == "exit" ||
                         cmd == "ip"
 

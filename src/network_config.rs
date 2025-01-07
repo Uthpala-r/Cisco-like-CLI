@@ -234,6 +234,20 @@ pub struct AreaConfig {
 }
 
 impl OSPFConfig {
+    /// Configuration for OSPF (Open Shortest Path First) routing protocol.
+    ///
+    /// The `OSPFConfig` struct encapsulates the configuration details for managing OSPF settings in a CLI-based
+    /// environment. This includes defining areas, networks, neighbors, and other protocol-specific parameters.
+    ///
+    /// # Fields
+    /// - `passive_interfaces`: A vector of interfaces that are marked as passive (do not send OSPF packets).
+    /// - `distance`: An optional administrative distance for OSPF routes.
+    /// - `default_information_originate`: A boolean indicating whether default information is originated.
+    /// - `router_id`: An optional router ID used in the OSPF process.
+    /// - `areas`: A `HashMap` mapping OSPF area IDs to their respective configurations.
+    /// - `networks`: A `HashMap` mapping networks to their associated area IDs.
+    /// - `neighbors`: A `HashMap` of neighbors configured for OSPF communication.
+    /// - `process_id`: An optional process ID for the OSPF instance.
     pub fn new() -> Self {
         Self {
             passive_interfaces: Vec::new(),
@@ -314,13 +328,45 @@ pub struct NtpAssociation {
 }
 
 
-/// A structure for storing the enable password and enable secret for authentication purposes.
+/// A structure for storing passwords used in the CLI.
+///
+/// The `PasswordStore` struct is designed to hold two optional passwords:
+/// - `enable_password`: A plaintext password used for accessing privileged mode.
+/// - `enable_secret`: A hashed or encrypted password used as an alternative to `enable_password`.
+///
+/// # Fields
+/// - `enable_password`: An `Option<String>` that stores the plaintext enable password. Defaults to `None`.
+/// - `enable_secret`: An `Option<String>` that stores the hashed or encrypted enable secret. Defaults to `None`.
+///
+/// # Default Implementation
+/// The `Default` trait is implemented to initialize `PasswordStore` with both fields set to `None`.
+///
+/// # Example
+/// ```rust
+/// let password_store = PasswordStore::default();
+/// assert!(password_store.enable_password.is_none());
+/// assert!(password_store.enable_secret.is_none());
+///
+/// let password_store = PasswordStore {
+///     enable_password: Some("plaintext_password".to_string()),
+///     enable_secret: Some("hashed_secret".to_string()),
+/// };
+/// println!("Enable Password: {:?}", password_store.enable_password);
+/// println!("Enable Secret: {:?}", password_store.enable_secret);
+/// ```
+///
+/// # Usage
+/// This struct can be used to store and retrieve passwords securely within a CLI context. 
+/// You can initialize it with default values or specify the passwords during creation.
 pub struct PasswordStore {
     pub enable_password: Option<String>,
     pub enable_secret: Option<String>,
 }
 
 impl Default for PasswordStore {
+    /// Creates a new instance of `PasswordStore` with default values.
+    ///
+    /// Both `enable_password` and `enable_secret` are initialized to `None`
     fn default() -> Self {
         PasswordStore {
             enable_password: None,

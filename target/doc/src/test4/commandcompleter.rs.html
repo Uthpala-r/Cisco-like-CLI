@@ -199,7 +199,69 @@
 <a href="#198" id="198">198</a>
 <a href="#199" id="199">199</a>
 <a href="#200" id="200">200</a>
-<a href="#201" id="201">201</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
+<a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
+<a href="#229" id="229">229</a>
+<a href="#230" id="230">230</a>
+<a href="#231" id="231">231</a>
+<a href="#232" id="232">232</a>
+<a href="#233" id="233">233</a>
+<a href="#234" id="234">234</a>
+<a href="#235" id="235">235</a>
+<a href="#236" id="236">236</a>
+<a href="#237" id="237">237</a>
+<a href="#238" id="238">238</a>
+<a href="#239" id="239">239</a>
+<a href="#240" id="240">240</a>
+<a href="#241" id="241">241</a>
+<a href="#242" id="242">242</a>
+<a href="#243" id="243">243</a>
+<a href="#244" id="244">244</a>
+<a href="#245" id="245">245</a>
+<a href="#246" id="246">246</a>
+<a href="#247" id="247">247</a>
+<a href="#248" id="248">248</a>
+<a href="#249" id="249">249</a>
+<a href="#250" id="250">250</a>
+<a href="#251" id="251">251</a>
+<a href="#252" id="252">252</a>
+<a href="#253" id="253">253</a>
+<a href="#254" id="254">254</a>
+<a href="#255" id="255">255</a>
+<a href="#256" id="256">256</a>
+<a href="#257" id="257">257</a>
+<a href="#258" id="258">258</a>
+<a href="#259" id="259">259</a>
+<a href="#260" id="260">260</a>
+<a href="#261" id="261">261</a>
+<a href="#262" id="262">262</a>
+<a href="#263" id="263">263</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
 </span><span class="kw">use </span><span class="kw">crate</span>::build_command_registry;
 <span class="kw">use </span><span class="kw">crate</span>::execute::Mode;
 <span class="kw">use </span><span class="kw">crate</span>::execute::Command;
@@ -228,8 +290,33 @@
     <span class="kw">pub </span>current_mode: Mode,
 }
 
-<span class="kw">impl </span>CommandCompleter {
-    <span class="kw">pub fn </span>new(commands: HashMap&lt;String, Vec&lt;String&gt;&gt;, current_mode: Mode) -&gt; <span class="self">Self </span>{
+<span class="doccomment">/// Implementation of the `CommandCompleter` struct.
+///
+/// Provides a constructor for creating a new `CommandCompleter` instance, which is responsible
+/// for handling command completion based on the available commands and the current CLI mode.
+</span><span class="kw">impl </span>CommandCompleter {
+    <span class="doccomment">/// Creates a new `CommandCompleter` instance.
+    ///
+    /// # Arguments
+    /// - `commands`: A `HashMap` where the keys are command names (as `String`) and the values are
+    ///   vectors of possible completions or subcommands associated with each command.
+    /// - `current_mode`: The current CLI mode (`Mode`), which influences the available commands
+    ///   and their completion behavior.
+    ///
+    /// # Returns
+    /// A new instance of `CommandCompleter` initialized with the provided commands and current mode.
+    ///
+    /// # Example
+    /// ```rust
+    /// use std::collections::HashMap;
+    /// 
+    /// let mut commands = HashMap::new();
+    /// commands.insert("show".to_string(), vec!["ip".to_string(), "version".to_string()]);
+    /// commands.insert("configure".to_string(), vec!["terminal".to_string()]);
+    /// 
+    /// let completer = CommandCompleter::new(commands, Mode::UserMode);
+    /// ```
+    </span><span class="kw">pub fn </span>new(commands: HashMap&lt;String, Vec&lt;String&gt;&gt;, current_mode: Mode) -&gt; <span class="self">Self </span>{
         CommandCompleter {
             commands,
             current_mode,
@@ -238,7 +325,9 @@
 
 }
 
-<span class="kw">impl </span>Completer <span class="kw">for </span>CommandCompleter {
+
+<span class="doccomment">/// Implements the `Completer` trait for the `CommandCompleter` struct.
+</span><span class="kw">impl </span>Completer <span class="kw">for </span>CommandCompleter {
     <span class="kw">type </span>Candidate = Pair;
 
     <span class="doccomment">/// Generates a list of command suggestions based on the current user input.
@@ -334,35 +423,69 @@
 }
 
 
-<span class="kw">fn </span>is_command_allowed_in_mode(command: <span class="kw-2">&amp;</span>String, mode: <span class="kw-2">&amp;</span>Mode) -&gt; bool {
+<span class="doccomment">/// Determines if a command is allowed in the current CLI mode.
+///
+/// This function checks whether a given command is valid and permitted for execution
+/// in the specified CLI mode. Each mode has a predefined set of commands that are allowed.
+///
+/// # Arguments
+/// - `command`: A reference to a `String` representing the command to check.
+/// - `mode`: A reference to the current `Mode` in which the CLI is operating.
+///
+/// # Returns
+/// - `true` if the command is allowed in the given mode.
+/// - `false` if the command is not allowed in the given mode.
+///
+/// # Supported Modes and Commands
+/// - **UserMode**: Basic commands like `enable`, `exit`, `help`, and `ping`.
+/// - **PrivilegedMode**: Advanced commands like `configure`, `write`, `copy`, `show`, and others.
+/// - **ConfigMode**: Configuration commands like `hostname`, `interface`, `ip`, and more.
+/// - **InterfaceMode**: Interface-specific commands like `shutdown`, `switchport`, `ip`, etc.
+/// - **VlanMode**: VLAN-specific commands like `name`, `state`, and `vlan`.
+/// - **RouterConfigMode**: Router configuration commands like `network`, `neighbor`, and `area`.
+/// - **ConfigStdNaclMode**: Standard ACL commands like `deny`, `permit`, and `ip`.
+/// - **ConfigExtNaclMode**: Extended ACL commands like `deny`, `permit`, and `ip`.
+///
+/// # Example
+/// ```rust
+/// let command = "enable".to_string();
+/// let mode = Mode::UserMode;
+///
+/// if is_command_allowed_in_mode(&amp;command, &amp;mode) {
+///     println!("Command '{}' is allowed in {:?} mode.", command, mode);
+/// } else {
+///     println!("Command '{}' is not allowed in {:?} mode.", command, mode);
+/// }
+/// ```
+///
+/// # Notes
+/// - Modes not explicitly defined in the match statement will return `false` for all commands.
+/// - The `Mode` enum may include additional modes that are not currently covered.
+///
+/// # Performance
+/// The function uses the `matches!` macro to provide concise and efficient pattern matching
+/// for the commands within each mode.
+</span><span class="kw">fn </span>is_command_allowed_in_mode(command: <span class="kw-2">&amp;</span>String, mode: <span class="kw-2">&amp;</span>Mode) -&gt; bool {
     <span class="kw">match </span>mode {
-        Mode::UserMode =&gt; <span class="macro">matches!</span>(command.as_str(), <span class="string">"enable" </span>| <span class="string">"exit" </span>| <span class="string">"ping"</span>),
-        Mode::PrivilegedMode =&gt; {
-            <span class="macro">matches!</span>(command.as_str(), <span class="string">"configure" </span>| <span class="string">"exit" </span>| <span class="string">"help" </span>| <span class="string">"write" </span>| <span class="string">"copy" </span>| <span class="string">"clock" </span>| <span class="string">"clear" </span>| <span class="string">"ping"</span>) || 
-            command.starts_with(<span class="string">"show"</span>) || 
-            command.starts_with(<span class="string">"ifconfig"</span>) 
-        },
-        Mode::ConfigMode =&gt; {
-            <span class="macro">matches!</span>(command.as_str(), <span class="string">"hostname" </span>| <span class="string">"interface" </span>| <span class="string">"exit" </span>| <span class="string">"tunnel" </span>| <span class="string">"virtual-template" </span>| <span class="string">"help" </span>| <span class="string">"write" </span>| <span class="string">"ping" </span>| <span class="string">"vlan" </span>| <span class="string">"access-list" </span>| <span class="string">"router" </span>| <span class="string">"enable password" </span>| <span class="string">"enable secret" </span>| <span class="string">"ip route" </span>| <span class="string">"ip domain-name" </span>| <span class="string">"ip access-list" </span>| <span class="string">"service" </span>| <span class="string">"set"</span>) ||
-            command.starts_with(<span class="string">"ifconfig"</span>) ||  
-            command.starts_with(<span class="string">"ntp"</span>) || 
-            command.starts_with(<span class="string">"crypto"</span>) 
-        },
-        Mode::InterfaceMode =&gt; <span class="macro">matches!</span>(command.as_str(), <span class="string">"exit" </span>| <span class="string">"shutdown" </span>| <span class="string">"no" </span>| <span class="string">"switchport" </span>| <span class="string">"help" </span>| <span class="string">"write" </span>| <span class="string">"interface" </span>| <span class="string">"ip address" </span>| <span class="string">"ip ospf"</span>), 
-        Mode::VlanMode =&gt; <span class="macro">matches!</span>(command.as_str(), <span class="string">"name" </span>| <span class="string">"exit" </span>| <span class="string">"state" </span>| <span class="string">"vlan"</span>),
-        Mode::RouterConfigMode =&gt; <span class="macro">matches!</span>(command.as_str(), <span class="string">"network" </span>| <span class="string">"exit" </span>| <span class="string">"neighbor" </span>| <span class="string">"area" </span>| <span class="string">"passive-interface" </span>| <span class="string">"distance" </span>| <span class="string">"default-information" </span>| <span class="string">"router-id"</span>),
-        Mode::ConfigStdNaclMode(<span class="kw">_</span>) =&gt; <span class="macro">matches!</span>(command.as_str(), <span class="string">"deny" </span>| <span class="string">"permit" </span>| <span class="string">"exit" </span>| <span class="string">"ip access-list"</span>),
-        Mode::ConfigExtNaclMode(<span class="kw">_</span>) =&gt; <span class="macro">matches!</span>(command.as_str(), <span class="string">"deny" </span>| <span class="string">"permit" </span>| <span class="string">"exit" </span>| <span class="string">"ip access-list"</span>),
+        Mode::UserMode =&gt; <span class="macro">matches!</span>(command.as_str(), <span class="string">"enable" </span>| <span class="string">"exit" </span>| <span class="string">"help" </span>| <span class="string">"ping"</span>),
+        Mode::PrivilegedMode =&gt; <span class="macro">matches!</span>(command.as_str(), <span class="string">"configure" </span>| <span class="string">"exit" </span>| <span class="string">"help" </span>| <span class="string">"write" </span>| <span class="string">"copy" </span>| <span class="string">"clock" </span>| <span class="string">"clear" </span>| <span class="string">"ping" </span>| <span class="string">"show" </span>| <span class="string">"ifconfig"</span>),
+        Mode::ConfigMode =&gt; <span class="macro">matches!</span>(command.as_str(), <span class="string">"hostname" </span>| <span class="string">"interface" </span>| <span class="string">"ip" </span>| <span class="string">"no" </span>| <span class="string">"exit" </span>| <span class="string">"tunnel" </span>| <span class="string">"virtual-template" </span>| <span class="string">"help" </span>| <span class="string">"write" </span>| <span class="string">"ping" </span>| <span class="string">"vlan" </span>| <span class="string">"access-list" </span>| <span class="string">"router" </span>| <span class="string">"enable" </span>| <span class="string">"service" </span>| <span class="string">"set" </span>| <span class="string">"ifconfig" </span>| <span class="string">"ntp" </span>| <span class="string">"crypto"</span>),
+        Mode::InterfaceMode =&gt; <span class="macro">matches!</span>(command.as_str(), <span class="string">"exit" </span>| <span class="string">"shutdown" </span>| <span class="string">"no" </span>| <span class="string">"switchport" </span>| <span class="string">"help" </span>| <span class="string">"write" </span>| <span class="string">"interface" </span>| <span class="string">"ip"</span>), 
+        Mode::VlanMode =&gt; <span class="macro">matches!</span>(command.as_str(), <span class="string">"name" </span>| <span class="string">"exit" </span>| <span class="string">"help" </span>| <span class="string">"state" </span>| <span class="string">"vlan"</span>),
+        Mode::RouterConfigMode =&gt; <span class="macro">matches!</span>(command.as_str(), <span class="string">"network" </span>| <span class="string">"exit" </span>| <span class="string">"help" </span>| <span class="string">"neighbor" </span>| <span class="string">"area" </span>| <span class="string">"passive-interface" </span>| <span class="string">"distance" </span>| <span class="string">"default-information" </span>| <span class="string">"router-id"</span>),
+        Mode::ConfigStdNaclMode(<span class="kw">_</span>) =&gt; <span class="macro">matches!</span>(command.as_str(), <span class="string">"deny" </span>| <span class="string">"permit" </span>| <span class="string">"help" </span>| <span class="string">"exit" </span>| <span class="string">"ip"</span>),
+        Mode::ConfigExtNaclMode(<span class="kw">_</span>) =&gt; <span class="macro">matches!</span>(command.as_str(), <span class="string">"deny" </span>| <span class="string">"permit" </span>| <span class="string">"help" </span>| <span class="string">"exit" </span>| <span class="string">"ip"</span>),
         
         <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
     }
 }
 
 
-<span class="kw">impl </span>Helper <span class="kw">for </span>CommandCompleter {}
+<span class="doccomment">/// Implements the `Helper` trait for the `CommandCompleter` struct.
+</span><span class="kw">impl </span>Helper <span class="kw">for </span>CommandCompleter {}
 
-
-<span class="kw">impl </span>Hinter <span class="kw">for </span>CommandCompleter {
+<span class="doccomment">/// Implements the `Hinter` trait for the `CommandCompleter` struct.
+</span><span class="kw">impl </span>Hinter <span class="kw">for </span>CommandCompleter {
     <span class="kw">type </span>Hint = String;
 
     <span class="doccomment">/// Provides hints for the current input line.
@@ -379,11 +502,12 @@
     </span>}
 }
 
+<span class="doccomment">/// Implements the `Highlighter` trait for the `CommandCompleter` struct.
+</span><span class="kw">impl </span>Highlighter <span class="kw">for </span>CommandCompleter {}
 
-<span class="kw">impl </span>Highlighter <span class="kw">for </span>CommandCompleter {}
 
-
-<span class="kw">impl </span>Validator <span class="kw">for </span>CommandCompleter {
+<span class="doccomment">/// Implements the `Validator` trait for the `CommandCompleter` struct.
+</span><span class="kw">impl </span>Validator <span class="kw">for </span>CommandCompleter {
 
     <span class="doccomment">/// Validates the current input line.
     ///

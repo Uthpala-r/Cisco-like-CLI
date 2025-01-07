@@ -373,7 +373,53 @@
 <a href="#372" id="372">372</a>
 <a href="#373" id="373">373</a>
 <a href="#374" id="374">374</a>
-<a href="#375" id="375">375</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
+<a href="#375" id="375">375</a>
+<a href="#376" id="376">376</a>
+<a href="#377" id="377">377</a>
+<a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
+<a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
+<a href="#392" id="392">392</a>
+<a href="#393" id="393">393</a>
+<a href="#394" id="394">394</a>
+<a href="#395" id="395">395</a>
+<a href="#396" id="396">396</a>
+<a href="#397" id="397">397</a>
+<a href="#398" id="398">398</a>
+<a href="#399" id="399">399</a>
+<a href="#400" id="400">400</a>
+<a href="#401" id="401">401</a>
+<a href="#402" id="402">402</a>
+<a href="#403" id="403">403</a>
+<a href="#404" id="404">404</a>
+<a href="#405" id="405">405</a>
+<a href="#406" id="406">406</a>
+<a href="#407" id="407">407</a>
+<a href="#408" id="408">408</a>
+<a href="#409" id="409">409</a>
+<a href="#410" id="410">410</a>
+<a href="#411" id="411">411</a>
+<a href="#412" id="412">412</a>
+<a href="#413" id="413">413</a>
+<a href="#414" id="414">414</a>
+<a href="#415" id="415">415</a>
+<a href="#416" id="416">416</a>
+<a href="#417" id="417">417</a>
+<a href="#418" id="418">418</a>
+<a href="#419" id="419">419</a>
+<a href="#420" id="420">420</a>
+<a href="#421" id="421">421</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
 </span><span class="kw">use </span>std::str::FromStr;
 <span class="kw">use </span>std::net::Ipv4Addr;
 <span class="kw">use </span>std::sync::{Mutex, Arc};
@@ -609,7 +655,21 @@
 }
 
 <span class="kw">impl </span>OSPFConfig {
-    <span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
+    <span class="doccomment">/// Configuration for OSPF (Open Shortest Path First) routing protocol.
+    ///
+    /// The `OSPFConfig` struct encapsulates the configuration details for managing OSPF settings in a CLI-based
+    /// environment. This includes defining areas, networks, neighbors, and other protocol-specific parameters.
+    ///
+    /// # Fields
+    /// - `passive_interfaces`: A vector of interfaces that are marked as passive (do not send OSPF packets).
+    /// - `distance`: An optional administrative distance for OSPF routes.
+    /// - `default_information_originate`: A boolean indicating whether default information is originated.
+    /// - `router_id`: An optional router ID used in the OSPF process.
+    /// - `areas`: A `HashMap` mapping OSPF area IDs to their respective configurations.
+    /// - `networks`: A `HashMap` mapping networks to their associated area IDs.
+    /// - `neighbors`: A `HashMap` of neighbors configured for OSPF communication.
+    /// - `process_id`: An optional process ID for the OSPF instance.
+    </span><span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             passive_interfaces: Vec::new(),
             distance: <span class="prelude-val">None</span>,
@@ -689,14 +749,46 @@
 }
 
 
-<span class="doccomment">/// A structure for storing the enable password and enable secret for authentication purposes.
+<span class="doccomment">/// A structure for storing passwords used in the CLI.
+///
+/// The `PasswordStore` struct is designed to hold two optional passwords:
+/// - `enable_password`: A plaintext password used for accessing privileged mode.
+/// - `enable_secret`: A hashed or encrypted password used as an alternative to `enable_password`.
+///
+/// # Fields
+/// - `enable_password`: An `Option&lt;String&gt;` that stores the plaintext enable password. Defaults to `None`.
+/// - `enable_secret`: An `Option&lt;String&gt;` that stores the hashed or encrypted enable secret. Defaults to `None`.
+///
+/// # Default Implementation
+/// The `Default` trait is implemented to initialize `PasswordStore` with both fields set to `None`.
+///
+/// # Example
+/// ```rust
+/// let password_store = PasswordStore::default();
+/// assert!(password_store.enable_password.is_none());
+/// assert!(password_store.enable_secret.is_none());
+///
+/// let password_store = PasswordStore {
+///     enable_password: Some("plaintext_password".to_string()),
+///     enable_secret: Some("hashed_secret".to_string()),
+/// };
+/// println!("Enable Password: {:?}", password_store.enable_password);
+/// println!("Enable Secret: {:?}", password_store.enable_secret);
+/// ```
+///
+/// # Usage
+/// This struct can be used to store and retrieve passwords securely within a CLI context. 
+/// You can initialize it with default values or specify the passwords during creation.
 </span><span class="kw">pub struct </span>PasswordStore {
     <span class="kw">pub </span>enable_password: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="kw">pub </span>enable_secret: <span class="prelude-ty">Option</span>&lt;String&gt;,
 }
 
 <span class="kw">impl </span>Default <span class="kw">for </span>PasswordStore {
-    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+    <span class="doccomment">/// Creates a new instance of `PasswordStore` with default values.
+    ///
+    /// Both `enable_password` and `enable_secret` are initialized to `None`
+    </span><span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
         PasswordStore {
             enable_password: <span class="prelude-val">None</span>,
             enable_secret: <span class="prelude-val">None</span>,

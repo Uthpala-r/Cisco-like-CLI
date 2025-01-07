@@ -26,30 +26,48 @@ use crate::network_config::{InterfaceConfig, OSPFConfig, AclEntry, AccessControl
 ///
 /// The commands registered include:
 /// - `enable`: Switches from User EXEC mode to Privileged EXEC mode.
+///     - `enable secret`: Sets a secret password for privileged EXEC mode access, using a stronger hash for security than the `enable password` command.
+///     - `enable password`: Configures a password for privileged EXEC mode access. This password is weaker than the `enable secret` and should be avoided when possible.
 /// - `configure terminal`: Enters Global Configuration mode.
-/// - `interface`: Enters Interface Configuration mode for a specified interface.
+/// - `interface`: Enters Interface Configuration mode for a specified interface. Should enter the interface name as an input
+///     - `interface range`: Enters the Interface Configuration mode but for the entire range.
 /// - `hostname`: Changes the hostname of the device.
 /// - `ifconfig`: Displays or configures network details of the router.
-/// - `show running-config`: Displays the current running configuration from a JSON file.
+/// - `exit`: This command navigates through the modes in reverse order (eg: ConfigMode --> UserMode)
+/// - `show`: Displays all the show commands when specific command is passed
+///     - `show running-config`: Displays the current running configuration from a JSON file.
+///     - `show startup-config`: Displays the initial configuration settings stored in the NVRAM of a router, which are loaded upon booting the device.
+///     - `show version`: Displays the software version information.
+///     - `show clock`: Displays the current clock date and time.
+///     - `show interfaces`: Displays statistics for all interfaces, including a brief overview or detailed information.
+///     - `show ip interfaces brief`: Displays a summary of the router interfaces
+///     - `show ip route`: Displays the ip routes defined
+///     - `show vlan`: Displays information and status of VLANs.
+///     - `show ip ospf neighbor`: Displays information about OSPF neighbors, including their state, router ID, and the interface used for adjacency.
+///     - `show access-lists`: Displays the current configuration of all ACLs on the device, showing the list of ACL entries and their statistics (matches, actions, etc.).
+///     - `show ntp associations`: Displays the status of NTP associations with servers or clients, showing the synchronization status and other details.
+///     - `show ntp`: Displays information about the current NTP configuration, associations, and synchronization status.
+///     - `show processes`: Shows the system processes and memories
 /// - `write memory`: Saves the running configuration to the startup configuration.
+/// - `copy running-config`: Copies the running configuration to the startup configuration or to a new file if mentioned.
 /// - `help`: Displays a list of available commands.
-/// - `show version`: Displays the software version information.
 /// - `clock set`: Changes the device's clock date and time.
-/// - `show clock`: Displays the current clock date and time.
-/// - `ip address`: Assigns an IP address and netmask to the selected interface.
-/// - `show interfaces`: Displays statistics for all interfaces, including a brief overview or detailed information.
+/// - `ip`: Define all the ip commands
+///     - `ip address`: Assigns an IP address and netmask to the selected interface.
+///     - `ip route`: Define the static ip routes
+///     - `ip ospf`: Assigns OSPF-specific parameters to an interface, such as the OSPF cost or authentication settings.
+///     - `ip access-list`: Used to create or modify an IP access list, specifying the version (standard or extended) and the list of rules to filter IP packets based on source/destination addresses, protocols, and ports.
+///     - `ip domain-name`: Sets the domain name for the device, which is used in various operations such as DNS resolution.
 /// - `shutdown`: Disable a router's interface
-/// - `no shutdown`: Enable a router's interface 
-/// - `ip route`: Define the static ip routes
-/// - `show ip route`: Displays the ip routes defined
+/// - `no`: Execute the opposite of the commands
+///     - `no shutdown`: Enable a router's interface 
+///     - `no ntp server`: Disable NTP
 /// - `vlan`: Define vlans. This will enter the Vlan Mode
 /// - `name`: Define the name of the vlan
 /// - `state: Define the state of the valn
-/// - `show vlan`: Displays information and status of VLANs.
 /// - `switchport`: Defines the switchports
 /// - `router ospf`: Configures and enables an OSPF routing process on the router. Specify the process ID to distinguish between multiple OSPF instances. This will enter the RouterConfig Mode
 /// - `network`: Associates a network or subnet with a specific OSPF area.
-/// - `ip ospf`: Assigns OSPF-specific parameters to an interface, such as the OSPF cost or authentication settings.
 /// - `neighbor`: Manually specifies a neighboring router for OSPF adjacency, usually in cases of non-broadcast networks.
 /// - `area`: Defines OSPF area-specific configurations, such as authentication, stub area settings, or default-cost for stub areas.
 /// - `passive-interface`: Prevents OSPF from sending hello packets on the specified interface while still advertising the interface's network in OSPF.
@@ -57,29 +75,22 @@ use crate::network_config::{InterfaceConfig, OSPFConfig, AclEntry, AccessControl
 /// - `default-information`: Configures OSPF to advertise a default route (0.0.0.0/0) to other routers in the network.
 /// - `router-id`: Manually sets a unique identifier for the OSPF process, typically an IPv4 address, to distinguish the router in the OSPF domain.
 /// - `clear ip ospf process`: Restarts the OSPF process, clearing the OSPF routing table and adjacencies.
-/// - `show ip ospf neighbor`: Displays information about OSPF neighbors, including their state, router ID, and the interface used for adjacency.
 /// - `access-list`: Defines an ACL by creating or modifying an access control list with a specified number or name. This command is used to specify a set of rules for filtering network traffic.
-/// - `ip access-list`: Used to create or modify an IP access list, specifying the version (standard or extended) and the list of rules to filter IP packets based on source/destination addresses, protocols, and ports.
-/// - `show access-lists`: Displays the current configuration of all ACLs on the device, showing the list of ACL entries and their statistics (matches, actions, etc.).
 /// - `permit`: An ACL action that allows network traffic that matches the rule's conditions (e.g., specific IP address or protocol) to pass through.
 /// - `deny`: An ACL action that blocks network traffic matching the rule's conditions, preventing it from passing through the network.
-/// - `crypto ipsec profile`: Configures and manages IPSec VPN profiles, including settings for security associations and tunnel configurations.
+/// - `crypto`: Defined all thr crypto commands   
+///     - `crypto ipsec profile`: Configures and manages IPSec VPN profiles, including settings for security associations and tunnel configurations.
+///     - `crypto key`: Generates or manages cryptographic keys used in various security protocols, including VPNs and encryption.
 /// - `set tranform-set`: Specifies the transform set used in an IPSec VPN to define the cryptographic algorithms for encryption and integrity.
 /// - `tunnel`: Defines and manages the settings for an IPsec tunnel, including the associated transport and security protocols.
 /// - `virtual-template`: Creates a virtual template interface that can be used as a blueprint for creating virtual access interfaces, often used in VPN configurations.
-/// - `ntp server`: Configures the NTP server for synchronizing time on the device, ensuring that the device’s clock is accurate.
-/// - `ntp master`: Configures the device as an NTP master, meaning it will serve time to other devices in the network.
-/// - `show ntp associations`: Displays the status of NTP associations with servers or clients, showing the synchronization status and other details.
-/// - `ntp authenticate`: Enables NTP authentication, which allows the NTP client to authenticate time synchronization requests from servers.
-/// - `ntp authentication-key`: Defines the key used for authenticating NTP messages, providing security to NTP transactions.
-/// - `ntp trusted-key`: Specifies which authentication key(s) are trusted to authenticate NTP messages.
-/// - `show ntp`: Displays information about the current NTP configuration, associations, and synchronization status.
+/// - `ntp`: Defines all the ntp commands
+///     - `ntp server`: Configures the NTP server for synchronizing time on the device, ensuring that the device’s clock is accurate.
+///     - `ntp master`: Configures the device as an NTP master, meaning it will serve time to other devices in the network.
+///     - `ntp authenticate`: Enables NTP authentication, which allows the NTP client to authenticate time synchronization requests from servers.
+///     - `ntp authentication-key`: Defines the key used for authenticating NTP messages, providing security to NTP transactions.
+///     - `ntp trusted-key`: Specifies which authentication key(s) are trusted to authenticate NTP messages
 /// - `service password-encryption`: Enables password encryption for storing sensitive passwords in the device’s configuration, ensuring they are not stored in plain text.
-/// - `enable secret`: Sets a secret password for privileged EXEC mode access, using a stronger hash for security than the `enable password` command.
-/// - `enable password`: Configures a password for privileged EXEC mode access. This password is weaker than the `enable secret` and should be avoided when possible.
-/// - `ip domain-name`: Sets the domain name for the device, which is used in various operations such as DNS resolution.
-/// - `crypto key`: Generates or manages cryptographic keys used in various security protocols, including VPNs and encryption.
-/// - `show processes`: Shows the system processes and memories
 /// - `ping`: Confirms the connection between ip addresses
 /// 
 /// # Returns
@@ -545,21 +556,26 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                                         let status_map = STATUS_MAP.lock().unwrap();
                             
                                         println!(
-                                            "{:<22} {:<15} {:<8} {:<20} {:<10}",
-                                            "Interface", "IP-Address", "OK?", "Method", "Status"
+                                            "{:<22} {:<15} {:<8} {:<20} {:<20} {:<10}",
+                                            "Interface", "IP-Address", "OK?", "Method", "Status", "Protocol"
                                         );
                             
                                         for (interface_name, (ip_address, _)) in ip_address_state.iter() {
                                             let is_up = status_map.get(interface_name).copied().unwrap_or(false);
                                             let status = if is_up {
-                                                "administratively up"
+                                                "up"
                                             } else {
                                                 "administratively down"
                                             };
+                                            let protocol = if is_up {
+                                                "up"
+                                            } else {
+                                                "down"
+                                            };
                             
                                             println!(
-                                                "{:<22} {:<15} YES     unset               {}",
-                                                interface_name, ip_address, status
+                                                "{:<22} {:<15} YES     unset/manual        {}         {}",
+                                                interface_name, ip_address, status, protocol
                                             );
                                         }
                                         Ok(())
@@ -777,14 +793,10 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         Command {
             name: "copy",
             description: "Copy running configuration",
-            suggestions: Some(vec!["running-config", "startup-config"]),
+            suggestions: Some(vec!["running-config"]),
             execute: |args, context, _| {
-                if !matches!(context.current_mode, Mode::PrivilegedMode) {
-                    return Err("The 'copy' command is only available in Privileged EXEC mode.".into());
-                }
-
-                if args.len() < 2 {
-                    return Err("Incomplete command. Usage: copy running-config FILENAME".into());
+                if !matches!(context.current_mode, Mode::PrivilegedMode | Mode::ConfigMode | Mode::InterfaceMode) {
+                    return Err("The 'copy' command is only available in Privileged EXEC mode, Config mode and interface mode".into());
                 }
 
                 // Handle both full and abbreviated versions of 'running-config'
@@ -793,22 +805,38 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                     return Err("Invalid source. Use 'running-config'".into());
                 }
 
-                let file_name = args[1];
-                let running_config = get_running_config(context); 
-                let file_path = Path::new(file_name);
-                
-                match File::create(file_path) {
-                    Ok(mut file) => {
-                        if let Err(err) = file.write_all(running_config.as_bytes()) {
-                            eprintln!("Error writing to the file: {}", err);
-                            return Err(err.to_string());
+                else if args[1] == "startup-config"{
+                    
+                    // Save the running configuration to the startup configuration
+                    let running_config = get_running_config(context);
+                    context.config.startup_config = Some(running_config.clone());
+        
+                    // Update the last written timestamp
+                    context.config.last_written = Some(chrono::Local::now().to_string());
+        
+                    println!("Configuration saved successfully.");
+                    Ok(())
+                    
+                }
+
+                else {
+                    let file_name = args[1];
+                    let running_config = get_running_config(context); 
+                    let file_path = Path::new(file_name);
+                    
+                    match File::create(file_path) {
+                        Ok(mut file) => {
+                            if let Err(err) = file.write_all(running_config.as_bytes()) {
+                                eprintln!("Error writing to the file: {}", err);
+                                return Err(err.to_string());
+                            }
+                            println!("Running configuration copied to {}", file_name);
+                            Ok(())
                         }
-                        println!("Running configuration copied to {}", file_name);
-                        Ok(())
-                    }
-                    Err(err) => {
-                        eprintln!("Error creating the file: {}", err);
-                        Err(err.to_string())
+                        Err(err) => {
+                            eprintln!("Error creating the file: {}", err);
+                            Err(err.to_string())
+                        }
                     }
                 }
             },
@@ -822,13 +850,18 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             description: "Display available commands",
             suggestions: None,
             execute: |_, _, _| {
+                println!(" ");
                 println!("Available commands:");
-                println!("  enable                - Enter privileged EXEC mode");
-                println!("  configure terminal    - Enter Global configuration mode");
-                println!("  interface <name>      - Enter Interface configuration mode");
-                println!("  show running-config   - Display the running configuration");
-                println!("  write memory          - Save the running configuration");
-                println!("  help                  - Display this help message");
+                println!(" ");
+                println!("Mode::UserMode                =>      enable, exit, ping");
+                println!("Mode::PrivilegedMode          =>      configure, exit, help, write, copy, clock, clear, ping, show, ifconfig");
+                println!("Mode::ConfigMode              =>      hostname, interface ,exit, tunnel, irtual-template, help, write, ping, vlan, access-list, router, enable, ip route, ip domain-name, ip access-list, ervice, set, ifconfig, ntp, crypto");
+                println!("Mode::InterfaceMode           =>      exit, shutdown, no, switchport, help, write, interface, ip address, ip ospf");
+                println!("Mode::VlanMode                =>      name, exit, state, vlan");
+                println!("Mode::RouterConfigMode        =>      network, exit, neighbor, area, passive-interface, distance, default-information, router-id");
+                println!("Mode::ConfigStdNaclMode(_)    =>      deny, permit, exit, ip access-list");
+                println!("Mode::ConfigExtNaclMode(_)    =>      deny, permit, exit, ip access-list");
+                println!(" ");
                 Ok(())
             },
         },
@@ -1157,6 +1190,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                 if matches!(context.current_mode, Mode::InterfaceMode) {
                     if let Some(interface) = &context.selected_interface {
                         let mut network_state = IP_ADDRESS_STATE.lock().unwrap();
+                        let mut status_map = STATUS_MAP.lock().unwrap();
                         if let Some(interface_config) = network_state.get_mut(interface) {
                             
                             let ip_address = interface_config.0.clone();
@@ -1167,6 +1201,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                             };
                             
                             interface_config.is_up = true;
+                            status_map.insert(interface.clone(), false);
     
                             println!(
                                 "Interface {} has been shut down. IP address set to 0.0.0.0",
@@ -1191,10 +1226,10 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         Command {
             name: "no shutdown",
             description: "Enable the selected network interface.",
-            suggestions: Some(vec!["shutdown"]),
+            suggestions: Some(vec!["shutdown", "ntp"]),
             execute: |args, context, _| {
-                if matches!(context.current_mode, Mode::InterfaceMode) {
-                    if args.len() == 1 && args[0] == "shutdown" {
+                if args.len() == 1 && args[0] == "shutdown" {
+                    if matches!(context.current_mode, Mode::InterfaceMode) {
                         if let Some(interface) = &context.selected_interface {
                             let mut network_state = IP_ADDRESS_STATE.lock().unwrap();
                             let mut status_map = STATUS_MAP.lock().unwrap();
@@ -1221,11 +1256,26 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                             Err("No interface selected. Use the 'interface' command first.".into())
                         }
                     } else {
-                        Err("Invalid arguments provided to 'no shutdown'. This command does not accept additional arguments.".into())
+                        Err("The 'no shutdown' command is only available in Interface Configuration mode.".into())
+                    }
+                } else if args.len() == 3 && args[0] == "ntp" && args[1] == "server" {
+                    if matches!(context.current_mode, Mode::ConfigMode) {
+                        let ip_address = args[2].to_string();
+                        if context.ntp_servers.remove(&ip_address) {
+                            // Remove from the associations list as well
+                            context.ntp_associations.retain(|assoc| assoc.address != ip_address);
+                            println!("NTP server {} removed.", ip_address);
+                            Ok(())
+                        } else {
+                            Err("NTP server not found.".into())
+                        }
+                    } else {
+                        Err("The 'no ntp server' command is only available in configuration mode.".into())
                     }
                 } else {
-                    Err("The 'no shutdown' command is only available in Interface Configuration mode.".into())
+                    Err("Invalid arguments provided to 'no'.".into())
                 }
+                
             },
         },
     );
@@ -1756,9 +1806,9 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                 if args.len() >= 3 {
                     let acl_number = args[0].to_string();
                     let action = args[1].to_string();
-                    let source = Ipv4Addr::from_str(&args[2]).expect("Invalid IP address format").to_string();
-                    let destination = if args.len() > 3 { Ipv4Addr::from_str(&args[3]).expect("Invalid IP address format").to_string()} else { "any".to_string() };
-                    let protocol = args.get(4).clone();
+                    let source = Ipv4Addr::from_str(&args[3]).expect("Invalid IP address format").to_string();
+                    let destination = if args.len() > 4 { Ipv4Addr::from_str(&args[4]).expect("Invalid IP address format").to_string()} else { "any".to_string() };
+                    let protocol = args.get(2).clone();
     
                     let entry = AclEntry {
                         action,
@@ -1785,7 +1835,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                     println!("ACL {} updated.", acl_number);
                     Ok(())
                 } else {
-                    Err("Invalid syntax. Use 'access-list <number> {deny|permit} <source_ip> <wildcard_mask>'.".into())
+                    Err("Invalid syntax. Use 'access-list <number> <protocol> {deny|permit} <source_ip> <wildcard_mask>'.".into())
                 }
             } else {
                 Err("The 'access-list' command is only available in global configuration mode.".into())
@@ -1841,7 +1891,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                     if args.len() >= 3 {
                         let protocol = Some(args[0].to_lowercase()); // "tcp", "udp", "icmp", etc.
                         let source = Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format").to_string();
-                        let destination = Ipv4Addr::from_str(&args[2]).expect("Invalid IP address format").to_string();
+                        let destination = Ipv4Addr::from_str(&args[4]).expect("Invalid IP address format").to_string();
 
                         let mut source_operator = None;
                         let mut source_port = None;
@@ -1849,8 +1899,8 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                         let mut destination_port = None;
 
                         if args.len() > 4 {
-                            source_operator = Some(args[3].to_lowercase()); // e.g., "eq", "gt", "lt"
-                            source_port = args.get(4).map(|p| p.to_string()); 
+                            source_operator = Some(args[2].to_lowercase()); // e.g., "eq", "gt", "lt"
+                            source_port = args.get(3).map(|p| p.to_string()); 
                             destination_operator = args.get(5).map(|o| o.to_lowercase()); // e.g., "eq", "gt", "lt"
                             destination_port = args.get(6).map(|p| p.to_string()); 
                         }
@@ -1933,7 +1983,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                     if args.len() >= 3 {
                         let protocol = Some(args[0].to_lowercase()); // "tcp", "udp", "icmp", etc.
                         let source = Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format").to_string();
-                        let destination = Ipv4Addr::from_str(&args[2]).expect("Invalid IP address format").to_string();
+                        let destination = Ipv4Addr::from_str(&args[4]).expect("Invalid IP address format").to_string();
 
                         let mut source_operator = None;
                         let mut source_port = None;
@@ -1941,8 +1991,8 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                         let mut destination_port = None;
 
                         if args.len() > 4 {
-                            source_operator = Some(args[3].to_lowercase()); // e.g., "eq", "gt", "lt"
-                            source_port = args.get(4).map(|p| p.to_string()); 
+                            source_operator = Some(args[2].to_lowercase()); // e.g., "eq", "gt", "lt"
+                            source_port = args.get(3).map(|p| p.to_string()); 
                             destination_operator = args.get(5).map(|o| o.to_lowercase()); // e.g., "eq", "gt", "lt"
                             destination_port = args.get(6).map(|p| p.to_string()); 
                         }
@@ -2193,18 +2243,8 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                         } else {
                             Err("Invalid IP address format.".into())
                         }
-                    } else if args.len() == 3 && args[1] == "no" {
-                        let ip_address = args[2].to_string();
-                        if context.ntp_servers.remove(&ip_address) {
-                            // Remove from the associations list as well
-                            context.ntp_associations.retain(|assoc| assoc.address != ip_address);
-                            println!("NTP server {} removed.", ip_address);
-                            Ok(())
-                        } else {
-                            Err("NTP server not found.".into())
-                        }
                     } else {
-                        Err("Invalid arguments. Usage: [no] ntp server {ip-address}".into())
+                        Err("Invalid arguments. Usage: ntp server {ip-address}".into())
                     }
                 },
                 "master" => {

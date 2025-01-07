@@ -341,7 +341,93 @@
 <a href="#340" id="340">340</a>
 <a href="#341" id="341">341</a>
 <a href="#342" id="342">342</a>
-<a href="#343" id="343">343</a></pre></div><pre class="rust"><code><span class="comment">//execute.rs
+<a href="#343" id="343">343</a>
+<a href="#344" id="344">344</a>
+<a href="#345" id="345">345</a>
+<a href="#346" id="346">346</a>
+<a href="#347" id="347">347</a>
+<a href="#348" id="348">348</a>
+<a href="#349" id="349">349</a>
+<a href="#350" id="350">350</a>
+<a href="#351" id="351">351</a>
+<a href="#352" id="352">352</a>
+<a href="#353" id="353">353</a>
+<a href="#354" id="354">354</a>
+<a href="#355" id="355">355</a>
+<a href="#356" id="356">356</a>
+<a href="#357" id="357">357</a>
+<a href="#358" id="358">358</a>
+<a href="#359" id="359">359</a>
+<a href="#360" id="360">360</a>
+<a href="#361" id="361">361</a>
+<a href="#362" id="362">362</a>
+<a href="#363" id="363">363</a>
+<a href="#364" id="364">364</a>
+<a href="#365" id="365">365</a>
+<a href="#366" id="366">366</a>
+<a href="#367" id="367">367</a>
+<a href="#368" id="368">368</a>
+<a href="#369" id="369">369</a>
+<a href="#370" id="370">370</a>
+<a href="#371" id="371">371</a>
+<a href="#372" id="372">372</a>
+<a href="#373" id="373">373</a>
+<a href="#374" id="374">374</a>
+<a href="#375" id="375">375</a>
+<a href="#376" id="376">376</a>
+<a href="#377" id="377">377</a>
+<a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
+<a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
+<a href="#392" id="392">392</a>
+<a href="#393" id="393">393</a>
+<a href="#394" id="394">394</a>
+<a href="#395" id="395">395</a>
+<a href="#396" id="396">396</a>
+<a href="#397" id="397">397</a>
+<a href="#398" id="398">398</a>
+<a href="#399" id="399">399</a>
+<a href="#400" id="400">400</a>
+<a href="#401" id="401">401</a>
+<a href="#402" id="402">402</a>
+<a href="#403" id="403">403</a>
+<a href="#404" id="404">404</a>
+<a href="#405" id="405">405</a>
+<a href="#406" id="406">406</a>
+<a href="#407" id="407">407</a>
+<a href="#408" id="408">408</a>
+<a href="#409" id="409">409</a>
+<a href="#410" id="410">410</a>
+<a href="#411" id="411">411</a>
+<a href="#412" id="412">412</a>
+<a href="#413" id="413">413</a>
+<a href="#414" id="414">414</a>
+<a href="#415" id="415">415</a>
+<a href="#416" id="416">416</a>
+<a href="#417" id="417">417</a>
+<a href="#418" id="418">418</a>
+<a href="#419" id="419">419</a>
+<a href="#420" id="420">420</a>
+<a href="#421" id="421">421</a>
+<a href="#422" id="422">422</a>
+<a href="#423" id="423">423</a>
+<a href="#424" id="424">424</a>
+<a href="#425" id="425">425</a>
+<a href="#426" id="426">426</a>
+<a href="#427" id="427">427</a>
+<a href="#428" id="428">428</a>
+<a href="#429" id="429">429</a></pre></div><pre class="rust"><code><span class="comment">//execute.rs
 
 </span><span class="doccomment">/// External crates for the CLI application
 </span><span class="kw">use </span>std::collections::{HashMap, HashSet};
@@ -349,11 +435,29 @@
 <span class="kw">use </span><span class="kw">crate</span>::CliContext;
 <span class="kw">use </span><span class="kw">crate</span>::commandcompleter::{CommandCompleter};
 
-<span class="doccomment">/// Represents a command in the CLI.
+<span class="doccomment">/// Represents a command that can be executed in the CLI.
 ///
-/// Each command has a name, description, optional suggestions for autocompletion,
-/// and an execution function that defines the command's behavior.
-/// 
+/// The `Command` struct defines the properties and behavior of a CLI command. Each command includes 
+/// metadata, such as its name and description, along with the logic for its execution.
+///
+/// # Fields
+/// - `name`:  
+///   The name of the command as a static string. This is the keyword used to invoke the command in the CLI.
+///
+/// - `description`:  
+///   A brief description of the command's purpose or functionality, displayed in help menus.
+///
+/// - `suggestions`:  
+///   An optional list of related or commonly used commands that can be suggested to the user.  
+///   If `None`, no suggestions will be provided for the command.
+///
+/// - `execute`:  
+///   A function pointer defining the command's logic. This function is executed when the command is invoked.  
+///   It accepts the following arguments:
+///     - `&amp;[&amp;str]`: The list of arguments provided with the command.
+///     - `&amp;mut CliContext`: The current CLI context, including mode, configuration, and state.
+///     - `&amp;mut Option&lt;Clock&gt;`: An optional mutable reference to the clock, allowing the command to manipulate system time settings if needed.  
+///   Returns a `Result&lt;(), String&gt;`, where `Ok(())` indicates success and `Err(String)` contains an error message if execution fails.
 </span><span class="kw">pub struct </span>Command {
     <span class="kw">pub </span>name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
     <span class="kw">pub </span>description: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
@@ -362,9 +466,45 @@
 }
 
 
-<span class="doccomment">/// An Enum representing the different modes in the CLI.
+<span class="doccomment">/// Represents the various operational modes for the CLI.
 ///
-/// Modes determine the scope of available commands and their behavior.
+/// The `Mode` enum defines the hierarchical modes of operation in the CLI, allowing commands to be executed 
+/// based on the current context. Each mode corresponds to a specific configuration or operational level.
+///
+/// # Variants
+/// - `UserMode`:  
+///   Represents the basic user mode with limited commands, primarily for non-privileged tasks.
+/// - `PrivilegedMode`:  
+///   Represents the privileged mode, providing access to higher-level configuration and operational commands.
+/// - `ConfigMode`:  
+///   Represents the global configuration mode where system-wide settings can be modified.
+/// - `InterfaceMode`:  
+///   Represents the interface configuration mode for managing individual network interfaces.
+/// - `VlanMode`:  
+///   Represents the VLAN configuration mode for managing VLANs.
+/// - `RouterConfigMode`:  
+///   Represents the router configuration mode for managing routing protocols such as OSPF or BGP.
+/// - `ConfigStdNaclMode(String)`:  
+///   Represents the configuration mode for standard Access Control Lists (ACLs). The `String` parameter 
+///   specifies the ACL name or ID.
+/// - `ConfigExtNaclMode(String)`:  
+///   Represents the configuration mode for extended Access Control Lists (ACLs). The `String` parameter 
+///   specifies the ACL name or ID.
+///
+/// # Example
+/// ```rust
+/// let mode = Mode::UserMode;
+/// match mode {
+///     Mode::UserMode =&gt; println!("In user mode"),
+///     Mode::PrivilegedMode =&gt; println!("In privileged mode"),
+///     Mode::ConfigMode =&gt; println!("In configuration mode"),
+///     Mode::InterfaceMode =&gt; println!("In interface configuration mode"),
+///     Mode::VlanMode =&gt; println!("In VLAN configuration mode"),
+///     Mode::RouterConfigMode =&gt; println!("In router configuration mode"),
+///     Mode::ConfigStdNaclMode(acl) =&gt; println!("Configuring standard ACL: {}", acl),
+///     Mode::ConfigExtNaclMode(acl) =&gt; println!("Configuring extended ACL: {}", acl),
+/// }
+/// ```
 </span><span class="attr">#[derive(Clone, Debug)]
 </span><span class="kw">pub enum </span>Mode {
     UserMode,
@@ -379,18 +519,44 @@
 
 
 
-<span class="doccomment">/// Executes a command or provides suggestions based on the current input.
+<span class="doccomment">/// Executes a given command in the CLI, handling suggestions and command execution.
+///
+/// The function processes the user's input to either show possible command completions
+/// (when a '?' is used) or execute a command with its arguments. It also handles different
+/// modes (e.g., user mode, privileged mode) to filter available commands accordingly.
 ///
 /// # Arguments
-/// - `input`: The user's input string.
-/// - `commands`: A `HashMap` of available commands, indexed by their names.
-/// - `context`: The CLI context, which holds the current mode and other state information.
-/// - `clock`: An optional mutable reference to the `CustomClock` structure.
+/// - `input`: A string representing the user's input command (possibly with arguments or suggestions).
+/// - `commands`: A `HashMap` containing all available commands, where the key is the command name
+///   and the value is a `Command` struct representing the command's metadata and execution logic.
+/// - `context`: A mutable reference to the `CliContext` that holds the current CLI state and mode.
+/// - `clock`: A mutable reference to an optional `Clock`, which may be used by some commands for time-related operations.
+/// - `completer`: A mutable reference to `CommandCompleter` which can be used for auto-completion of commands.
 ///
-/// # Behavior
-/// - If the input ends with `?`, it provides autocompletion suggestions based on the current mode.
-/// - Otherwise, it matches the input to a command and executes it if found.
-/// - Prints appropriate messages for invalid commands or execution errors.
+/// # Notes
+/// - If the input ends with a `?`, the function will display possible command completions based on
+///   the available commands for the current mode or show subcommand suggestions for a specific command.
+/// - If no `?` is present, the function will attempt to execute the command, passing any additional
+///   arguments to the command's `execute` function.
+///
+/// # Example
+/// ```rust
+/// let mut context = CliContext::new(Mode::UserMode);
+/// let mut clock: Option&lt;Clock&gt; = None;
+/// let mut completer = CommandCompleter::new();
+/// let commands = HashMap::new(); // A filled HashMap of commands
+///
+/// // Example input with suggestions
+/// execute_command("configure ?", &amp;commands, &amp;mut context, &amp;mut clock, &amp;mut completer);
+/// 
+/// // Example command execution
+/// execute_command("ping 8.8.8.8", &amp;commands, &amp;mut context, &amp;mut clock, &amp;mut completer);
+/// ```
+///
+/// # Errors
+/// - If an ambiguous or unrecognized command is entered, a message will be printed indicating the error.
+/// - If the command requires additional arguments or subcommands, appropriate messages will be shown.
+/// - Errors encountered during command execution will be printed.
 </span><span class="kw">pub fn </span>execute_command(input: <span class="kw-2">&amp;</span>str, commands: <span class="kw-2">&amp;</span>HashMap&lt;<span class="kw-2">&amp;</span>str, Command&gt;, context: <span class="kw-2">&amp;mut </span>CliContext, clock: <span class="kw-2">&amp;mut </span><span class="prelude-ty">Option</span>&lt;Clock&gt;, completer: <span class="kw-2">&amp;mut </span>CommandCompleter) {
     <span class="kw">let </span><span class="kw-2">mut </span>normalized_input = input.trim();
     <span class="kw">let </span>showing_suggestions = normalized_input.ends_with(<span class="string">'?'</span>);
@@ -408,6 +574,7 @@
                     .filter(|&amp;&amp;cmd| {
                         cmd == <span class="string">"enable" </span>||
                         cmd == <span class="string">"ping" </span>||
+                        cmd == <span class="string">"help" </span>||
                         cmd == <span class="string">"exit"
                     </span>})
                     .copied()
@@ -425,9 +592,9 @@
                         cmd == <span class="string">"copy" </span>||
                         cmd == <span class="string">"clock" </span>||
                         cmd == <span class="string">"clear" </span>||
-                        cmd.starts_with(<span class="string">"ifconfig"</span>) 
+                        cmd == <span class="string">"ifconfig"
                         
-                    })
+                    </span>})
                     .copied()
                     .collect()
             },
@@ -448,11 +615,12 @@
                         cmd == <span class="string">"ip" </span>||
                         cmd == <span class="string">"service" </span>||
                         cmd == <span class="string">"set" </span>||
-                        cmd.starts_with(<span class="string">"ifconfig"</span>) || 
-                        cmd.starts_with(<span class="string">"enable"</span>) || 
-                        cmd.starts_with(<span class="string">"ntp"</span>) || 
-                        cmd.starts_with(<span class="string">"crypto"</span>)
-                    })
+                        cmd == <span class="string">"enable" </span>||
+                        cmd == <span class="string">"ifconfig" </span>||  
+                        cmd == <span class="string">"ntp" </span>||
+                        cmd == <span class="string">"no" </span>|| 
+                        cmd == <span class="string">"crypto"
+                    </span>})
                     .copied()
                     .collect()
             },
@@ -477,6 +645,7 @@
                         cmd == <span class="string">"name" </span>||
                         cmd == <span class="string">"state" </span>||
                         cmd == <span class="string">"exit" </span>||
+                        cmd == <span class="string">"help" </span>||
                         cmd == <span class="string">"vlan" 
 
                     </span>})
@@ -492,6 +661,7 @@
                         cmd == <span class="string">"area" </span>||
                         cmd == <span class="string">"passive-interface" </span>||
                         cmd == <span class="string">"distance" </span>||
+                        cmd == <span class="string">"help" </span>||
                         cmd == <span class="string">"default-information" </span>||
                         cmd == <span class="string">"router-id"
 
@@ -504,6 +674,7 @@
                     .filter(|&amp;&amp;cmd| {
                         cmd == <span class="string">"deny" </span>||
                         cmd == <span class="string">"permit" </span>||
+                        cmd == <span class="string">"help" </span>||
                         cmd == <span class="string">"exit" </span>||
                         cmd == <span class="string">"ip"
 
@@ -516,6 +687,7 @@
                     .filter(|&amp;&amp;cmd| {
                         cmd == <span class="string">"deny" </span>||
                         cmd == <span class="string">"permit" </span>||
+                        cmd == <span class="string">"help" </span>||
                         cmd == <span class="string">"exit" </span>||
                         cmd == <span class="string">"ip"
 

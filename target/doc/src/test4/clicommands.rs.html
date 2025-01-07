@@ -2354,7 +2354,24 @@
 <a href="#2353" id="2353">2353</a>
 <a href="#2354" id="2354">2354</a>
 <a href="#2355" id="2355">2355</a>
-<a href="#2356" id="2356">2356</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
+<a href="#2356" id="2356">2356</a>
+<a href="#2357" id="2357">2357</a>
+<a href="#2358" id="2358">2358</a>
+<a href="#2359" id="2359">2359</a>
+<a href="#2360" id="2360">2360</a>
+<a href="#2361" id="2361">2361</a>
+<a href="#2362" id="2362">2362</a>
+<a href="#2363" id="2363">2363</a>
+<a href="#2364" id="2364">2364</a>
+<a href="#2365" id="2365">2365</a>
+<a href="#2366" id="2366">2366</a>
+<a href="#2367" id="2367">2367</a>
+<a href="#2368" id="2368">2368</a>
+<a href="#2369" id="2369">2369</a>
+<a href="#2370" id="2370">2370</a>
+<a href="#2371" id="2371">2371</a>
+<a href="#2372" id="2372">2372</a>
+<a href="#2373" id="2373">2373</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
 </span><span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::net::Ipv4Addr;
 <span class="kw">use </span>std::path::Path;
@@ -2382,30 +2399,48 @@
 ///
 /// The commands registered include:
 /// - `enable`: Switches from User EXEC mode to Privileged EXEC mode.
+///     - `enable secret`: Sets a secret password for privileged EXEC mode access, using a stronger hash for security than the `enable password` command.
+///     - `enable password`: Configures a password for privileged EXEC mode access. This password is weaker than the `enable secret` and should be avoided when possible.
 /// - `configure terminal`: Enters Global Configuration mode.
-/// - `interface`: Enters Interface Configuration mode for a specified interface.
+/// - `interface`: Enters Interface Configuration mode for a specified interface. Should enter the interface name as an input
+///     - `interface range`: Enters the Interface Configuration mode but for the entire range.
 /// - `hostname`: Changes the hostname of the device.
 /// - `ifconfig`: Displays or configures network details of the router.
-/// - `show running-config`: Displays the current running configuration from a JSON file.
+/// - `exit`: This command navigates through the modes in reverse order (eg: ConfigMode --&gt; UserMode)
+/// - `show`: Displays all the show commands when specific command is passed
+///     - `show running-config`: Displays the current running configuration from a JSON file.
+///     - `show startup-config`: Displays the initial configuration settings stored in the NVRAM of a router, which are loaded upon booting the device.
+///     - `show version`: Displays the software version information.
+///     - `show clock`: Displays the current clock date and time.
+///     - `show interfaces`: Displays statistics for all interfaces, including a brief overview or detailed information.
+///     - `show ip interfaces brief`: Displays a summary of the router interfaces
+///     - `show ip route`: Displays the ip routes defined
+///     - `show vlan`: Displays information and status of VLANs.
+///     - `show ip ospf neighbor`: Displays information about OSPF neighbors, including their state, router ID, and the interface used for adjacency.
+///     - `show access-lists`: Displays the current configuration of all ACLs on the device, showing the list of ACL entries and their statistics (matches, actions, etc.).
+///     - `show ntp associations`: Displays the status of NTP associations with servers or clients, showing the synchronization status and other details.
+///     - `show ntp`: Displays information about the current NTP configuration, associations, and synchronization status.
+///     - `show processes`: Shows the system processes and memories
 /// - `write memory`: Saves the running configuration to the startup configuration.
+/// - `copy running-config`: Copies the running configuration to the startup configuration or to a new file if mentioned.
 /// - `help`: Displays a list of available commands.
-/// - `show version`: Displays the software version information.
 /// - `clock set`: Changes the device's clock date and time.
-/// - `show clock`: Displays the current clock date and time.
-/// - `ip address`: Assigns an IP address and netmask to the selected interface.
-/// - `show interfaces`: Displays statistics for all interfaces, including a brief overview or detailed information.
+/// - `ip`: Define all the ip commands
+///     - `ip address`: Assigns an IP address and netmask to the selected interface.
+///     - `ip route`: Define the static ip routes
+///     - `ip ospf`: Assigns OSPF-specific parameters to an interface, such as the OSPF cost or authentication settings.
+///     - `ip access-list`: Used to create or modify an IP access list, specifying the version (standard or extended) and the list of rules to filter IP packets based on source/destination addresses, protocols, and ports.
+///     - `ip domain-name`: Sets the domain name for the device, which is used in various operations such as DNS resolution.
 /// - `shutdown`: Disable a router's interface
-/// - `no shutdown`: Enable a router's interface 
-/// - `ip route`: Define the static ip routes
-/// - `show ip route`: Displays the ip routes defined
+/// - `no`: Execute the opposite of the commands
+///     - `no shutdown`: Enable a router's interface 
+///     - `no ntp server`: Disable NTP
 /// - `vlan`: Define vlans. This will enter the Vlan Mode
 /// - `name`: Define the name of the vlan
 /// - `state: Define the state of the valn
-/// - `show vlan`: Displays information and status of VLANs.
 /// - `switchport`: Defines the switchports
 /// - `router ospf`: Configures and enables an OSPF routing process on the router. Specify the process ID to distinguish between multiple OSPF instances. This will enter the RouterConfig Mode
 /// - `network`: Associates a network or subnet with a specific OSPF area.
-/// - `ip ospf`: Assigns OSPF-specific parameters to an interface, such as the OSPF cost or authentication settings.
 /// - `neighbor`: Manually specifies a neighboring router for OSPF adjacency, usually in cases of non-broadcast networks.
 /// - `area`: Defines OSPF area-specific configurations, such as authentication, stub area settings, or default-cost for stub areas.
 /// - `passive-interface`: Prevents OSPF from sending hello packets on the specified interface while still advertising the interface's network in OSPF.
@@ -2413,29 +2448,22 @@
 /// - `default-information`: Configures OSPF to advertise a default route (0.0.0.0/0) to other routers in the network.
 /// - `router-id`: Manually sets a unique identifier for the OSPF process, typically an IPv4 address, to distinguish the router in the OSPF domain.
 /// - `clear ip ospf process`: Restarts the OSPF process, clearing the OSPF routing table and adjacencies.
-/// - `show ip ospf neighbor`: Displays information about OSPF neighbors, including their state, router ID, and the interface used for adjacency.
 /// - `access-list`: Defines an ACL by creating or modifying an access control list with a specified number or name. This command is used to specify a set of rules for filtering network traffic.
-/// - `ip access-list`: Used to create or modify an IP access list, specifying the version (standard or extended) and the list of rules to filter IP packets based on source/destination addresses, protocols, and ports.
-/// - `show access-lists`: Displays the current configuration of all ACLs on the device, showing the list of ACL entries and their statistics (matches, actions, etc.).
 /// - `permit`: An ACL action that allows network traffic that matches the rule's conditions (e.g., specific IP address or protocol) to pass through.
 /// - `deny`: An ACL action that blocks network traffic matching the rule's conditions, preventing it from passing through the network.
-/// - `crypto ipsec profile`: Configures and manages IPSec VPN profiles, including settings for security associations and tunnel configurations.
+/// - `crypto`: Defined all thr crypto commands   
+///     - `crypto ipsec profile`: Configures and manages IPSec VPN profiles, including settings for security associations and tunnel configurations.
+///     - `crypto key`: Generates or manages cryptographic keys used in various security protocols, including VPNs and encryption.
 /// - `set tranform-set`: Specifies the transform set used in an IPSec VPN to define the cryptographic algorithms for encryption and integrity.
 /// - `tunnel`: Defines and manages the settings for an IPsec tunnel, including the associated transport and security protocols.
 /// - `virtual-template`: Creates a virtual template interface that can be used as a blueprint for creating virtual access interfaces, often used in VPN configurations.
-/// - `ntp server`: Configures the NTP server for synchronizing time on the device, ensuring that the device’s clock is accurate.
-/// - `ntp master`: Configures the device as an NTP master, meaning it will serve time to other devices in the network.
-/// - `show ntp associations`: Displays the status of NTP associations with servers or clients, showing the synchronization status and other details.
-/// - `ntp authenticate`: Enables NTP authentication, which allows the NTP client to authenticate time synchronization requests from servers.
-/// - `ntp authentication-key`: Defines the key used for authenticating NTP messages, providing security to NTP transactions.
-/// - `ntp trusted-key`: Specifies which authentication key(s) are trusted to authenticate NTP messages.
-/// - `show ntp`: Displays information about the current NTP configuration, associations, and synchronization status.
+/// - `ntp`: Defines all the ntp commands
+///     - `ntp server`: Configures the NTP server for synchronizing time on the device, ensuring that the device’s clock is accurate.
+///     - `ntp master`: Configures the device as an NTP master, meaning it will serve time to other devices in the network.
+///     - `ntp authenticate`: Enables NTP authentication, which allows the NTP client to authenticate time synchronization requests from servers.
+///     - `ntp authentication-key`: Defines the key used for authenticating NTP messages, providing security to NTP transactions.
+///     - `ntp trusted-key`: Specifies which authentication key(s) are trusted to authenticate NTP messages
 /// - `service password-encryption`: Enables password encryption for storing sensitive passwords in the device’s configuration, ensuring they are not stored in plain text.
-/// - `enable secret`: Sets a secret password for privileged EXEC mode access, using a stronger hash for security than the `enable password` command.
-/// - `enable password`: Configures a password for privileged EXEC mode access. This password is weaker than the `enable secret` and should be avoided when possible.
-/// - `ip domain-name`: Sets the domain name for the device, which is used in various operations such as DNS resolution.
-/// - `crypto key`: Generates or manages cryptographic keys used in various security protocols, including VPNs and encryption.
-/// - `show processes`: Shows the system processes and memories
 /// - `ping`: Confirms the connection between ip addresses
 /// 
 /// # Returns
@@ -2448,58 +2476,94 @@
         name: <span class="string">"enable"</span>,
         description: <span class="string">"Enter privileged EXEC mode"</span>,
         suggestions: <span class="prelude-val">None</span>,
-        execute: |_args, context, <span class="kw">_</span>| {
-            <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::UserMode) {
-                <span class="comment">// Retrieve stored passwords
-                </span><span class="kw">let </span>storage = PASSWORD_STORAGE.lock().unwrap();
-                <span class="kw">let </span>stored_password = storage.enable_password.clone();
-                <span class="kw">let </span>stored_secret = storage.enable_secret.clone();
-                drop(storage); <span class="comment">// Release the lock
-    
-                </span><span class="kw">if </span>stored_password.is_none() &amp;&amp; stored_secret.is_none() {
-                    <span class="comment">// No passwords stored, directly go to privileged EXEC mode
-                    </span>context.current_mode = Mode::PrivilegedMode;
-                    context.prompt = <span class="macro">format!</span>(<span class="string">"{}#"</span>, context.config.hostname);
-                    <span class="macro">println!</span>(<span class="string">"Entering privileged EXEC mode..."</span>);
-                    <span class="kw">return </span><span class="prelude-val">Ok</span>(());
-                }
-    
-                <span class="comment">// Prompt for the enable password
-                </span><span class="kw">if </span>stored_secret.is_none() {
-                    <span class="macro">println!</span>(<span class="string">"Enter password:"</span>);
-                    <span class="kw">let </span>input_password = read_password().unwrap_or_else(|<span class="kw">_</span>| <span class="string">""</span>.to_string());
+        execute: |args, context, <span class="kw">_</span>| {
+            <span class="kw">if </span>args.is_empty(){
+                <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::UserMode) {
+                    <span class="comment">// Retrieve stored passwords
+                    </span><span class="kw">let </span>storage = PASSWORD_STORAGE.lock().unwrap();
+                    <span class="kw">let </span>stored_password = storage.enable_password.clone();
+                    <span class="kw">let </span>stored_secret = storage.enable_secret.clone();
+                    drop(storage); <span class="comment">// Release the lock
         
-                    <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>stored_password) = stored_password {
-                        <span class="kw">if </span>input_password == <span class="kw-2">*</span>stored_password {
-                            <span class="comment">// Correct enable password, proceed to privileged mode
+                    </span><span class="kw">if </span>stored_password.is_none() &amp;&amp; stored_secret.is_none() {
+                        <span class="comment">// No passwords stored, directly go to privileged EXEC mode
+                        </span>context.current_mode = Mode::PrivilegedMode;
+                        context.prompt = <span class="macro">format!</span>(<span class="string">"{}#"</span>, context.config.hostname);
+                        <span class="macro">println!</span>(<span class="string">"Entering privileged EXEC mode..."</span>);
+                        <span class="kw">return </span><span class="prelude-val">Ok</span>(());
+                    }
+        
+                    <span class="comment">// Prompt for the enable password
+                    </span><span class="kw">if </span>stored_secret.is_none() {
+                        <span class="macro">println!</span>(<span class="string">"Enter password:"</span>);
+                        <span class="kw">let </span>input_password = read_password().unwrap_or_else(|<span class="kw">_</span>| <span class="string">""</span>.to_string());
+            
+                        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>stored_password) = stored_password {
+                            <span class="kw">if </span>input_password == <span class="kw-2">*</span>stored_password {
+                                <span class="comment">// Correct enable password, proceed to privileged mode
+                                </span>context.current_mode = Mode::PrivilegedMode;
+                                context.prompt = <span class="macro">format!</span>(<span class="string">"{}#"</span>, context.config.hostname);
+                                <span class="macro">println!</span>(<span class="string">"Entering privileged EXEC mode..."</span>);
+                                <span class="kw">return </span><span class="prelude-val">Ok</span>(());
+                            }
+                        }
+                    }
+            
+                    <span class="comment">// If secret is stored, prompt for it if password check fails
+                    </span><span class="kw">if let </span>(<span class="prelude-val">Some</span>(<span class="kw-2">ref </span>stored_secret), <span class="prelude-val">Some</span>(<span class="kw-2">ref </span>stored_password)) = (stored_secret, stored_password) {
+                        <span class="macro">println!</span>(<span class="string">"Enter password:"</span>);
+                        <span class="kw">let </span>input_password = read_password().unwrap_or_else(|<span class="kw">_</span>| <span class="string">""</span>.to_string());
+                        <span class="macro">println!</span>(<span class="string">"Enter secret:"</span>);
+                        <span class="kw">let </span>input_secret = read_password().unwrap_or_else(|<span class="kw">_</span>| <span class="string">""</span>.to_string());
+        
+                        <span class="kw">if </span>input_secret == <span class="kw-2">*</span>stored_secret &amp;&amp; input_password == <span class="kw-2">*</span>stored_password {
+                            <span class="comment">// Correct enable secret, proceed to privileged mode
                             </span>context.current_mode = Mode::PrivilegedMode;
                             context.prompt = <span class="macro">format!</span>(<span class="string">"{}#"</span>, context.config.hostname);
                             <span class="macro">println!</span>(<span class="string">"Entering privileged EXEC mode..."</span>);
                             <span class="kw">return </span><span class="prelude-val">Ok</span>(());
                         }
                     }
-                }
         
-                <span class="comment">// If secret is stored, prompt for it if password check fails
-                </span><span class="kw">if let </span>(<span class="prelude-val">Some</span>(<span class="kw-2">ref </span>stored_secret), <span class="prelude-val">Some</span>(<span class="kw-2">ref </span>stored_password)) = (stored_secret, stored_password) {
-                    <span class="macro">println!</span>(<span class="string">"Enter password:"</span>);
-                    <span class="kw">let </span>input_password = read_password().unwrap_or_else(|<span class="kw">_</span>| <span class="string">""</span>.to_string());
-                    <span class="macro">println!</span>(<span class="string">"Enter secret:"</span>);
-                    <span class="kw">let </span>input_secret = read_password().unwrap_or_else(|<span class="kw">_</span>| <span class="string">""</span>.to_string());
-    
-                    <span class="kw">if </span>input_secret == <span class="kw-2">*</span>stored_secret &amp;&amp; input_password == <span class="kw-2">*</span>stored_password {
-                        <span class="comment">// Correct enable secret, proceed to privileged mode
-                        </span>context.current_mode = Mode::PrivilegedMode;
-                        context.prompt = <span class="macro">format!</span>(<span class="string">"{}#"</span>, context.config.hostname);
-                        <span class="macro">println!</span>(<span class="string">"Entering privileged EXEC mode..."</span>);
-                        <span class="kw">return </span><span class="prelude-val">Ok</span>(());
-                    }
+                    <span class="comment">// If neither password nor secret matches, return an error
+                    </span><span class="prelude-val">Err</span>(<span class="string">"Incorrect password or secret."</span>.into())
+                } <span class="kw">else </span>{
+                    <span class="prelude-val">Err</span>(<span class="string">"The 'enable' command is only available in User EXEC mode."</span>.into())
                 }
-    
-                <span class="comment">// If neither password nor secret matches, return an error
-                </span><span class="prelude-val">Err</span>(<span class="string">"Incorrect password or secret."</span>.into())
             } <span class="kw">else </span>{
-                <span class="prelude-val">Err</span>(<span class="string">"The 'enable' command is only available in User EXEC mode."</span>.into())
+                <span class="kw">match </span><span class="kw-2">&amp;</span>args[<span class="number">0</span>][..]{
+                    <span class="string">"password" </span>=&gt; {
+                        <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode) {
+                            <span class="kw">if </span>args.len() != <span class="number">2 </span>{
+                                <span class="prelude-val">Err</span>(<span class="string">"You must provide the enable password."</span>.into())
+                            } <span class="kw">else </span>{
+                                <span class="kw">let </span>password = <span class="kw-2">&amp;</span>args[<span class="number">1</span>];
+                                set_enable_password(password);
+                                context.config.enable_password = <span class="prelude-val">Some</span>(password.to_string());
+                                <span class="macro">println!</span>(<span class="string">"Enable password set."</span>);
+                                <span class="prelude-val">Ok</span>(())
+                            }
+                        } <span class="kw">else </span>{
+                            <span class="prelude-val">Err</span>(<span class="string">"The 'enable password' command is only available in Config mode."</span>.into())
+                        }
+                    },
+                    <span class="string">"secret" </span>=&gt; {
+                        <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode) {
+                            <span class="kw">if </span>args.len() != <span class="number">2 </span>{
+                                <span class="prelude-val">Err</span>(<span class="string">"You must provide the enable secret password."</span>.into())
+                            } <span class="kw">else </span>{
+                                <span class="kw">let </span>secret = <span class="kw-2">&amp;</span>args[<span class="number">1</span>];
+                                set_enable_secret(secret);
+                                context.config.enable_secret = <span class="prelude-val">Some</span>(secret.to_string());
+                                <span class="macro">println!</span>(<span class="string">"Enable secret password set."</span>);
+                                <span class="prelude-val">Ok</span>(())
+                            }
+                        } <span class="kw">else </span>{
+                            <span class="prelude-val">Err</span>(<span class="string">"The 'enable secret' command is only available in Config mode."</span>.into())
+                        }
+                    },
+                    <span class="kw">_</span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">"Unknown enable subcommand: {}"</span>, args[<span class="number">0</span>]).into())
+                }
             }
         },
     });
@@ -2865,21 +2929,26 @@
                                         <span class="kw">let </span>status_map = STATUS_MAP.lock().unwrap();
                             
                                         <span class="macro">println!</span>(
-                                            <span class="string">"{:&lt;22} {:&lt;15} {:&lt;8} {:&lt;20} {:&lt;10}"</span>,
-                                            <span class="string">"Interface"</span>, <span class="string">"IP-Address"</span>, <span class="string">"OK?"</span>, <span class="string">"Method"</span>, <span class="string">"Status"
+                                            <span class="string">"{:&lt;22} {:&lt;15} {:&lt;8} {:&lt;20} {:&lt;20} {:&lt;10}"</span>,
+                                            <span class="string">"Interface"</span>, <span class="string">"IP-Address"</span>, <span class="string">"OK?"</span>, <span class="string">"Method"</span>, <span class="string">"Status"</span>, <span class="string">"Protocol"
                                         </span>);
                             
                                         <span class="kw">for </span>(interface_name, (ip_address, <span class="kw">_</span>)) <span class="kw">in </span>ip_address_state.iter() {
                                             <span class="kw">let </span>is_up = status_map.get(interface_name).copied().unwrap_or(<span class="bool-val">false</span>);
                                             <span class="kw">let </span>status = <span class="kw">if </span>is_up {
-                                                <span class="string">"administratively up"
+                                                <span class="string">"up"
                                             </span>} <span class="kw">else </span>{
                                                 <span class="string">"administratively down"
                                             </span>};
+                                            <span class="kw">let </span>protocol = <span class="kw">if </span>is_up {
+                                                <span class="string">"up"
+                                            </span>} <span class="kw">else </span>{
+                                                <span class="string">"down"
+                                            </span>};
                             
                                             <span class="macro">println!</span>(
-                                                <span class="string">"{:&lt;22} {:&lt;15} YES     unset               {}"</span>,
-                                                interface_name, ip_address, status
+                                                <span class="string">"{:&lt;22} {:&lt;15} YES     unset/manual        {}         {}"</span>,
+                                                interface_name, ip_address, status, protocol
                                             );
                                         }
                                         <span class="prelude-val">Ok</span>(())
@@ -3097,14 +3166,10 @@
         Command {
             name: <span class="string">"copy"</span>,
             description: <span class="string">"Copy running configuration"</span>,
-            suggestions: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"running-config"</span>, <span class="string">"startup-config"</span>]),
+            suggestions: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"running-config"</span>]),
             execute: |args, context, <span class="kw">_</span>| {
-                <span class="kw">if </span>!<span class="macro">matches!</span>(context.current_mode, Mode::PrivilegedMode) {
-                    <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"The 'copy' command is only available in Privileged EXEC mode."</span>.into());
-                }
-
-                <span class="kw">if </span>args.len() &lt; <span class="number">2 </span>{
-                    <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"Incomplete command. Usage: copy running-config FILENAME"</span>.into());
+                <span class="kw">if </span>!<span class="macro">matches!</span>(context.current_mode, Mode::PrivilegedMode | Mode::ConfigMode | Mode::InterfaceMode) {
+                    <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"The 'copy' command is only available in Privileged EXEC mode, Config mode and interface mode"</span>.into());
                 }
 
                 <span class="comment">// Handle both full and abbreviated versions of 'running-config'
@@ -3113,22 +3178,38 @@
                     <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"Invalid source. Use 'running-config'"</span>.into());
                 }
 
-                <span class="kw">let </span>file_name = args[<span class="number">1</span>];
-                <span class="kw">let </span>running_config = get_running_config(context); 
-                <span class="kw">let </span>file_path = Path::new(file_name);
-                
-                <span class="kw">match </span>File::create(file_path) {
-                    <span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>file) =&gt; {
-                        <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = file.write_all(running_config.as_bytes()) {
-                            <span class="macro">eprintln!</span>(<span class="string">"Error writing to the file: {}"</span>, err);
-                            <span class="kw">return </span><span class="prelude-val">Err</span>(err.to_string());
+                <span class="kw">else if </span>args[<span class="number">1</span>] == <span class="string">"startup-config"</span>{
+                    
+                    <span class="comment">// Save the running configuration to the startup configuration
+                    </span><span class="kw">let </span>running_config = get_running_config(context);
+                    context.config.startup_config = <span class="prelude-val">Some</span>(running_config.clone());
+        
+                    <span class="comment">// Update the last written timestamp
+                    </span>context.config.last_written = <span class="prelude-val">Some</span>(chrono::Local::now().to_string());
+        
+                    <span class="macro">println!</span>(<span class="string">"Configuration saved successfully."</span>);
+                    <span class="prelude-val">Ok</span>(())
+                    
+                }
+
+                <span class="kw">else </span>{
+                    <span class="kw">let </span>file_name = args[<span class="number">1</span>];
+                    <span class="kw">let </span>running_config = get_running_config(context); 
+                    <span class="kw">let </span>file_path = Path::new(file_name);
+                    
+                    <span class="kw">match </span>File::create(file_path) {
+                        <span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>file) =&gt; {
+                            <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = file.write_all(running_config.as_bytes()) {
+                                <span class="macro">eprintln!</span>(<span class="string">"Error writing to the file: {}"</span>, err);
+                                <span class="kw">return </span><span class="prelude-val">Err</span>(err.to_string());
+                            }
+                            <span class="macro">println!</span>(<span class="string">"Running configuration copied to {}"</span>, file_name);
+                            <span class="prelude-val">Ok</span>(())
                         }
-                        <span class="macro">println!</span>(<span class="string">"Running configuration copied to {}"</span>, file_name);
-                        <span class="prelude-val">Ok</span>(())
-                    }
-                    <span class="prelude-val">Err</span>(err) =&gt; {
-                        <span class="macro">eprintln!</span>(<span class="string">"Error creating the file: {}"</span>, err);
-                        <span class="prelude-val">Err</span>(err.to_string())
+                        <span class="prelude-val">Err</span>(err) =&gt; {
+                            <span class="macro">eprintln!</span>(<span class="string">"Error creating the file: {}"</span>, err);
+                            <span class="prelude-val">Err</span>(err.to_string())
+                        }
                     }
                 }
             },
@@ -3142,13 +3223,18 @@
             description: <span class="string">"Display available commands"</span>,
             suggestions: <span class="prelude-val">None</span>,
             execute: |<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>| {
+                <span class="macro">println!</span>(<span class="string">" "</span>);
                 <span class="macro">println!</span>(<span class="string">"Available commands:"</span>);
-                <span class="macro">println!</span>(<span class="string">"  enable                - Enter privileged EXEC mode"</span>);
-                <span class="macro">println!</span>(<span class="string">"  configure terminal    - Enter Global configuration mode"</span>);
-                <span class="macro">println!</span>(<span class="string">"  interface &lt;name&gt;      - Enter Interface configuration mode"</span>);
-                <span class="macro">println!</span>(<span class="string">"  show running-config   - Display the running configuration"</span>);
-                <span class="macro">println!</span>(<span class="string">"  write memory          - Save the running configuration"</span>);
-                <span class="macro">println!</span>(<span class="string">"  help                  - Display this help message"</span>);
+                <span class="macro">println!</span>(<span class="string">" "</span>);
+                <span class="macro">println!</span>(<span class="string">"Mode::UserMode                =&gt;      enable, exit, ping"</span>);
+                <span class="macro">println!</span>(<span class="string">"Mode::PrivilegedMode          =&gt;      configure, exit, help, write, copy, clock, clear, ping, show, ifconfig"</span>);
+                <span class="macro">println!</span>(<span class="string">"Mode::ConfigMode              =&gt;      hostname, interface ,exit, tunnel, irtual-template, help, write, ping, vlan, access-list, router, enable, ip route, ip domain-name, ip access-list, ervice, set, ifconfig, ntp, crypto"</span>);
+                <span class="macro">println!</span>(<span class="string">"Mode::InterfaceMode           =&gt;      exit, shutdown, no, switchport, help, write, interface, ip address, ip ospf"</span>);
+                <span class="macro">println!</span>(<span class="string">"Mode::VlanMode                =&gt;      name, exit, state, vlan"</span>);
+                <span class="macro">println!</span>(<span class="string">"Mode::RouterConfigMode        =&gt;      network, exit, neighbor, area, passive-interface, distance, default-information, router-id"</span>);
+                <span class="macro">println!</span>(<span class="string">"Mode::ConfigStdNaclMode(_)    =&gt;      deny, permit, exit, ip access-list"</span>);
+                <span class="macro">println!</span>(<span class="string">"Mode::ConfigExtNaclMode(_)    =&gt;      deny, permit, exit, ip access-list"</span>);
+                <span class="macro">println!</span>(<span class="string">" "</span>);
                 <span class="prelude-val">Ok</span>(())
             },
         },
@@ -3477,6 +3563,7 @@
                 <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::InterfaceMode) {
                     <span class="kw">if let </span><span class="prelude-val">Some</span>(interface) = <span class="kw-2">&amp;</span>context.selected_interface {
                         <span class="kw">let </span><span class="kw-2">mut </span>network_state = IP_ADDRESS_STATE.lock().unwrap();
+                        <span class="kw">let </span><span class="kw-2">mut </span>status_map = STATUS_MAP.lock().unwrap();
                         <span class="kw">if let </span><span class="prelude-val">Some</span>(interface_config) = network_state.get_mut(interface) {
                             
                             <span class="kw">let </span>ip_address = interface_config.<span class="number">0</span>.clone();
@@ -3487,6 +3574,7 @@
                             };
                             
                             interface_config.is_up = <span class="bool-val">true</span>;
+                            status_map.insert(interface.clone(), <span class="bool-val">false</span>);
     
                             <span class="macro">println!</span>(
                                 <span class="string">"Interface {} has been shut down. IP address set to 0.0.0.0"</span>,
@@ -3511,10 +3599,10 @@
         Command {
             name: <span class="string">"no shutdown"</span>,
             description: <span class="string">"Enable the selected network interface."</span>,
-            suggestions: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"shutdown"</span>]),
+            suggestions: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"shutdown"</span>, <span class="string">"ntp"</span>]),
             execute: |args, context, <span class="kw">_</span>| {
-                <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::InterfaceMode) {
-                    <span class="kw">if </span>args.len() == <span class="number">1 </span>&amp;&amp; args[<span class="number">0</span>] == <span class="string">"shutdown" </span>{
+                <span class="kw">if </span>args.len() == <span class="number">1 </span>&amp;&amp; args[<span class="number">0</span>] == <span class="string">"shutdown" </span>{
+                    <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::InterfaceMode) {
                         <span class="kw">if let </span><span class="prelude-val">Some</span>(interface) = <span class="kw-2">&amp;</span>context.selected_interface {
                             <span class="kw">let </span><span class="kw-2">mut </span>network_state = IP_ADDRESS_STATE.lock().unwrap();
                             <span class="kw">let </span><span class="kw-2">mut </span>status_map = STATUS_MAP.lock().unwrap();
@@ -3541,11 +3629,26 @@
                             <span class="prelude-val">Err</span>(<span class="string">"No interface selected. Use the 'interface' command first."</span>.into())
                         }
                     } <span class="kw">else </span>{
-                        <span class="prelude-val">Err</span>(<span class="string">"Invalid arguments provided to 'no shutdown'. This command does not accept additional arguments."</span>.into())
+                        <span class="prelude-val">Err</span>(<span class="string">"The 'no shutdown' command is only available in Interface Configuration mode."</span>.into())
+                    }
+                } <span class="kw">else if </span>args.len() == <span class="number">3 </span>&amp;&amp; args[<span class="number">0</span>] == <span class="string">"ntp" </span>&amp;&amp; args[<span class="number">1</span>] == <span class="string">"server" </span>{
+                    <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode) {
+                        <span class="kw">let </span>ip_address = args[<span class="number">2</span>].to_string();
+                        <span class="kw">if </span>context.ntp_servers.remove(<span class="kw-2">&amp;</span>ip_address) {
+                            <span class="comment">// Remove from the associations list as well
+                            </span>context.ntp_associations.retain(|assoc| assoc.address != ip_address);
+                            <span class="macro">println!</span>(<span class="string">"NTP server {} removed."</span>, ip_address);
+                            <span class="prelude-val">Ok</span>(())
+                        } <span class="kw">else </span>{
+                            <span class="prelude-val">Err</span>(<span class="string">"NTP server not found."</span>.into())
+                        }
+                    } <span class="kw">else </span>{
+                        <span class="prelude-val">Err</span>(<span class="string">"The 'no ntp server' command is only available in configuration mode."</span>.into())
                     }
                 } <span class="kw">else </span>{
-                    <span class="prelude-val">Err</span>(<span class="string">"The 'no shutdown' command is only available in Interface Configuration mode."</span>.into())
+                    <span class="prelude-val">Err</span>(<span class="string">"Invalid arguments provided to 'no'."</span>.into())
                 }
+                
             },
         },
     );
@@ -4297,24 +4400,76 @@
         },
     });
 
-    commands.insert(<span class="string">"crypto ipsec profile"</span>, Command {
-        name: <span class="string">"crypto ipsec profile"</span>,
-        description: <span class="string">"Defines the IPsec parameters for encryption between two IPsec routers"</span>,
-        suggestions: <span class="prelude-val">None</span>,
-        execute: |_args, context, <span class="kw">_</span>| {
-            <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode) {
-                <span class="kw">if </span>_args.len() == <span class="number">1 </span>{
-                    <span class="kw">let </span>profile_name = <span class="kw-2">&amp;</span>_args[<span class="number">0</span>];
-                    context.config.crypto_ipsec_profile = <span class="prelude-val">Some</span>(profile_name.to_string());
-                    <span class="macro">println!</span>(<span class="string">"Crypto IPsec profile '{}' defined."</span>, profile_name);
-                    <span class="prelude-val">Ok</span>(())
-                } <span class="kw">else </span>{
-                    <span class="prelude-val">Err</span>(<span class="string">"Invalid arguments. Use 'crypto ipsec profile &lt;profile-name&gt;'."</span>.into())
-                }
-            } <span class="kw">else </span>{
-                <span class="prelude-val">Err</span>(<span class="string">"The 'crypto ipsec profile' command is only available in Config mode."</span>.into())
+    commands.insert(<span class="string">"crypto"</span>, Command {
+        name: <span class="string">"crypto"</span>,
+        description: <span class="string">"Crypto configuration commands"</span>,
+        suggestions: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"ipsec profile"</span>, <span class="string">"key"</span>]),
+        execute: |args, context, <span class="kw">_</span>| {
+            <span class="kw">if </span>!<span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode) {
+                <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"Crypto commands are only available in Config mode."</span>.into());
             }
-        },
+    
+            <span class="kw">if </span>args.is_empty() {
+                <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"Subcommand required. Available subcommands: 'ipsec profile', 'key'."</span>.into());
+            }
+    
+            <span class="kw">match </span><span class="kw-2">&amp;</span>args[<span class="number">0</span>][..] {
+                <span class="string">"ipsec" </span>=&gt; {
+                    <span class="kw">if </span>args.len() &gt;= <span class="number">2 </span>&amp;&amp; args[<span class="number">1</span>] == <span class="string">"profile" </span>{
+                        <span class="kw">if </span>args.len() == <span class="number">3 </span>{
+                            <span class="kw">let </span>profile_name = <span class="kw-2">&amp;</span>args[<span class="number">2</span>];
+                            context.config.crypto_ipsec_profile = <span class="prelude-val">Some</span>(profile_name.to_string());
+                            <span class="macro">println!</span>(<span class="string">"Crypto IPsec profile '{}' defined."</span>, profile_name);
+                            <span class="prelude-val">Ok</span>(())
+                        } <span class="kw">else </span>{
+                            <span class="prelude-val">Err</span>(<span class="string">"Invalid arguments. Use 'crypto ipsec profile &lt;profile-name&gt;'."</span>.into())
+                        }
+                    } <span class="kw">else </span>{
+                        <span class="prelude-val">Err</span>(<span class="string">"Invalid ipsec subcommand. Use 'crypto ipsec profile &lt;profile-name&gt;'."</span>.into())
+                    }
+                },
+                <span class="string">"key" </span>=&gt; {
+                    <span class="kw">if </span>args.len() &lt; <span class="number">2 </span>{
+                        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"Subcommand required. Use 'generate rsa' to create RSA keys, or 'zeroize' to delete keys."</span>.into());
+                    }
+    
+                    <span class="kw">match </span><span class="kw-2">&amp;</span>args[<span class="number">1</span>][..] {
+                        <span class="string">"generate" </span>=&gt; {
+                            <span class="kw">if </span>args.len() &gt; <span class="number">2 </span>&amp;&amp; args[<span class="number">2</span>] == <span class="string">"rsa" </span>{
+                                <span class="comment">// RSA key generation logic
+                                </span><span class="macro">println!</span>(<span class="string">"Enter key modulus size (default is 512 bits):"</span>);
+                                <span class="kw">let </span>modulus_size = <span class="number">512</span>;
+                                <span class="kw">let </span>domain_name = context.config.domain_name.clone();
+    
+                                <span class="kw">let </span>key_name = <span class="macro">format!</span>(<span class="string">"{}.{}"</span>, 
+                                    context.config.hostname, 
+                                    domain_name.unwrap_or(<span class="string">"default_domain"</span>.to_string())
+                                );
+                                <span class="macro">println!</span>(<span class="string">"The name for the keys will be: {}"</span>, key_name);
+                                <span class="macro">println!</span>(<span class="string">"Generating {}-bit RSA keys, keys will be non-exportable..."</span>, modulus_size);
+                                <span class="comment">// Add logic here to generate the RSA keys.
+                                </span><span class="macro">println!</span>(<span class="string">"[OK] RSA keys generated successfully."</span>);
+                                <span class="prelude-val">Ok</span>(())
+                            } <span class="kw">else </span>{
+                                <span class="prelude-val">Err</span>(<span class="string">"Invalid generate command. Use 'crypto key generate rsa'."</span>.into())
+                            }
+                        },
+                        <span class="string">"zeroize" </span>=&gt; {
+                            <span class="kw">if </span>args.len() &gt; <span class="number">2 </span>&amp;&amp; args[<span class="number">2</span>] == <span class="string">"rsa" </span>{
+                                <span class="kw">let </span>key_name = args[<span class="number">2</span>].to_string();
+                                <span class="macro">println!</span>(<span class="string">"Deleting keys with the name: {}"</span>, key_name);
+                                <span class="macro">println!</span>(<span class="string">"[OK] Keys deleted successfully."</span>);
+                                <span class="prelude-val">Ok</span>(())
+                            } <span class="kw">else </span>{
+                                <span class="prelude-val">Err</span>(<span class="string">"Invalid zeroize command. Use 'crypto key zeroize rsa'."</span>.into())
+                            }
+                        },
+                        <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(<span class="string">"Invalid key subcommand. Available subcommands: 'generate rsa', 'zeroize rsa'."</span>.into())
+                    }
+                },
+                <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(<span class="string">"Invalid crypto subcommand. Available subcommands: 'ipsec profile', 'key'."</span>.into())
+            }
+        }
     });
     
     commands.insert(<span class="string">"set"</span>, Command {
@@ -4424,139 +4579,98 @@
     });
     
     
-    commands.insert(<span class="string">"ntp server"</span>, Command {
-        name: <span class="string">"ntp server"</span>,
-        description: <span class="string">"Configure an NTP server"</span>,
-        suggestions: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"server"</span>]),
+    commands.insert(<span class="string">"ntp"</span>, Command {
+        name: <span class="string">"ntp"</span>,
+        description: <span class="string">"NTP configuration commands"</span>,
+        suggestions: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"server"</span>, <span class="string">"master"</span>, <span class="string">"authenticate"</span>, <span class="string">"authentication-key"</span>, <span class="string">"trusted-key"</span>]),
         execute: |args, context, <span class="kw">_</span>| {
-            <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode) {
-                <span class="kw">if </span>args.len() == <span class="number">1 </span>{
-                    <span class="kw">let </span>ip_address = args[<span class="number">0</span>].to_string();
-                    <span class="kw">if </span>ip_address.parse::&lt;Ipv4Addr&gt;().is_ok() {
-                        context.ntp_servers.insert(ip_address.clone());
-                        <span class="comment">// Assuming once the server is configured, we add it to NTP associations
-                        </span><span class="kw">let </span>association = NtpAssociation {
-                            address: ip_address.clone(),
-                            ref_clock: <span class="string">".INIT."</span>.to_string(),
-                            st: <span class="number">16</span>,
-                            when: <span class="string">"-"</span>.to_string(),
-                            poll: <span class="number">64</span>,
-                            reach: <span class="number">0</span>,
-                            delay: <span class="number">0.0</span>,
-                            offset: <span class="number">0.0</span>,
-                            disp: <span class="number">0.01</span>,
-                        };
-                        context.ntp_associations.push(association); <span class="comment">// Adding the new server to the list
-                        </span><span class="macro">println!</span>(<span class="string">"NTP server {} configured."</span>, ip_address);
-                        <span class="prelude-val">Ok</span>(())
-                    } <span class="kw">else </span>{
-                        <span class="prelude-val">Err</span>(<span class="string">"Invalid IP address format."</span>.into())
-                    }
-                } <span class="kw">else if </span>args.len() == <span class="number">2 </span>&amp;&amp; args[<span class="number">0</span>] == <span class="string">"no" </span>{
-                    <span class="kw">let </span>ip_address = args[<span class="number">1</span>].to_string();
-                    <span class="kw">if </span>context.ntp_servers.remove(<span class="kw-2">&amp;</span>ip_address) {
-                        <span class="comment">// Remove from the associations list as well
-                        </span>context.ntp_associations.retain(|assoc| assoc.address != ip_address);
-                        <span class="macro">println!</span>(<span class="string">"NTP server {} removed."</span>, ip_address);
-                        <span class="prelude-val">Ok</span>(())
-                    } <span class="kw">else </span>{
-                        <span class="prelude-val">Err</span>(<span class="string">"NTP server not found."</span>.into())
-                    }
-                } <span class="kw">else </span>{
-                    <span class="prelude-val">Err</span>(<span class="string">"Invalid arguments. Usage: [no] ntp server {ip-address}"</span>.into())
-                }
-            } <span class="kw">else </span>{
-                <span class="prelude-val">Err</span>(<span class="string">"The 'ntp server' command is only available in configuration mode."</span>.into())
+            <span class="kw">if </span>!<span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode) {
+                <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"NTP commands are only available in configuration mode."</span>.into());
             }
-        },
-    });
     
-    commands.insert(<span class="string">"ntp master"</span>, Command {
-        name: <span class="string">"ntp master"</span>,
-        description: <span class="string">"Configure the device as an NTP master"</span>,
-        suggestions: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"master"</span>]),
-        execute: |_args, context, <span class="kw">_</span>| {
-            <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode) {
-                context.ntp_master = <span class="bool-val">true</span>;
-                <span class="macro">println!</span>(<span class="string">"Device configured as NTP master."</span>);
-                <span class="prelude-val">Ok</span>(())
-            } <span class="kw">else </span>{
-                <span class="prelude-val">Err</span>(<span class="string">"The 'ntp master' command is only available in configuration mode."</span>.into())
+            <span class="kw">if </span>args.is_empty() {
+                <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"Subcommand required. Available subcommands: server, master, authenticate, authentication-key, trusted-key"</span>.into());
             }
-        },
-    });
     
-    commands.insert(<span class="string">"ntp authenticate"</span>, Command {
-        name: <span class="string">"ntp authenticate"</span>,
-        description: <span class="string">"Enable or disable NTP authentication"</span>,
-        suggestions: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"authenticate"</span>]),
-        execute: |args, context, <span class="kw">_</span>| {
-            <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode) {
-                <span class="kw">if </span>args.is_empty() {
-                    context.ntp_authentication_enabled = !context.ntp_authentication_enabled;
-                    <span class="kw">let </span>status = <span class="kw">if </span>context.ntp_authentication_enabled {
-                        <span class="string">"enabled"
-                    </span>} <span class="kw">else </span>{
-                        <span class="string">"disabled"
-                    </span>};
-                    <span class="macro">println!</span>(<span class="string">"NTP authentication {}"</span>, status);
+            <span class="kw">match </span><span class="kw-2">&amp;</span>args[<span class="number">0</span>][..] {
+                <span class="string">"server" </span>=&gt; {
+                    <span class="kw">if </span>args.len() == <span class="number">2 </span>{
+                        <span class="kw">let </span>ip_address = args[<span class="number">1</span>].to_string();
+                        <span class="kw">if </span>ip_address.parse::&lt;Ipv4Addr&gt;().is_ok() {
+                            context.ntp_servers.insert(ip_address.clone());
+                            <span class="comment">// Assuming once the server is configured, we add it to NTP associations
+                            </span><span class="kw">let </span>association = NtpAssociation {
+                                address: ip_address.clone(),
+                                ref_clock: <span class="string">".INIT."</span>.to_string(),
+                                st: <span class="number">16</span>,
+                                when: <span class="string">"-"</span>.to_string(),
+                                poll: <span class="number">64</span>,
+                                reach: <span class="number">0</span>,
+                                delay: <span class="number">0.0</span>,
+                                offset: <span class="number">0.0</span>,
+                                disp: <span class="number">0.01</span>,
+                            };
+                            context.ntp_associations.push(association); <span class="comment">// Adding the new server to the list
+                            </span><span class="macro">println!</span>(<span class="string">"NTP server {} configured."</span>, ip_address);
+                            <span class="prelude-val">Ok</span>(())
+                        } <span class="kw">else </span>{
+                            <span class="prelude-val">Err</span>(<span class="string">"Invalid IP address format."</span>.into())
+                        }
+                    } <span class="kw">else </span>{
+                        <span class="prelude-val">Err</span>(<span class="string">"Invalid arguments. Usage: ntp server {ip-address}"</span>.into())
+                    }
+                },
+                <span class="string">"master" </span>=&gt; {
+                    context.ntp_master = <span class="bool-val">true</span>;
+                    <span class="macro">println!</span>(<span class="string">"Device configured as NTP master."</span>);
                     <span class="prelude-val">Ok</span>(())
-                } <span class="kw">else </span>{
-                    <span class="prelude-val">Err</span>(<span class="string">"The 'ntp authenticate' command does not accept arguments."</span>.into())
-                }
-            } <span class="kw">else </span>{
-                <span class="prelude-val">Err</span>(<span class="string">"The 'ntp authenticate' command is only available in configuration mode."</span>.into())
-            }
-        },
-    });
-    
-    commands.insert(<span class="string">"ntp authentication-key"</span>, Command {
-        name: <span class="string">"ntp authentication-key"</span>,
-        description: <span class="string">"Define an NTP authentication key"</span>,
-        suggestions: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"authentication-key"</span>]),
-        execute: |args, context, <span class="kw">_</span>| {
-            <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode) {
-                <span class="kw">if </span>args.len() == <span class="number">3 </span>&amp;&amp; args[<span class="number">1</span>] == <span class="string">"md5" </span>{
-                    <span class="kw">if let </span><span class="prelude-val">Ok</span>(key_number) = args[<span class="number">0</span>].parse::&lt;u32&gt;() {
-                        <span class="kw">let </span>md5_key = args[<span class="number">2</span>].to_string();
-                        context.ntp_authentication_keys.insert(key_number, md5_key.clone());
-                        <span class="macro">println!</span>(<span class="string">"NTP authentication key {} configured with MD5 key: {}"</span>, key_number, md5_key);
+                },
+                <span class="string">"authenticate" </span>=&gt; {
+                    <span class="kw">if </span>args.len() == <span class="number">1 </span>{
+                        context.ntp_authentication_enabled = !context.ntp_authentication_enabled;
+                        <span class="kw">let </span>status = <span class="kw">if </span>context.ntp_authentication_enabled {
+                            <span class="string">"enabled"
+                        </span>} <span class="kw">else </span>{
+                            <span class="string">"disabled"
+                        </span>};
+                        <span class="macro">println!</span>(<span class="string">"NTP authentication {}"</span>, status);
                         <span class="prelude-val">Ok</span>(())
                     } <span class="kw">else </span>{
-                        <span class="prelude-val">Err</span>(<span class="string">"Invalid key number."</span>.into())
+                        <span class="prelude-val">Err</span>(<span class="string">"Invalid arguments. Use 'ntp authenticate'."</span>.into())
                     }
-                } <span class="kw">else </span>{
-                    <span class="prelude-val">Err</span>(<span class="string">"Usage: ntp authentication-key &lt;number&gt; md5 &lt;key-string&gt;"</span>.into())
-                }
-            } <span class="kw">else </span>{
-                <span class="prelude-val">Err</span>(<span class="string">"The 'ntp authentication-key' command is only available in configuration mode."</span>.into())
-            }
-        },
-    });
-    
-    commands.insert(<span class="string">"ntp trusted-key"</span>, Command {
-        name: <span class="string">"ntp trusted-key"</span>,
-        description: <span class="string">"Specify a trusted NTP authentication key"</span>,
-        suggestions: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"trusted-key"</span>]),
-        execute: |args, context, <span class="kw">_</span>| {
-            <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode) {
-                <span class="kw">if </span>args.len() == <span class="number">1 </span>{
-                    <span class="kw">if let </span><span class="prelude-val">Ok</span>(key_number) = args[<span class="number">0</span>].parse::&lt;u32&gt;() {
-                        context.ntp_trusted_keys.insert(key_number);
-                        <span class="macro">println!</span>(<span class="string">"NTP trusted key {} configured."</span>, key_number);
-                        <span class="prelude-val">Ok</span>(())
+                },
+                <span class="string">"authentication-key" </span>=&gt; {
+                    <span class="kw">if </span>args.len() == <span class="number">4 </span>&amp;&amp; args[<span class="number">2</span>] == <span class="string">"md5" </span>{
+                        <span class="kw">if let </span><span class="prelude-val">Ok</span>(key_number) = args[<span class="number">1</span>].parse::&lt;u32&gt;() {
+                            <span class="kw">let </span>md5_key = args[<span class="number">3</span>].to_string();
+                            context.ntp_authentication_keys.insert(key_number, md5_key.clone());
+                            <span class="macro">println!</span>(<span class="string">"NTP authentication key {} configured with MD5 key: {}"</span>, key_number, md5_key);
+                            <span class="prelude-val">Ok</span>(())
+                        } <span class="kw">else </span>{
+                            <span class="prelude-val">Err</span>(<span class="string">"Invalid key number. Must be a positive integer."</span>.into())
+                        }
                     } <span class="kw">else </span>{
-                        <span class="prelude-val">Err</span>(<span class="string">"Invalid key number."</span>.into())
+                        <span class="prelude-val">Err</span>(<span class="string">"Invalid arguments. Use 'ntp authentication-key &lt;key-number&gt; md5 &lt;key-value&gt;'."</span>.into())
                     }
-                } <span class="kw">else </span>{
-                    <span class="prelude-val">Err</span>(<span class="string">"Usage: ntp trusted-key &lt;number&gt;"</span>.into())
-                }
-            } <span class="kw">else </span>{
-                <span class="prelude-val">Err</span>(<span class="string">"The 'ntp trusted-key' command is only available in configuration mode."</span>.into())
+                },
+                <span class="string">"trusted-key" </span>=&gt; {
+                    <span class="kw">if </span>args.len() == <span class="number">2 </span>{
+                        <span class="kw">if let </span><span class="prelude-val">Ok</span>(key_number) = args[<span class="number">1</span>].parse::&lt;u32&gt;() {
+                            context.ntp_trusted_keys.insert(key_number);
+                            <span class="macro">println!</span>(<span class="string">"NTP trusted key {} configured."</span>, key_number);
+                            <span class="prelude-val">Ok</span>(())
+                        } <span class="kw">else </span>{
+                            <span class="prelude-val">Err</span>(<span class="string">"Invalid key number. Must be a positive integer."</span>.into())
+                        }
+                    } <span class="kw">else </span>{
+                        <span class="prelude-val">Err</span>(<span class="string">"Invalid arguments. Use 'ntp trusted-key &lt;key-number&gt;'."</span>.into())
+                    }
+                },
+                <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(<span class="string">"Invalid NTP subcommand. Available subcommands: server, master, authenticate, authentication-key, trusted-key"</span>.into())
             }
-        },
+        }
     });
-    
+  
     commands.insert(<span class="string">"service"</span>, Command {
         name: <span class="string">"service password-encryption"</span>,
         description: <span class="string">"Enable password encryption"</span>,
@@ -4591,87 +4705,7 @@
             }
         },
     });
-    
-    commands.insert(<span class="string">"enable secret"</span>, Command {
-        name: <span class="string">"enable secret"</span>,
-        description: <span class="string">"Set the enable secret password"</span>,
-        suggestions: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"secret"</span>]),
-        execute: |args, context, <span class="kw">_</span>| {
-            <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode) {
-                <span class="kw">if </span>args.len() != <span class="number">1 </span>{
-                    <span class="prelude-val">Err</span>(<span class="string">"You must provide the enable secret password."</span>.into())
-                } <span class="kw">else </span>{
-                    <span class="kw">let </span>secret = <span class="kw-2">&amp;</span>args[<span class="number">0</span>];
-                    set_enable_secret(secret);
-                    context.config.enable_secret = <span class="prelude-val">Some</span>(secret.to_string());
-                    <span class="macro">println!</span>(<span class="string">"Enable secret password set."</span>);
-                    <span class="prelude-val">Ok</span>(())
-                }
-            } <span class="kw">else </span>{
-                <span class="prelude-val">Err</span>(<span class="string">"The 'enable secret' command is only available in Config mode."</span>.into())
-            }
-        },
-    });
-    
-    commands.insert(<span class="string">"enable password"</span>, Command {
-        name: <span class="string">"enable password"</span>,
-        description: <span class="string">"Set the enable password for accessing privileged mode"</span>,
-        suggestions: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"password"</span>]),
-        execute: |args, context, <span class="kw">_</span>| {
-            <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode) {
-                <span class="kw">if </span>args.len() != <span class="number">1 </span>{
-                    <span class="prelude-val">Err</span>(<span class="string">"You must provide the enable password."</span>.into())
-                } <span class="kw">else </span>{
-                    <span class="kw">let </span>password = <span class="kw-2">&amp;</span>args[<span class="number">0</span>];
-                    set_enable_password(password);
-                    context.config.enable_password = <span class="prelude-val">Some</span>(password.to_string());
-                    <span class="macro">println!</span>(<span class="string">"Enable password set."</span>);
-                    <span class="prelude-val">Ok</span>(())
-                }
-            } <span class="kw">else </span>{
-                <span class="prelude-val">Err</span>(<span class="string">"The 'enable password' command is only available in Config mode."</span>.into())
-            }
-        },
-    });
 
-    commands.insert(<span class="string">"crypto key"</span>, Command {
-        name: <span class="string">"crypto key"</span>,
-        description: <span class="string">"Crypto key management commands"</span>,
-        suggestions: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"key"</span>]),
-        execute: |args, context, <span class="kw">_</span>| {
-            <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode) {
-                <span class="comment">// Check for subcommands (e.g., 'generate rsa', 'delete')
-                </span><span class="kw">if </span>args.is_empty() {
-                    <span class="prelude-val">Err</span>(<span class="string">"Subcommand required. Use 'generate rsa' to create RSA keys, or 'delete' to delete keys."</span>.into())
-                } <span class="kw">else if </span>args[<span class="number">0</span>] == <span class="string">"generate" </span>&amp;&amp; args.len() &gt; <span class="number">1 </span>&amp;&amp; args[<span class="number">1</span>] == <span class="string">"rsa" </span>{
-                    <span class="comment">// RSA key generation logic
-                    </span><span class="macro">println!</span>(<span class="string">"Enter key modulus size (default is 512 bits):"</span>);
-                    <span class="kw">let </span>modulus_size = <span class="number">512</span>;  
-                    <span class="kw">let </span>domain_name = context.config.domain_name.clone();
-    
-                    <span class="kw">let </span>key_name = <span class="macro">format!</span>(<span class="string">"{}.{}"</span>, context.config.hostname, domain_name.unwrap_or(<span class="string">"default_domain"</span>.to_string()));
-                    <span class="macro">println!</span>(<span class="string">"The name for the keys will be: {}"</span>, key_name);
-    
-                    <span class="macro">println!</span>(<span class="string">"Generating {}-bit RSA keys, keys will be non-exportable..."</span>, modulus_size);
-                    <span class="comment">// Add logic here to generate the RSA keys.
-                    </span><span class="macro">println!</span>(<span class="string">"[OK] RSA keys generated successfully."</span>);
-    
-                    <span class="prelude-val">Ok</span>(())
-                } <span class="kw">else if </span>args[<span class="number">0</span>] == <span class="string">"zeroizee" </span>&amp;&amp; args.len() &gt; <span class="number">1 </span>&amp;&amp; args[<span class="number">1</span>] == <span class="string">"rsa"</span>{
-                    <span class="kw">let </span>key_name = args[<span class="number">1</span>].to_string(); 
-                    <span class="macro">println!</span>(<span class="string">"Deleting keys with the name: {}"</span>, key_name);
-                    <span class="macro">println!</span>(<span class="string">"[OK] Keys deleted successfully."</span>);
-    
-                    <span class="prelude-val">Ok</span>(())
-                } <span class="kw">else </span>{
-                    <span class="prelude-val">Err</span>(<span class="string">"Invalid subcommand. Available subcommands: 'generate rsa', 'delete &lt;key_name&gt;'."</span>.into())
-                }
-            } <span class="kw">else </span>{
-                <span class="prelude-val">Err</span>(<span class="string">"The 'crypto key' command is only available in Config mode."</span>.into())
-            }
-        },
-    });
- 
     commands.insert(<span class="string">"ping"</span>, Command {
         name: <span class="string">"ping"</span>,
         description: <span class="string">"Ping a specific IP address to check reachability"</span>,
