@@ -92,58 +92,94 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         name: "enable",
         description: "Enter privileged EXEC mode",
         suggestions: None,
-        execute: |_args, context, _| {
-            if matches!(context.current_mode, Mode::UserMode) {
-                // Retrieve stored passwords
-                let storage = PASSWORD_STORAGE.lock().unwrap();
-                let stored_password = storage.enable_password.clone();
-                let stored_secret = storage.enable_secret.clone();
-                drop(storage); // Release the lock
-    
-                if stored_password.is_none() && stored_secret.is_none() {
-                    // No passwords stored, directly go to privileged EXEC mode
-                    context.current_mode = Mode::PrivilegedMode;
-                    context.prompt = format!("{}#", context.config.hostname);
-                    println!("Entering privileged EXEC mode...");
-                    return Ok(());
-                }
-    
-                // Prompt for the enable password
-                if stored_secret.is_none() {
-                    println!("Enter password:");
-                    let input_password = read_password().unwrap_or_else(|_| "".to_string());
+        execute: |args, context, _| {
+            if args.is_empty(){
+                if matches!(context.current_mode, Mode::UserMode) {
+                    // Retrieve stored passwords
+                    let storage = PASSWORD_STORAGE.lock().unwrap();
+                    let stored_password = storage.enable_password.clone();
+                    let stored_secret = storage.enable_secret.clone();
+                    drop(storage); // Release the lock
         
-                    if let Some(ref stored_password) = stored_password {
-                        if input_password == *stored_password {
-                            // Correct enable password, proceed to privileged mode
+                    if stored_password.is_none() && stored_secret.is_none() {
+                        // No passwords stored, directly go to privileged EXEC mode
+                        context.current_mode = Mode::PrivilegedMode;
+                        context.prompt = format!("{}#", context.config.hostname);
+                        println!("Entering privileged EXEC mode...");
+                        return Ok(());
+                    }
+        
+                    // Prompt for the enable password
+                    if stored_secret.is_none() {
+                        println!("Enter password:");
+                        let input_password = read_password().unwrap_or_else(|_| "".to_string());
+            
+                        if let Some(ref stored_password) = stored_password {
+                            if input_password == *stored_password {
+                                // Correct enable password, proceed to privileged mode
+                                context.current_mode = Mode::PrivilegedMode;
+                                context.prompt = format!("{}#", context.config.hostname);
+                                println!("Entering privileged EXEC mode...");
+                                return Ok(());
+                            }
+                        }
+                    }
+            
+                    // If secret is stored, prompt for it if password check fails
+                    if let (Some(ref stored_secret), Some(ref stored_password)) = (stored_secret, stored_password) {
+                        println!("Enter password:");
+                        let input_password = read_password().unwrap_or_else(|_| "".to_string());
+                        println!("Enter secret:");
+                        let input_secret = read_password().unwrap_or_else(|_| "".to_string());
+        
+                        if input_secret == *stored_secret && input_password == *stored_password {
+                            // Correct enable secret, proceed to privileged mode
                             context.current_mode = Mode::PrivilegedMode;
                             context.prompt = format!("{}#", context.config.hostname);
                             println!("Entering privileged EXEC mode...");
                             return Ok(());
                         }
                     }
-                }
         
-                // If secret is stored, prompt for it if password check fails
-                if let (Some(ref stored_secret), Some(ref stored_password)) = (stored_secret, stored_password) {
-                    println!("Enter password:");
-                    let input_password = read_password().unwrap_or_else(|_| "".to_string());
-                    println!("Enter secret:");
-                    let input_secret = read_password().unwrap_or_else(|_| "".to_string());
-    
-                    if input_secret == *stored_secret && input_password == *stored_password {
-                        // Correct enable secret, proceed to privileged mode
-                        context.current_mode = Mode::PrivilegedMode;
-                        context.prompt = format!("{}#", context.config.hostname);
-                        println!("Entering privileged EXEC mode...");
-                        return Ok(());
-                    }
+                    // If neither password nor secret matches, return an error
+                    Err("Incorrect password or secret.".into())
+                } else {
+                    Err("The 'enable' command is only available in User EXEC mode.".into())
                 }
-    
-                // If neither password nor secret matches, return an error
-                Err("Incorrect password or secret.".into())
             } else {
-                Err("The 'enable' command is only available in User EXEC mode.".into())
+                match &args[0][..]{
+                    "password" => {
+                        if matches!(context.current_mode, Mode::ConfigMode) {
+                            if args.len() != 2 {
+                                Err("You must provide the enable password.".into())
+                            } else {
+                                let password = &args[1];
+                                set_enable_password(password);
+                                context.config.enable_password = Some(password.to_string());
+                                println!("Enable password set.");
+                                Ok(())
+                            }
+                        } else {
+                            Err("The 'enable password' command is only available in Config mode.".into())
+                        }
+                    },
+                    "secret" => {
+                        if matches!(context.current_mode, Mode::ConfigMode) {
+                            if args.len() != 2 {
+                                Err("You must provide the enable secret password.".into())
+                            } else {
+                                let secret = &args[1];
+                                set_enable_secret(secret);
+                                context.config.enable_secret = Some(secret.to_string());
+                                println!("Enable secret password set.");
+                                Ok(())
+                            }
+                        } else {
+                            Err("The 'enable secret' command is only available in Config mode.".into())
+                        }
+                    },
+                    _=> Err(format!("Unknown enable subcommand: {}", args[0]).into())
+                }
             }
         },
     });
@@ -1941,24 +1977,76 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         },
     });
 
-    commands.insert("crypto ipsec profile", Command {
-        name: "crypto ipsec profile",
-        description: "Defines the IPsec parameters for encryption between two IPsec routers",
-        suggestions: None,
-        execute: |_args, context, _| {
-            if matches!(context.current_mode, Mode::ConfigMode) {
-                if _args.len() == 1 {
-                    let profile_name = &_args[0];
-                    context.config.crypto_ipsec_profile = Some(profile_name.to_string());
-                    println!("Crypto IPsec profile '{}' defined.", profile_name);
-                    Ok(())
-                } else {
-                    Err("Invalid arguments. Use 'crypto ipsec profile <profile-name>'.".into())
-                }
-            } else {
-                Err("The 'crypto ipsec profile' command is only available in Config mode.".into())
+    commands.insert("crypto", Command {
+        name: "crypto",
+        description: "Crypto configuration commands",
+        suggestions: Some(vec!["ipsec profile", "key"]),
+        execute: |args, context, _| {
+            if !matches!(context.current_mode, Mode::ConfigMode) {
+                return Err("Crypto commands are only available in Config mode.".into());
             }
-        },
+    
+            if args.is_empty() {
+                return Err("Subcommand required. Available subcommands: 'ipsec profile', 'key'.".into());
+            }
+    
+            match &args[0][..] {
+                "ipsec" => {
+                    if args.len() >= 2 && args[1] == "profile" {
+                        if args.len() == 3 {
+                            let profile_name = &args[2];
+                            context.config.crypto_ipsec_profile = Some(profile_name.to_string());
+                            println!("Crypto IPsec profile '{}' defined.", profile_name);
+                            Ok(())
+                        } else {
+                            Err("Invalid arguments. Use 'crypto ipsec profile <profile-name>'.".into())
+                        }
+                    } else {
+                        Err("Invalid ipsec subcommand. Use 'crypto ipsec profile <profile-name>'.".into())
+                    }
+                },
+                "key" => {
+                    if args.len() < 2 {
+                        return Err("Subcommand required. Use 'generate rsa' to create RSA keys, or 'zeroize' to delete keys.".into());
+                    }
+    
+                    match &args[1][..] {
+                        "generate" => {
+                            if args.len() > 2 && args[2] == "rsa" {
+                                // RSA key generation logic
+                                println!("Enter key modulus size (default is 512 bits):");
+                                let modulus_size = 512;
+                                let domain_name = context.config.domain_name.clone();
+    
+                                let key_name = format!("{}.{}", 
+                                    context.config.hostname, 
+                                    domain_name.unwrap_or("default_domain".to_string())
+                                );
+                                println!("The name for the keys will be: {}", key_name);
+                                println!("Generating {}-bit RSA keys, keys will be non-exportable...", modulus_size);
+                                // Add logic here to generate the RSA keys.
+                                println!("[OK] RSA keys generated successfully.");
+                                Ok(())
+                            } else {
+                                Err("Invalid generate command. Use 'crypto key generate rsa'.".into())
+                            }
+                        },
+                        "zeroize" => {
+                            if args.len() > 2 && args[2] == "rsa" {
+                                let key_name = args[2].to_string();
+                                println!("Deleting keys with the name: {}", key_name);
+                                println!("[OK] Keys deleted successfully.");
+                                Ok(())
+                            } else {
+                                Err("Invalid zeroize command. Use 'crypto key zeroize rsa'.".into())
+                            }
+                        },
+                        _ => Err("Invalid key subcommand. Available subcommands: 'generate rsa', 'zeroize rsa'.".into())
+                    }
+                },
+                _ => Err("Invalid crypto subcommand. Available subcommands: 'ipsec profile', 'key'.".into())
+            }
+        }
     });
     
     commands.insert("set", Command {
@@ -2068,139 +2156,108 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
     });
     
     
-    commands.insert("ntp server", Command {
-        name: "ntp server",
-        description: "Configure an NTP server",
-        suggestions: Some(vec!["server"]),
+    commands.insert("ntp", Command {
+        name: "ntp",
+        description: "NTP configuration commands",
+        suggestions: Some(vec!["server", "master", "authenticate", "authentication-key", "trusted-key"]),
         execute: |args, context, _| {
-            if matches!(context.current_mode, Mode::ConfigMode) {
-                if args.len() == 1 {
-                    let ip_address = args[0].to_string();
-                    if ip_address.parse::<Ipv4Addr>().is_ok() {
-                        context.ntp_servers.insert(ip_address.clone());
-                        // Assuming once the server is configured, we add it to NTP associations
-                        let association = NtpAssociation {
-                            address: ip_address.clone(),
-                            ref_clock: ".INIT.".to_string(),
-                            st: 16,
-                            when: "-".to_string(),
-                            poll: 64,
-                            reach: 0,
-                            delay: 0.0,
-                            offset: 0.0,
-                            disp: 0.01,
-                        };
-                        context.ntp_associations.push(association); // Adding the new server to the list
-                        println!("NTP server {} configured.", ip_address);
-                        Ok(())
-                    } else {
-                        Err("Invalid IP address format.".into())
-                    }
-                } else if args.len() == 2 && args[0] == "no" {
-                    let ip_address = args[1].to_string();
-                    if context.ntp_servers.remove(&ip_address) {
-                        // Remove from the associations list as well
-                        context.ntp_associations.retain(|assoc| assoc.address != ip_address);
-                        println!("NTP server {} removed.", ip_address);
-                        Ok(())
-                    } else {
-                        Err("NTP server not found.".into())
-                    }
-                } else {
-                    Err("Invalid arguments. Usage: [no] ntp server {ip-address}".into())
-                }
-            } else {
-                Err("The 'ntp server' command is only available in configuration mode.".into())
+            if !matches!(context.current_mode, Mode::ConfigMode) {
+                return Err("NTP commands are only available in configuration mode.".into());
             }
-        },
-    });
     
-    commands.insert("ntp master", Command {
-        name: "ntp master",
-        description: "Configure the device as an NTP master",
-        suggestions: Some(vec!["master"]),
-        execute: |_args, context, _| {
-            if matches!(context.current_mode, Mode::ConfigMode) {
-                context.ntp_master = true;
-                println!("Device configured as NTP master.");
-                Ok(())
-            } else {
-                Err("The 'ntp master' command is only available in configuration mode.".into())
+            if args.is_empty() {
+                return Err("Subcommand required. Available subcommands: server, master, authenticate, authentication-key, trusted-key".into());
             }
-        },
-    });
     
-    commands.insert("ntp authenticate", Command {
-        name: "ntp authenticate",
-        description: "Enable or disable NTP authentication",
-        suggestions: Some(vec!["authenticate"]),
-        execute: |args, context, _| {
-            if matches!(context.current_mode, Mode::ConfigMode) {
-                if args.is_empty() {
-                    context.ntp_authentication_enabled = !context.ntp_authentication_enabled;
-                    let status = if context.ntp_authentication_enabled {
-                        "enabled"
+            match &args[0][..] {
+                "server" => {
+                    if args.len() == 2 {
+                        let ip_address = args[1].to_string();
+                        if ip_address.parse::<Ipv4Addr>().is_ok() {
+                            context.ntp_servers.insert(ip_address.clone());
+                            // Assuming once the server is configured, we add it to NTP associations
+                            let association = NtpAssociation {
+                                address: ip_address.clone(),
+                                ref_clock: ".INIT.".to_string(),
+                                st: 16,
+                                when: "-".to_string(),
+                                poll: 64,
+                                reach: 0,
+                                delay: 0.0,
+                                offset: 0.0,
+                                disp: 0.01,
+                            };
+                            context.ntp_associations.push(association); // Adding the new server to the list
+                            println!("NTP server {} configured.", ip_address);
+                            Ok(())
+                        } else {
+                            Err("Invalid IP address format.".into())
+                        }
+                    } else if args.len() == 3 && args[1] == "no" {
+                        let ip_address = args[2].to_string();
+                        if context.ntp_servers.remove(&ip_address) {
+                            // Remove from the associations list as well
+                            context.ntp_associations.retain(|assoc| assoc.address != ip_address);
+                            println!("NTP server {} removed.", ip_address);
+                            Ok(())
+                        } else {
+                            Err("NTP server not found.".into())
+                        }
                     } else {
-                        "disabled"
-                    };
-                    println!("NTP authentication {}", status);
+                        Err("Invalid arguments. Usage: [no] ntp server {ip-address}".into())
+                    }
+                },
+                "master" => {
+                    context.ntp_master = true;
+                    println!("Device configured as NTP master.");
                     Ok(())
-                } else {
-                    Err("The 'ntp authenticate' command does not accept arguments.".into())
-                }
-            } else {
-                Err("The 'ntp authenticate' command is only available in configuration mode.".into())
-            }
-        },
-    });
-    
-    commands.insert("ntp authentication-key", Command {
-        name: "ntp authentication-key",
-        description: "Define an NTP authentication key",
-        suggestions: Some(vec!["authentication-key"]),
-        execute: |args, context, _| {
-            if matches!(context.current_mode, Mode::ConfigMode) {
-                if args.len() == 3 && args[1] == "md5" {
-                    if let Ok(key_number) = args[0].parse::<u32>() {
-                        let md5_key = args[2].to_string();
-                        context.ntp_authentication_keys.insert(key_number, md5_key.clone());
-                        println!("NTP authentication key {} configured with MD5 key: {}", key_number, md5_key);
+                },
+                "authenticate" => {
+                    if args.len() == 1 {
+                        context.ntp_authentication_enabled = !context.ntp_authentication_enabled;
+                        let status = if context.ntp_authentication_enabled {
+                            "enabled"
+                        } else {
+                            "disabled"
+                        };
+                        println!("NTP authentication {}", status);
                         Ok(())
                     } else {
-                        Err("Invalid key number.".into())
+                        Err("Invalid arguments. Use 'ntp authenticate'.".into())
                     }
-                } else {
-                    Err("Usage: ntp authentication-key <number> md5 <key-string>".into())
-                }
-            } else {
-                Err("The 'ntp authentication-key' command is only available in configuration mode.".into())
-            }
-        },
-    });
-    
-    commands.insert("ntp trusted-key", Command {
-        name: "ntp trusted-key",
-        description: "Specify a trusted NTP authentication key",
-        suggestions: Some(vec!["trusted-key"]),
-        execute: |args, context, _| {
-            if matches!(context.current_mode, Mode::ConfigMode) {
-                if args.len() == 1 {
-                    if let Ok(key_number) = args[0].parse::<u32>() {
-                        context.ntp_trusted_keys.insert(key_number);
-                        println!("NTP trusted key {} configured.", key_number);
-                        Ok(())
+                },
+                "authentication-key" => {
+                    if args.len() == 4 && args[2] == "md5" {
+                        if let Ok(key_number) = args[1].parse::<u32>() {
+                            let md5_key = args[3].to_string();
+                            context.ntp_authentication_keys.insert(key_number, md5_key.clone());
+                            println!("NTP authentication key {} configured with MD5 key: {}", key_number, md5_key);
+                            Ok(())
+                        } else {
+                            Err("Invalid key number. Must be a positive integer.".into())
+                        }
                     } else {
-                        Err("Invalid key number.".into())
+                        Err("Invalid arguments. Use 'ntp authentication-key <key-number> md5 <key-value>'.".into())
                     }
-                } else {
-                    Err("Usage: ntp trusted-key <number>".into())
-                }
-            } else {
-                Err("The 'ntp trusted-key' command is only available in configuration mode.".into())
+                },
+                "trusted-key" => {
+                    if args.len() == 2 {
+                        if let Ok(key_number) = args[1].parse::<u32>() {
+                            context.ntp_trusted_keys.insert(key_number);
+                            println!("NTP trusted key {} configured.", key_number);
+                            Ok(())
+                        } else {
+                            Err("Invalid key number. Must be a positive integer.".into())
+                        }
+                    } else {
+                        Err("Invalid arguments. Use 'ntp trusted-key <key-number>'.".into())
+                    }
+                },
+                _ => Err("Invalid NTP subcommand. Available subcommands: server, master, authenticate, authentication-key, trusted-key".into())
             }
-        },
+        }
     });
-    
+  
     commands.insert("service", Command {
         name: "service password-encryption",
         description: "Enable password encryption",
@@ -2235,87 +2292,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             }
         },
     });
-    
-    commands.insert("enable secret", Command {
-        name: "enable secret",
-        description: "Set the enable secret password",
-        suggestions: Some(vec!["secret"]),
-        execute: |args, context, _| {
-            if matches!(context.current_mode, Mode::ConfigMode) {
-                if args.len() != 1 {
-                    Err("You must provide the enable secret password.".into())
-                } else {
-                    let secret = &args[0];
-                    set_enable_secret(secret);
-                    context.config.enable_secret = Some(secret.to_string());
-                    println!("Enable secret password set.");
-                    Ok(())
-                }
-            } else {
-                Err("The 'enable secret' command is only available in Config mode.".into())
-            }
-        },
-    });
-    
-    commands.insert("enable password", Command {
-        name: "enable password",
-        description: "Set the enable password for accessing privileged mode",
-        suggestions: Some(vec!["password"]),
-        execute: |args, context, _| {
-            if matches!(context.current_mode, Mode::ConfigMode) {
-                if args.len() != 1 {
-                    Err("You must provide the enable password.".into())
-                } else {
-                    let password = &args[0];
-                    set_enable_password(password);
-                    context.config.enable_password = Some(password.to_string());
-                    println!("Enable password set.");
-                    Ok(())
-                }
-            } else {
-                Err("The 'enable password' command is only available in Config mode.".into())
-            }
-        },
-    });
 
-    commands.insert("crypto key", Command {
-        name: "crypto key",
-        description: "Crypto key management commands",
-        suggestions: Some(vec!["key"]),
-        execute: |args, context, _| {
-            if matches!(context.current_mode, Mode::ConfigMode) {
-                // Check for subcommands (e.g., 'generate rsa', 'delete')
-                if args.is_empty() {
-                    Err("Subcommand required. Use 'generate rsa' to create RSA keys, or 'delete' to delete keys.".into())
-                } else if args[0] == "generate" && args.len() > 1 && args[1] == "rsa" {
-                    // RSA key generation logic
-                    println!("Enter key modulus size (default is 512 bits):");
-                    let modulus_size = 512;  
-                    let domain_name = context.config.domain_name.clone();
-    
-                    let key_name = format!("{}.{}", context.config.hostname, domain_name.unwrap_or("default_domain".to_string()));
-                    println!("The name for the keys will be: {}", key_name);
-    
-                    println!("Generating {}-bit RSA keys, keys will be non-exportable...", modulus_size);
-                    // Add logic here to generate the RSA keys.
-                    println!("[OK] RSA keys generated successfully.");
-    
-                    Ok(())
-                } else if args[0] == "zeroizee" && args.len() > 1 && args[1] == "rsa"{
-                    let key_name = args[1].to_string(); 
-                    println!("Deleting keys with the name: {}", key_name);
-                    println!("[OK] Keys deleted successfully.");
-    
-                    Ok(())
-                } else {
-                    Err("Invalid subcommand. Available subcommands: 'generate rsa', 'delete <key_name>'.".into())
-                }
-            } else {
-                Err("The 'crypto key' command is only available in Config mode.".into())
-            }
-        },
-    });
- 
     commands.insert("ping", Command {
         name: "ping",
         description: "Ping a specific IP address to check reachability",

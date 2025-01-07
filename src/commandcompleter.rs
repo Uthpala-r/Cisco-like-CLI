@@ -136,17 +136,8 @@ impl Completer for CommandCompleter {
 fn is_command_allowed_in_mode(command: &String, mode: &Mode) -> bool {
     match mode {
         Mode::UserMode => matches!(command.as_str(), "enable" | "exit" | "ping"),
-        Mode::PrivilegedMode => {
-            matches!(command.as_str(), "configure" | "exit" | "help" | "write" | "copy" | "clock" | "clear" | "ping") || 
-            command.starts_with("show") || 
-            command.starts_with("ifconfig") 
-        },
-        Mode::ConfigMode => {
-            matches!(command.as_str(), "hostname" | "interface" | "exit" | "tunnel" | "virtual-template" | "help" | "write" | "ping" | "vlan" | "access-list" | "router" | "enable password" | "enable secret" | "ip route" | "ip domain-name" | "ip access-list" | "service" | "set") ||
-            command.starts_with("ifconfig") ||  
-            command.starts_with("ntp") || 
-            command.starts_with("crypto") 
-        },
+        Mode::PrivilegedMode => matches!(command.as_str(), "configure" | "exit" | "help" | "write" | "copy" | "clock" | "clear" | "ping" | "show" | "ifconfig"),
+        Mode::ConfigMode => matches!(command.as_str(), "hostname" | "interface" | "exit" | "tunnel" | "virtual-template" | "help" | "write" | "ping" | "vlan" | "access-list" | "router" | "enable" | "ip route" | "ip domain-name" | "ip access-list" | "service" | "set" | "ifconfig" | "ntp" | "crypto"),
         Mode::InterfaceMode => matches!(command.as_str(), "exit" | "shutdown" | "no" | "switchport" | "help" | "write" | "interface" | "ip address" | "ip ospf"), 
         Mode::VlanMode => matches!(command.as_str(), "name" | "exit" | "state" | "vlan"),
         Mode::RouterConfigMode => matches!(command.as_str(), "network" | "exit" | "neighbor" | "area" | "passive-interface" | "distance" | "default-information" | "router-id"),

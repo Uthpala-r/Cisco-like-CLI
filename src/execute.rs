@@ -82,7 +82,7 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                         cmd == "copy" ||
                         cmd == "clock" ||
                         cmd == "clear" ||
-                        cmd.starts_with("ifconfig") 
+                        cmd == "ifconfig"
                         
                     })
                     .copied()
@@ -105,10 +105,10 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                         cmd == "ip" ||
                         cmd == "service" ||
                         cmd == "set" ||
-                        cmd.starts_with("ifconfig") || 
-                        cmd.starts_with("enable") || 
-                        cmd.starts_with("ntp") || 
-                        cmd.starts_with("crypto")
+                        cmd == "enable" ||
+                        cmd == "ifconfig" ||  
+                        cmd == "ntp" || 
+                        cmd == "crypto"
                     })
                     .copied()
                     .collect()

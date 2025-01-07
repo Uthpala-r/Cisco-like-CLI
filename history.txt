@@ -1,41 +1,4 @@
 #V2
-no shutdown
-ip address 192.168.1.1 255.255.255.90
-no shutdown
-write memory
-exit
-show running-config
-inte g0/0
-conf t
-inte g0/0
-shutdown
-exit exit
-sh run
-exit
-sh run
-exit cli
-en
-conf t
-vlan 5
-name Uthpala
-state active
-exit exit
-exit
-show vlan
-conf t
-int g0/0
-switchport mode access
-switchport port-security
-exit cli
-en
-conf t
-router ospf 5
-network
-network 192.168.1.1 0.0.0.0 area 5
-neighbor
-neighbor 192.168.1.1 cost 100
-area
-area 5 authenticate
 area 5 authentication
 area 5 stub
 area 5 stub no-summary
@@ -98,4 +61,41 @@ en
 conf t
 service password-encryption
 set transform-set 6
+exit cli
+en
+en pass
+enable
+exit cli
+en
+conf t
+?
+e?
+en pas Uthpi
+en password Uthpi
+en secret Hi
+exit
+en
+conf t
+service password-encryption
+exit
+sh run
+sh star
+write memory
+sh star
+conf t
+crypto ipsec profile Hi
+crypto key
+crypto key generate rsa
+crypto key zeroize rsa
+ntp server
+ntp server 192.168.1.1
+no ntp server
+ntp master
+ntp authenticat
+ntp authenticate
+ntp authentication-key 5 md5 6
+ntp trusted-key
+ntp trusted-key 5
+exit
+sh run
 exit cli
