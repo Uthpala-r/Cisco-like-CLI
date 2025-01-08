@@ -1,47 +1,4 @@
 #V2
-conf t
-int g0/0
-no shut
-exit
-sh ip interface brief
-sh run
-conf t
-int g0/0
-shutdown
-exit
-sh ip interface brief
-sh run
-exit cli
-en
-conf t
-int g0/0
-ip add 192.1.2.2 .4.4.4.4
-exit
-int g0/0
-ip add 192.1.2.2 4.4.4.4
-ip address 192.2.2.2 4.4.4.4
-exit
-sh ip inerface brief
-show ip inerface brief
-sh ip interface brief
-exit cli
-en
-sh ip interface brief
-conf t
-int g0/0
-ip address 1.1.1.1 2.2.2.2
-exit
-sh ip interface brief
-exit cli
-en
-conf t
-host R1
-exit
-sh run
-sh star
-cop run startup-config
-sh sta
-exit cli
 help
 exit cli
 help[
@@ -98,4 +55,47 @@ interface g0/0
 help
 exit
 configure terminal
+exit cli
+en
+exit cli
+en
+exit cli
+sudo vi ~./bashrc
+exit cli
+en
+enable
+enable password
+exit cli
+en
+enable
+exit cli
+en
+enable
+exit cli
+enable
+configure terminal
+interface g0/0
+interface g 0/0
+exit
+enable password
+enable password hi
+help
+exoit cli
+exit cli
+enable
+configure terminal'
+configure terminal
+interface gigabit 0/0
+exit cli
+en
+conf t
+exit cli
+en
+conf t
+help
+exit
+hel[p
+he
+conf t
+he
 exit cli

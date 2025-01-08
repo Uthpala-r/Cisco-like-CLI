@@ -260,4 +260,3 @@ impl Validator for CommandCompleter {
         Ok(ValidationResult::Valid(None)) 
     }
 }
-

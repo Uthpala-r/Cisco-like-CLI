@@ -847,25 +847,94 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         "help",
         Command {
             name: "help",
-            description: "Display available commands",
+            description: "Display available commands for current mode",
             suggestions: None,
-            execute: |_, _, _| {
-                println!(" ");
-                println!("Available commands:");
-                println!(" ");
-                println!("Mode::UserMode                =>      enable, exit, ping");
-                println!("Mode::PrivilegedMode          =>      configure, exit, help, write, copy, clock, clear, ping, show, ifconfig");
-                println!("Mode::ConfigMode              =>      hostname, interface ,exit, tunnel, irtual-template, help, write, ping, vlan, access-list, router, enable, ip route, ip domain-name, ip access-list, ervice, set, ifconfig, ntp, crypto");
-                println!("Mode::InterfaceMode           =>      exit, shutdown, no, switchport, help, write, interface, ip address, ip ospf");
-                println!("Mode::VlanMode                =>      name, exit, state, vlan");
-                println!("Mode::RouterConfigMode        =>      network, exit, neighbor, area, passive-interface, distance, default-information, router-id");
-                println!("Mode::ConfigStdNaclMode(_)    =>      deny, permit, exit, ip access-list");
-                println!("Mode::ConfigExtNaclMode(_)    =>      deny, permit, exit, ip access-list");
-                println!(" ");
+            execute: |args, context, _| {
+                println!("\nAvailable commands");
+                
+                if matches!(context.current_mode, Mode::UserMode) {
+                    println!("enable      - Enter privileged mode");
+                    println!("exit        - Exit current mode");
+                    println!("ping        - Send ICMP echo request");
+                }
+                else if matches!(context.current_mode, Mode::PrivilegedMode) {
+                    println!("configure   - Enter configuration mode");
+                    println!("exit        - Exit to user mode");
+                    println!("help        - Display available commands");
+                    println!("write       - Save the configuration");
+                    println!("copy        - Copy configuration files");
+                    println!("clock       - Manage system clock");
+                    println!("clear       - Clear screen");
+                    println!("ping        - Send ICMP echo request");
+                    println!("show        - Show running system information");
+                    println!("ifconfig    - Display interface configuration");
+                }
+                else if matches!(context.current_mode, Mode::ConfigMode) {
+                    println!("hostname          - Set system hostname");
+                    println!("interface         - Configure interface");
+                    println!("exit              - Exit to privileged mode");
+                    println!("tunnel            - Configure tunnel interface");
+                    println!("virtual-template  - Configure virtual template");
+                    println!("help              - Display available commands");
+                    println!("write             - Save the configuration");
+                    println!("ping              - Send ICMP echo request");
+                    println!("vlan              - Configure VLAN");
+                    println!("access-list       - Configure access list");
+                    println!("router            - Configure routing protocol");
+                    println!("enable            - Enter privileged mode");
+                    println!("ip route          - Configure static routes");
+                    println!("ip domain-name    - Configure DNS domain name");
+                    println!("ip access-list    - Configure IP access list");
+                    println!("service           - Configure system services");
+                    println!("set               - Set system parameters");
+                    println!("ifconfig          - Configure interface");
+                    println!("ntp               - Configure NTP");
+                    println!("crypto            - Configure encryption");
+                }
+                else if matches!(context.current_mode, Mode::InterfaceMode) {
+                    println!("exit              - Exit to config mode");
+                    println!("shutdown          - Shutdown interface");
+                    println!("no                - Negate a command");
+                    println!("switchport        - Configure switching parameters");
+                    println!("help              - Display available commands");
+                    println!("write             - Save the configuration");
+                    println!("interface         - Select another interface");
+                    println!("ip address        - Set IP address");
+                    println!("ip ospf           - Configure OSPF protocol");
+                }
+                else if matches!(context.current_mode, Mode::VlanMode) {
+                    println!("name              - Set VLAN name");
+                    println!("exit              - Exit to config mode");
+                    println!("state             - Set VLAN state");
+                    println!("vlan              - Configure VLAN parameters");
+                }
+                else if matches!(context.current_mode, Mode::RouterConfigMode) {
+                    println!("network           - Configure network");
+                    println!("exit              - Exit to config mode");
+                    println!("neighbor          - Configure BGP neighbor");
+                    println!("area              - Configure OSPF area");
+                    println!("passive-interface - Configure passive interface");
+                    println!("distance          - Configure administrative distance");
+                    println!("default-information - Configure default route distribution");
+                    println!("router-id         - Configure router ID");
+                }
+                else if matches!(context.current_mode, Mode::ConfigStdNaclMode(_)) {
+                    println!("deny              - Deny specific traffic");
+                    println!("permit            - Permit specific traffic");
+                    println!("exit              - Exit to config mode");
+                    println!("ip access-list    - Configure IP access list");
+                }
+                else if matches!(context.current_mode, Mode::ConfigExtNaclMode(_)) {
+                    println!("deny              - Deny specific traffic");
+                    println!("permit            - Permit specific traffic");
+                    println!("exit              - Exit to config mode");
+                    println!("ip access-list    - Configure IP access list");
+                }
                 Ok(())
-            },
+            }
         },
     );
+    
 
     commands.insert(
         "clock",
