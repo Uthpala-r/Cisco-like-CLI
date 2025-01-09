@@ -1,12 +1,4 @@
 #V2
-exit cli
-?
-exit cli
-?
-en
-?
-exit cli
-ena
 ?
 conf t
 ?
@@ -98,4 +90,12 @@ conf t
 int g0/0
 ip address
 ip address 192.168.1.1 255.255.255.0
+exit cli
+en
+conf t
+exit
+configure terminal ?
+conf t
+interface ?
+interface g0/0
 exit cli

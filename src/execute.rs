@@ -89,47 +89,6 @@ pub enum Mode {
 }
 
 
-/// Represents command usage hint with description
-struct UsageHint {
-    parameter: &'static str,
-    description: &'static str,
-}
-
-/// Gets usage hints for a command based on mode and arguments
-fn get_command_usage_hints(command: &str, subcommand: &str, mode: &Mode) -> Vec<UsageHint> {
-    match (command, subcommand, mode) {
-        ("ip", "address", Mode::InterfaceMode) => vec![
-            UsageHint {
-                parameter: "<ip_address>",
-                description: "IPv4 address (A.B.C.D)"
-            },
-            UsageHint {
-                parameter: "<netmask>",
-                description: "Subnet mask (A.B.C.D)"
-            }
-        ],
-        ("ip", "helper-address", Mode::InterfaceMode) => vec![
-            UsageHint {
-                parameter: "<helper_ip>",
-                description: "DHCP server IP address"
-            }
-        ],
-        ("ip", "access-group", Mode::InterfaceMode) => vec![
-            UsageHint {
-                parameter: "<acl_name>",
-                description: "Access list name or number"
-            },
-            UsageHint {
-                parameter: "<direction>",
-                description: "Direction (in/out)"
-            }
-        ],
-        // Add more command patterns as needed
-        _ => vec![]
-    }
-}
-
-
 /// Executes a given command in the CLI, handling suggestions and command execution.
 ///
 /// The function processes the user's input to either show possible command completions
@@ -509,30 +468,8 @@ Two styles of help are provided:
                 }
             },
             _ => {
-                // Handle multi-word commands with space after last word
-                if normalized_input.ends_with(' ') {
-                    // Get usage hints for the command
-                    let hints = get_command_usage_hints(parts[0], parts[1], &context.current_mode);
-                    
-                    if !hints.is_empty() {
-                        println!("\nParameter options:");
-                        for hint in hints {
-                            println!("  {:<20} {}", hint.parameter, hint.description);
-                        }
-                    } else {
-                        println!(" ");
-                    }
-                } else {
-                    // Handle partial parameter completion
-                    let hints = get_command_usage_hints(parts[0], parts[1], &context.current_mode);
-                    if !hints.is_empty() {
-                        let current_param_index = parts.len() - 3; // Adjust for 0-based index
-                        if current_param_index < hints.len() {
-                            println!("\nParameter: {}", hints[current_param_index].parameter);
-                            println!("Description: {}", hints[current_param_index].description);
-                        }
-                    }
-                }
+                // Full command with ? (e.g., "configure terminal ?")
+                println!("No additional parameters available");
             }
         }
         return;
