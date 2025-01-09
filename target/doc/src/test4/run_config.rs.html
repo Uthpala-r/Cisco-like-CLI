@@ -195,11 +195,61 @@
 <a href="#194" id="194">194</a>
 <a href="#195" id="195">195</a>
 <a href="#196" id="196">196</a>
-<a href="#197" id="197">197</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
+<a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
+<a href="#229" id="229">229</a>
+<a href="#230" id="230">230</a>
+<a href="#231" id="231">231</a>
+<a href="#232" id="232">232</a>
+<a href="#233" id="233">233</a>
+<a href="#234" id="234">234</a>
+<a href="#235" id="235">235</a>
+<a href="#236" id="236">236</a>
+<a href="#237" id="237">237</a>
+<a href="#238" id="238">238</a>
+<a href="#239" id="239">239</a>
+<a href="#240" id="240">240</a>
+<a href="#241" id="241">241</a>
+<a href="#242" id="242">242</a>
+<a href="#243" id="243">243</a>
+<a href="#244" id="244">244</a>
+<a href="#245" id="245">245</a>
+<a href="#246" id="246">246</a>
+<a href="#247" id="247">247</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
 </span><span class="kw">use </span><span class="kw">crate</span>::cliconfig::{CliConfig, CliContext};
 <span class="kw">use </span>std::fs::{File, OpenOptions};
 <span class="kw">use </span>std::io::{Read, Write};
-<span class="kw">use </span><span class="kw">crate</span>::network_config::{STATUS_MAP, IP_ADDRESS_STATE, ROUTE_TABLE};
+<span class="kw">use </span><span class="kw">crate</span>::network_config::{STATUS_MAP, IP_ADDRESS_STATE, ROUTE_TABLE, OSPF_CONFIG, ACL_STORE};
 
 
 <span class="doccomment">/// Saves the given `CliConfig` to a file named `startup-config.json`.
@@ -286,6 +336,8 @@
     </span><span class="kw">let </span>ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
     <span class="kw">let </span>status_map = STATUS_MAP.lock().unwrap();
     <span class="kw">let </span>route_table = ROUTE_TABLE.lock().unwrap();
+    <span class="kw">let </span>ospf_config = OSPF_CONFIG.lock().unwrap();
+    <span class="kw">let </span>acl_store = ACL_STORE.lock().unwrap();
 
     <span class="comment">// Determine the active interface
     </span><span class="kw">let </span>interface = context
@@ -307,12 +359,41 @@
         ));
     }
 
-    <span class="comment">// Determine the shutdown status
-    </span><span class="kw">let </span>shutdown_status = <span class="kw">if </span>status_map.get(<span class="kw-2">&amp;</span>interface).copied().unwrap_or(<span class="bool-val">false</span>) {
+    <span class="kw">let </span>shutdown_status = <span class="kw">if </span>status_map.get(<span class="kw-2">&amp;</span>interface).copied().unwrap_or(<span class="bool-val">false</span>) {
         <span class="string">"no shutdown"
     </span>} <span class="kw">else </span>{
         <span class="string">"shutdown"
     </span>};
+
+    <span class="kw">let </span>ospf_process_id = ospf_config.process_id.map_or(<span class="string">"N/A"</span>.to_string(), |id| id.to_string());
+    <span class="kw">let </span>ospf_interface = ospf_config.passive_interfaces.join(<span class="string">", "</span>);
+    <span class="kw">let </span><span class="kw-2">mut </span>ospf_network_configs = String::new();
+    <span class="kw">for </span>(network_key, area_id) <span class="kw">in </span>ospf_config.networks.iter() {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>((ip_address, wildcard_mask)) = network_key.split_once(<span class="string">' '</span>) {
+            ospf_network_configs.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
+                <span class="string">"network {} {} area {}\n"</span>,
+                ip_address, wildcard_mask, area_id
+            ));
+        }
+    }
+
+    <span class="kw">let </span><span class="kw-2">mut </span>acl_configs = String::new();
+    <span class="kw">for </span>acl <span class="kw">in </span>acl_store.values() {
+        acl_configs.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"!\nip access-list extended {}\n"</span>, acl.number_or_name));
+        <span class="kw">for </span>entry <span class="kw">in </span><span class="kw-2">&amp;</span>acl.entries {
+            <span class="kw">let </span>protocol = entry.protocol.as_deref().unwrap_or(<span class="string">"ip"</span>);
+            <span class="kw">let </span><span class="kw-2">mut </span>rule = <span class="macro">format!</span>(<span class="string">" {} {}"</span>, entry.action, protocol);
+            rule.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">" {}"</span>, entry.source));
+            <span class="kw">if let </span>(<span class="prelude-val">Some</span>(op), <span class="prelude-val">Some</span>(port)) = (<span class="kw-2">&amp;</span>entry.source_operator, <span class="kw-2">&amp;</span>entry.source_port) {
+                rule.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">" {} {}"</span>, op, port));
+            }
+            rule.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">" {}"</span>, entry.destination));
+            <span class="kw">if let </span>(<span class="prelude-val">Some</span>(op), <span class="prelude-val">Some</span>(port)) = (<span class="kw-2">&amp;</span>entry.destination_operator, <span class="kw-2">&amp;</span>entry.destination_port) {
+                rule.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">" {} {}"</span>, op, port));
+            }
+            acl_configs.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"{}\n"</span>, rule));
+        }
+    }
 
     <span class="macro">format!</span>(
         <span class="string">r#"version 15.1
@@ -325,14 +406,27 @@ enable password 5 {}
 enable secret 5 {}
 !
 interface {}
-ip address {}
-duplex auto
-speed auto
-{}
+ ip address {}
+ duplex auto
+ speed auto
+ {}
+!
+interface Vlan1
+ no ip address
+ shutdown
 !
 ip classes
 {}
 !
+router ospf {}
+ log-adjacency-changes
+ passive-interface {}
+ {}
+!
+{}
+!
+!
+end
 "#</span>,
         <span class="kw">if </span>context.config.password_encryption {
             <span class="string">"service password-encryption"
@@ -346,6 +440,10 @@ ip classes
         ip_address,
         shutdown_status,
         route_entries,
+        ospf_process_id,
+        ospf_interface,
+        ospf_network_configs,
+        acl_configs,
     )
 }
 
@@ -386,6 +484,8 @@ interface FastEthernet0/0
 no ip address
 shutdown
 !
+!
+end
 "#
         </span>.to_string()
     

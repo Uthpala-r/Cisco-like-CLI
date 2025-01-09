@@ -136,6 +136,7 @@ fn main() {
     loop {
         
         let prompt = context.prompt.clone();
+        println!();
         match rl.readline(&prompt) {
             Ok(buffer) => {
                 let input = buffer.trim();

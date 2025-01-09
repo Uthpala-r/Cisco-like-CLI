@@ -1,101 +1,101 @@
 #V2
-help
 exit cli
-help[
-help
+?
 exit cli
-he
+?
+en
+?
+exit cli
+ena
+?
+conf t
+?
+exit cli
+en
+configure terminal ?
+con?
+configure?
+exit cli
+enable
+exit
+en
+exit
+en?
+enable ?
+en
+con?
+co?
+configure ?
+configure terminal ?
+configure termin?
+configure termi
+interface ?
+interface g0/0
+ip address ?
+ip address?
+exit cli
+e
+en
+con?
+configure?
+configure ter?
+configure terminal ?
+exit cli
+en?
+exit cli
+en?
+en
+conf t
+exit cli
+en
+conf t
 exit cli
 en
 conf t
 int g0/0
+ip address ?
+exit cli
+en
+conf t
+exit
+co?
+con?
+configure ter?
+configure terminal ?
+exit cli
+en?
+ena
+conf t
+exit
+con?
+configure ?
+configure ter?
+configure terminal ?
+configure terminal  ?
+exit cli
+en?
+en
+conf t
+exit
+con?
+configure te?
+configure terminal ?
+int g0/0
+conf t
+int g0/0
+ip address ?
+exit cli
+en
+configure terminal ?
+exit cli
+en
+configure terminal ?
+exit cli
+?
 exit cli
 en
 conf t
 int g0/0
-exit cli
-en
-conf t
-router ospf 4
-passive-interface l0
-exit
-sh run
-exit cli
-en
-conf t
-exit
-sh run
-conf t
-router ospf 7
-passive-interface l0
-network 10.0.0.0 0.0.0.0 area 3
-exit
-sh run
-exit cli
-en
-conf t
-ip access-list standard Hi
-deny 192.168.1.1 0.0.0.0
-exit
-ip access-list entended Boo
-ip access-list extended Boo
-permit tcp 192.168.1.2 eq 50 192.168.1.3 eq 67
-exit
-sh run
-exit cli
-en
-conf t
-access-list 4 permit tcp 19.2.2.2 2.2.2.2
-exit
-sh run
-exit cli
-en
-conf t
-interface g0/0
-help
-exit
-configure terminal
-exit cli
-en
-exit cli
-en
-exit cli
-sudo vi ~./bashrc
-exit cli
-en
-enable
-enable password
-exit cli
-en
-enable
-exit cli
-en
-enable
-exit cli
-enable
-configure terminal
-interface g0/0
-interface g 0/0
-exit
-enable password
-enable password hi
-help
-exoit cli
-exit cli
-enable
-configure terminal'
-configure terminal
-interface gigabit 0/0
-exit cli
-en
-conf t
-exit cli
-en
-conf t
-help
-exit
-hel[p
-he
-conf t
-he
+ip address
+ip address 192.168.1.1 255.255.255.0
 exit cli

@@ -89,6 +89,46 @@ pub enum Mode {
 }
 
 
+/// Represents command usage hint with description
+struct UsageHint {
+    parameter: &'static str,
+    description: &'static str,
+}
+
+/// Gets usage hints for a command based on mode and arguments
+fn get_command_usage_hints(command: &str, subcommand: &str, mode: &Mode) -> Vec<UsageHint> {
+    match (command, subcommand, mode) {
+        ("ip", "address", Mode::InterfaceMode) => vec![
+            UsageHint {
+                parameter: "<ip_address>",
+                description: "IPv4 address (A.B.C.D)"
+            },
+            UsageHint {
+                parameter: "<netmask>",
+                description: "Subnet mask (A.B.C.D)"
+            }
+        ],
+        ("ip", "helper-address", Mode::InterfaceMode) => vec![
+            UsageHint {
+                parameter: "<helper_ip>",
+                description: "DHCP server IP address"
+            }
+        ],
+        ("ip", "access-group", Mode::InterfaceMode) => vec![
+            UsageHint {
+                parameter: "<acl_name>",
+                description: "Access list name or number"
+            },
+            UsageHint {
+                parameter: "<direction>",
+                description: "Direction (in/out)"
+            }
+        ],
+        // Add more command patterns as needed
+        _ => vec![]
+    }
+}
+
 
 /// Executes a given command in the CLI, handling suggestions and command execution.
 ///
@@ -134,7 +174,7 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
     
     // If we're showing suggestions, remove the '?' for further processing
     if showing_suggestions {
-        normalized_input = normalized_input.trim_end_matches('?').trim();
+        normalized_input = normalized_input.trim_end_matches('?');
     }
 
     // Get available commands for current mode
@@ -300,20 +340,112 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
         }
     }
 
+     
     let parts: Vec<&str> = normalized_input.split_whitespace().collect();
-    if parts.is_empty() {
-        println!("No command entered.");
-        return;
-    }
-
+   
     let available_commands = get_mode_commands(commands, &context.current_mode);
 
     // Handle suggestions if '?' was present
     if showing_suggestions {
         match parts.len() {
             0 => {
-                println!("No commands entered.");
-                return;
+                // Handle single word with ? (e.g., "?")
+                println!("\n ");
+                println!(r#"Help may be requested at any point in a command by entering
+a question mark '?'. If nothing matches, the help list will
+be empty and you must backup until entering a '?' shows the
+available options.
+Two styles of help are provided:
+1. Full help is available when you are ready to enter a
+   command argument (e.g. 'show ?') and describes each possible
+   argument.
+2. Partial help is provided when an abbreviated argument is entered
+   and you want to know what arguments match the input
+   (e.g. 'show pr?'.
+"#);
+                println!("\nAvailable commands");
+                println!("\n ");
+                
+                if matches!(context.current_mode, Mode::UserMode) {
+                    println!("enable      - Enter privileged mode");
+                    println!("exit        - Exit current mode");
+                    println!("ping        - Send ICMP echo request");
+                }
+                else if matches!(context.current_mode, Mode::PrivilegedMode) {
+                    println!("configure   - Enter configuration mode");
+                    println!("exit        - Exit to user mode");
+                    println!("help        - Display available commands");
+                    println!("write       - Save the configuration");
+                    println!("copy        - Copy configuration files");
+                    println!("clock       - Manage system clock");
+                    println!("clear       - Clear screen");
+                    println!("ping        - Send ICMP echo request");
+                    println!("show        - Show running system information");
+                    println!("ifconfig    - Display interface configuration");
+                }
+                else if matches!(context.current_mode, Mode::ConfigMode) {
+                    println!("hostname          - Set system hostname");
+                    println!("interface         - Configure interface");
+                    println!("exit              - Exit to privileged mode");
+                    println!("tunnel            - Configure tunnel interface");
+                    println!("virtual-template  - Configure virtual template");
+                    println!("help              - Display available commands");
+                    println!("write             - Save the configuration");
+                    println!("ping              - Send ICMP echo request");
+                    println!("vlan              - Configure VLAN");
+                    println!("access-list       - Configure access list");
+                    println!("router            - Configure routing protocol");
+                    println!("enable            - Enter privileged mode");
+                    println!("ip route          - Configure static routes");
+                    println!("ip domain-name    - Configure DNS domain name");
+                    println!("ip access-list    - Configure IP access list");
+                    println!("service           - Configure system services");
+                    println!("set               - Set system parameters");
+                    println!("ifconfig          - Configure interface");
+                    println!("ntp               - Configure NTP");
+                    println!("crypto            - Configure encryption");
+                }
+                else if matches!(context.current_mode, Mode::InterfaceMode) {
+                    println!("exit              - Exit to config mode");
+                    println!("shutdown          - Shutdown interface");
+                    println!("no                - Negate a command");
+                    println!("switchport        - Configure switching parameters");
+                    println!("help              - Display available commands");
+                    println!("write             - Save the configuration");
+                    println!("interface         - Select another interface");
+                    println!("ip address        - Set IP address");
+                    println!("ip ospf           - Configure OSPF protocol");
+                }
+                else if matches!(context.current_mode, Mode::VlanMode) {
+                    println!("name              - Set VLAN name");
+                    println!("exit              - Exit to config mode");
+                    println!("state             - Set VLAN state");
+                    println!("vlan              - Configure VLAN parameters");
+                }
+                else if matches!(context.current_mode, Mode::RouterConfigMode) {
+                    println!("network           - Configure network");
+                    println!("exit              - Exit to config mode");
+                    println!("neighbor          - Configure BGP neighbor");
+                    println!("area              - Configure OSPF area");
+                    println!("passive-interface - Configure passive interface");
+                    println!("distance          - Configure administrative distance");
+                    println!("default-information - Configure default route distribution");
+                    println!("router-id         - Configure router ID");
+                }
+                else if matches!(context.current_mode, Mode::ConfigStdNaclMode(_)) {
+                    println!("deny              - Deny specific traffic");
+                    println!("permit            - Permit specific traffic");
+                    println!("exit              - Exit to config mode");
+                    println!("ip access-list    - Configure IP access list");
+                }
+                else if matches!(context.current_mode, Mode::ConfigExtNaclMode(_)) {
+                    println!("deny              - Deny specific traffic");
+                    println!("permit            - Permit specific traffic");
+                    println!("exit              - Exit to config mode");
+                    println!("ip access-list    - Configure IP access list");
+                }
+                println!("\n ");
+                
             },            
             1 => {
                 // Handle single word with ? (e.g., "configure ?")
@@ -350,7 +482,7 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
             2 => {
                 // Command with partial subcommand (e.g., "configure t?", "configure term?")
                 let available_commands = get_mode_commands(commands, &context.current_mode);
-                if available_commands.contains(&parts[0]) {
+                if available_commands.contains(&parts[0]) && !normalized_input.ends_with(' ') {
                     if let Some(cmd) = commands.get(parts[0]) {
                         if let Some(suggestions) = &cmd.suggestions {
                             let partial = parts[1];
@@ -373,12 +505,34 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                         }
                     }
                 } else {
-                    println!("Command not available in current mode");
+                    println!("More subcommands are not available in current mode");
                 }
             },
             _ => {
-                // Full command with ? (e.g., "configure terminal ?")
-                println!("No additional parameters available");
+                // Handle multi-word commands with space after last word
+                if normalized_input.ends_with(' ') {
+                    // Get usage hints for the command
+                    let hints = get_command_usage_hints(parts[0], parts[1], &context.current_mode);
+                    
+                    if !hints.is_empty() {
+                        println!("\nParameter options:");
+                        for hint in hints {
+                            println!("  {:<20} {}", hint.parameter, hint.description);
+                        }
+                    } else {
+                        println!(" ");
+                    }
+                } else {
+                    // Handle partial parameter completion
+                    let hints = get_command_usage_hints(parts[0], parts[1], &context.current_mode);
+                    if !hints.is_empty() {
+                        let current_param_index = parts.len() - 3; // Adjust for 0-based index
+                        if current_param_index < hints.len() {
+                            println!("\nParameter: {}", hints[current_param_index].parameter);
+                            println!("Description: {}", hints[current_param_index].description);
+                        }
+                    }
+                }
             }
         }
         return;

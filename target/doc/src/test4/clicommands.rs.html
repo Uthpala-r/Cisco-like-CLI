@@ -2371,7 +2371,76 @@
 <a href="#2370" id="2370">2370</a>
 <a href="#2371" id="2371">2371</a>
 <a href="#2372" id="2372">2372</a>
-<a href="#2373" id="2373">2373</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
+<a href="#2373" id="2373">2373</a>
+<a href="#2374" id="2374">2374</a>
+<a href="#2375" id="2375">2375</a>
+<a href="#2376" id="2376">2376</a>
+<a href="#2377" id="2377">2377</a>
+<a href="#2378" id="2378">2378</a>
+<a href="#2379" id="2379">2379</a>
+<a href="#2380" id="2380">2380</a>
+<a href="#2381" id="2381">2381</a>
+<a href="#2382" id="2382">2382</a>
+<a href="#2383" id="2383">2383</a>
+<a href="#2384" id="2384">2384</a>
+<a href="#2385" id="2385">2385</a>
+<a href="#2386" id="2386">2386</a>
+<a href="#2387" id="2387">2387</a>
+<a href="#2388" id="2388">2388</a>
+<a href="#2389" id="2389">2389</a>
+<a href="#2390" id="2390">2390</a>
+<a href="#2391" id="2391">2391</a>
+<a href="#2392" id="2392">2392</a>
+<a href="#2393" id="2393">2393</a>
+<a href="#2394" id="2394">2394</a>
+<a href="#2395" id="2395">2395</a>
+<a href="#2396" id="2396">2396</a>
+<a href="#2397" id="2397">2397</a>
+<a href="#2398" id="2398">2398</a>
+<a href="#2399" id="2399">2399</a>
+<a href="#2400" id="2400">2400</a>
+<a href="#2401" id="2401">2401</a>
+<a href="#2402" id="2402">2402</a>
+<a href="#2403" id="2403">2403</a>
+<a href="#2404" id="2404">2404</a>
+<a href="#2405" id="2405">2405</a>
+<a href="#2406" id="2406">2406</a>
+<a href="#2407" id="2407">2407</a>
+<a href="#2408" id="2408">2408</a>
+<a href="#2409" id="2409">2409</a>
+<a href="#2410" id="2410">2410</a>
+<a href="#2411" id="2411">2411</a>
+<a href="#2412" id="2412">2412</a>
+<a href="#2413" id="2413">2413</a>
+<a href="#2414" id="2414">2414</a>
+<a href="#2415" id="2415">2415</a>
+<a href="#2416" id="2416">2416</a>
+<a href="#2417" id="2417">2417</a>
+<a href="#2418" id="2418">2418</a>
+<a href="#2419" id="2419">2419</a>
+<a href="#2420" id="2420">2420</a>
+<a href="#2421" id="2421">2421</a>
+<a href="#2422" id="2422">2422</a>
+<a href="#2423" id="2423">2423</a>
+<a href="#2424" id="2424">2424</a>
+<a href="#2425" id="2425">2425</a>
+<a href="#2426" id="2426">2426</a>
+<a href="#2427" id="2427">2427</a>
+<a href="#2428" id="2428">2428</a>
+<a href="#2429" id="2429">2429</a>
+<a href="#2430" id="2430">2430</a>
+<a href="#2431" id="2431">2431</a>
+<a href="#2432" id="2432">2432</a>
+<a href="#2433" id="2433">2433</a>
+<a href="#2434" id="2434">2434</a>
+<a href="#2435" id="2435">2435</a>
+<a href="#2436" id="2436">2436</a>
+<a href="#2437" id="2437">2437</a>
+<a href="#2438" id="2438">2438</a>
+<a href="#2439" id="2439">2439</a>
+<a href="#2440" id="2440">2440</a>
+<a href="#2441" id="2441">2441</a>
+<a href="#2442" id="2442">2442</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
 </span><span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::net::Ipv4Addr;
 <span class="kw">use </span>std::path::Path;
@@ -3220,25 +3289,94 @@
         <span class="string">"help"</span>,
         Command {
             name: <span class="string">"help"</span>,
-            description: <span class="string">"Display available commands"</span>,
+            description: <span class="string">"Display available commands for current mode"</span>,
             suggestions: <span class="prelude-val">None</span>,
-            execute: |<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>| {
-                <span class="macro">println!</span>(<span class="string">" "</span>);
-                <span class="macro">println!</span>(<span class="string">"Available commands:"</span>);
-                <span class="macro">println!</span>(<span class="string">" "</span>);
-                <span class="macro">println!</span>(<span class="string">"Mode::UserMode                =&gt;      enable, exit, ping"</span>);
-                <span class="macro">println!</span>(<span class="string">"Mode::PrivilegedMode          =&gt;      configure, exit, help, write, copy, clock, clear, ping, show, ifconfig"</span>);
-                <span class="macro">println!</span>(<span class="string">"Mode::ConfigMode              =&gt;      hostname, interface ,exit, tunnel, irtual-template, help, write, ping, vlan, access-list, router, enable, ip route, ip domain-name, ip access-list, ervice, set, ifconfig, ntp, crypto"</span>);
-                <span class="macro">println!</span>(<span class="string">"Mode::InterfaceMode           =&gt;      exit, shutdown, no, switchport, help, write, interface, ip address, ip ospf"</span>);
-                <span class="macro">println!</span>(<span class="string">"Mode::VlanMode                =&gt;      name, exit, state, vlan"</span>);
-                <span class="macro">println!</span>(<span class="string">"Mode::RouterConfigMode        =&gt;      network, exit, neighbor, area, passive-interface, distance, default-information, router-id"</span>);
-                <span class="macro">println!</span>(<span class="string">"Mode::ConfigStdNaclMode(_)    =&gt;      deny, permit, exit, ip access-list"</span>);
-                <span class="macro">println!</span>(<span class="string">"Mode::ConfigExtNaclMode(_)    =&gt;      deny, permit, exit, ip access-list"</span>);
-                <span class="macro">println!</span>(<span class="string">" "</span>);
+            execute: |args, context, <span class="kw">_</span>| {
+                <span class="macro">println!</span>(<span class="string">"\nAvailable commands"</span>);
+                
+                <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::UserMode) {
+                    <span class="macro">println!</span>(<span class="string">"enable      - Enter privileged mode"</span>);
+                    <span class="macro">println!</span>(<span class="string">"exit        - Exit current mode"</span>);
+                    <span class="macro">println!</span>(<span class="string">"ping        - Send ICMP echo request"</span>);
+                }
+                <span class="kw">else if </span><span class="macro">matches!</span>(context.current_mode, Mode::PrivilegedMode) {
+                    <span class="macro">println!</span>(<span class="string">"configure   - Enter configuration mode"</span>);
+                    <span class="macro">println!</span>(<span class="string">"exit        - Exit to user mode"</span>);
+                    <span class="macro">println!</span>(<span class="string">"help        - Display available commands"</span>);
+                    <span class="macro">println!</span>(<span class="string">"write       - Save the configuration"</span>);
+                    <span class="macro">println!</span>(<span class="string">"copy        - Copy configuration files"</span>);
+                    <span class="macro">println!</span>(<span class="string">"clock       - Manage system clock"</span>);
+                    <span class="macro">println!</span>(<span class="string">"clear       - Clear screen"</span>);
+                    <span class="macro">println!</span>(<span class="string">"ping        - Send ICMP echo request"</span>);
+                    <span class="macro">println!</span>(<span class="string">"show        - Show running system information"</span>);
+                    <span class="macro">println!</span>(<span class="string">"ifconfig    - Display interface configuration"</span>);
+                }
+                <span class="kw">else if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode) {
+                    <span class="macro">println!</span>(<span class="string">"hostname          - Set system hostname"</span>);
+                    <span class="macro">println!</span>(<span class="string">"interface         - Configure interface"</span>);
+                    <span class="macro">println!</span>(<span class="string">"exit              - Exit to privileged mode"</span>);
+                    <span class="macro">println!</span>(<span class="string">"tunnel            - Configure tunnel interface"</span>);
+                    <span class="macro">println!</span>(<span class="string">"virtual-template  - Configure virtual template"</span>);
+                    <span class="macro">println!</span>(<span class="string">"help              - Display available commands"</span>);
+                    <span class="macro">println!</span>(<span class="string">"write             - Save the configuration"</span>);
+                    <span class="macro">println!</span>(<span class="string">"ping              - Send ICMP echo request"</span>);
+                    <span class="macro">println!</span>(<span class="string">"vlan              - Configure VLAN"</span>);
+                    <span class="macro">println!</span>(<span class="string">"access-list       - Configure access list"</span>);
+                    <span class="macro">println!</span>(<span class="string">"router            - Configure routing protocol"</span>);
+                    <span class="macro">println!</span>(<span class="string">"enable            - Enter privileged mode"</span>);
+                    <span class="macro">println!</span>(<span class="string">"ip route          - Configure static routes"</span>);
+                    <span class="macro">println!</span>(<span class="string">"ip domain-name    - Configure DNS domain name"</span>);
+                    <span class="macro">println!</span>(<span class="string">"ip access-list    - Configure IP access list"</span>);
+                    <span class="macro">println!</span>(<span class="string">"service           - Configure system services"</span>);
+                    <span class="macro">println!</span>(<span class="string">"set               - Set system parameters"</span>);
+                    <span class="macro">println!</span>(<span class="string">"ifconfig          - Configure interface"</span>);
+                    <span class="macro">println!</span>(<span class="string">"ntp               - Configure NTP"</span>);
+                    <span class="macro">println!</span>(<span class="string">"crypto            - Configure encryption"</span>);
+                }
+                <span class="kw">else if </span><span class="macro">matches!</span>(context.current_mode, Mode::InterfaceMode) {
+                    <span class="macro">println!</span>(<span class="string">"exit              - Exit to config mode"</span>);
+                    <span class="macro">println!</span>(<span class="string">"shutdown          - Shutdown interface"</span>);
+                    <span class="macro">println!</span>(<span class="string">"no                - Negate a command"</span>);
+                    <span class="macro">println!</span>(<span class="string">"switchport        - Configure switching parameters"</span>);
+                    <span class="macro">println!</span>(<span class="string">"help              - Display available commands"</span>);
+                    <span class="macro">println!</span>(<span class="string">"write             - Save the configuration"</span>);
+                    <span class="macro">println!</span>(<span class="string">"interface         - Select another interface"</span>);
+                    <span class="macro">println!</span>(<span class="string">"ip address        - Set IP address"</span>);
+                    <span class="macro">println!</span>(<span class="string">"ip ospf           - Configure OSPF protocol"</span>);
+                }
+                <span class="kw">else if </span><span class="macro">matches!</span>(context.current_mode, Mode::VlanMode) {
+                    <span class="macro">println!</span>(<span class="string">"name              - Set VLAN name"</span>);
+                    <span class="macro">println!</span>(<span class="string">"exit              - Exit to config mode"</span>);
+                    <span class="macro">println!</span>(<span class="string">"state             - Set VLAN state"</span>);
+                    <span class="macro">println!</span>(<span class="string">"vlan              - Configure VLAN parameters"</span>);
+                }
+                <span class="kw">else if </span><span class="macro">matches!</span>(context.current_mode, Mode::RouterConfigMode) {
+                    <span class="macro">println!</span>(<span class="string">"network           - Configure network"</span>);
+                    <span class="macro">println!</span>(<span class="string">"exit              - Exit to config mode"</span>);
+                    <span class="macro">println!</span>(<span class="string">"neighbor          - Configure BGP neighbor"</span>);
+                    <span class="macro">println!</span>(<span class="string">"area              - Configure OSPF area"</span>);
+                    <span class="macro">println!</span>(<span class="string">"passive-interface - Configure passive interface"</span>);
+                    <span class="macro">println!</span>(<span class="string">"distance          - Configure administrative distance"</span>);
+                    <span class="macro">println!</span>(<span class="string">"default-information - Configure default route distribution"</span>);
+                    <span class="macro">println!</span>(<span class="string">"router-id         - Configure router ID"</span>);
+                }
+                <span class="kw">else if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigStdNaclMode(<span class="kw">_</span>)) {
+                    <span class="macro">println!</span>(<span class="string">"deny              - Deny specific traffic"</span>);
+                    <span class="macro">println!</span>(<span class="string">"permit            - Permit specific traffic"</span>);
+                    <span class="macro">println!</span>(<span class="string">"exit              - Exit to config mode"</span>);
+                    <span class="macro">println!</span>(<span class="string">"ip access-list    - Configure IP access list"</span>);
+                }
+                <span class="kw">else if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigExtNaclMode(<span class="kw">_</span>)) {
+                    <span class="macro">println!</span>(<span class="string">"deny              - Deny specific traffic"</span>);
+                    <span class="macro">println!</span>(<span class="string">"permit            - Permit specific traffic"</span>);
+                    <span class="macro">println!</span>(<span class="string">"exit              - Exit to config mode"</span>);
+                    <span class="macro">println!</span>(<span class="string">"ip access-list    - Configure IP access list"</span>);
+                }
                 <span class="prelude-val">Ok</span>(())
-            },
+            }
         },
     );
+    
 
     commands.insert(
         <span class="string">"clock"</span>,
@@ -4179,9 +4317,9 @@
                 <span class="kw">if </span>args.len() &gt;= <span class="number">3 </span>{
                     <span class="kw">let </span>acl_number = args[<span class="number">0</span>].to_string();
                     <span class="kw">let </span>action = args[<span class="number">1</span>].to_string();
-                    <span class="kw">let </span>source = Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">2</span>]).expect(<span class="string">"Invalid IP address format"</span>).to_string();
-                    <span class="kw">let </span>destination = <span class="kw">if </span>args.len() &gt; <span class="number">3 </span>{ Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">3</span>]).expect(<span class="string">"Invalid IP address format"</span>).to_string()} <span class="kw">else </span>{ <span class="string">"any"</span>.to_string() };
-                    <span class="kw">let </span>protocol = args.get(<span class="number">4</span>).clone();
+                    <span class="kw">let </span>source = Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">3</span>]).expect(<span class="string">"Invalid IP address format"</span>).to_string();
+                    <span class="kw">let </span>destination = <span class="kw">if </span>args.len() &gt; <span class="number">4 </span>{ Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">4</span>]).expect(<span class="string">"Invalid IP address format"</span>).to_string()} <span class="kw">else </span>{ <span class="string">"any"</span>.to_string() };
+                    <span class="kw">let </span>protocol = args.get(<span class="number">2</span>).clone();
     
                     <span class="kw">let </span>entry = AclEntry {
                         action,
@@ -4208,7 +4346,7 @@
                     <span class="macro">println!</span>(<span class="string">"ACL {} updated."</span>, acl_number);
                     <span class="prelude-val">Ok</span>(())
                 } <span class="kw">else </span>{
-                    <span class="prelude-val">Err</span>(<span class="string">"Invalid syntax. Use 'access-list &lt;number&gt; {deny|permit} &lt;source_ip&gt; &lt;wildcard_mask&gt;'."</span>.into())
+                    <span class="prelude-val">Err</span>(<span class="string">"Invalid syntax. Use 'access-list &lt;number&gt; &lt;protocol&gt; {deny|permit} &lt;source_ip&gt; &lt;wildcard_mask&gt;'."</span>.into())
                 }
             } <span class="kw">else </span>{
                 <span class="prelude-val">Err</span>(<span class="string">"The 'access-list' command is only available in global configuration mode."</span>.into())
@@ -4264,7 +4402,7 @@
                     <span class="kw">if </span>args.len() &gt;= <span class="number">3 </span>{
                         <span class="kw">let </span>protocol = <span class="prelude-val">Some</span>(args[<span class="number">0</span>].to_lowercase()); <span class="comment">// "tcp", "udp", "icmp", etc.
                         </span><span class="kw">let </span>source = Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">1</span>]).expect(<span class="string">"Invalid IP address format"</span>).to_string();
-                        <span class="kw">let </span>destination = Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">2</span>]).expect(<span class="string">"Invalid IP address format"</span>).to_string();
+                        <span class="kw">let </span>destination = Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">4</span>]).expect(<span class="string">"Invalid IP address format"</span>).to_string();
 
                         <span class="kw">let </span><span class="kw-2">mut </span>source_operator = <span class="prelude-val">None</span>;
                         <span class="kw">let </span><span class="kw-2">mut </span>source_port = <span class="prelude-val">None</span>;
@@ -4272,8 +4410,8 @@
                         <span class="kw">let </span><span class="kw-2">mut </span>destination_port = <span class="prelude-val">None</span>;
 
                         <span class="kw">if </span>args.len() &gt; <span class="number">4 </span>{
-                            source_operator = <span class="prelude-val">Some</span>(args[<span class="number">3</span>].to_lowercase()); <span class="comment">// e.g., "eq", "gt", "lt"
-                            </span>source_port = args.get(<span class="number">4</span>).map(|p| p.to_string()); 
+                            source_operator = <span class="prelude-val">Some</span>(args[<span class="number">2</span>].to_lowercase()); <span class="comment">// e.g., "eq", "gt", "lt"
+                            </span>source_port = args.get(<span class="number">3</span>).map(|p| p.to_string()); 
                             destination_operator = args.get(<span class="number">5</span>).map(|o| o.to_lowercase()); <span class="comment">// e.g., "eq", "gt", "lt"
                             </span>destination_port = args.get(<span class="number">6</span>).map(|p| p.to_string()); 
                         }
@@ -4356,7 +4494,7 @@
                     <span class="kw">if </span>args.len() &gt;= <span class="number">3 </span>{
                         <span class="kw">let </span>protocol = <span class="prelude-val">Some</span>(args[<span class="number">0</span>].to_lowercase()); <span class="comment">// "tcp", "udp", "icmp", etc.
                         </span><span class="kw">let </span>source = Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">1</span>]).expect(<span class="string">"Invalid IP address format"</span>).to_string();
-                        <span class="kw">let </span>destination = Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">2</span>]).expect(<span class="string">"Invalid IP address format"</span>).to_string();
+                        <span class="kw">let </span>destination = Ipv4Addr::from_str(<span class="kw-2">&amp;</span>args[<span class="number">4</span>]).expect(<span class="string">"Invalid IP address format"</span>).to_string();
 
                         <span class="kw">let </span><span class="kw-2">mut </span>source_operator = <span class="prelude-val">None</span>;
                         <span class="kw">let </span><span class="kw-2">mut </span>source_port = <span class="prelude-val">None</span>;
@@ -4364,8 +4502,8 @@
                         <span class="kw">let </span><span class="kw-2">mut </span>destination_port = <span class="prelude-val">None</span>;
 
                         <span class="kw">if </span>args.len() &gt; <span class="number">4 </span>{
-                            source_operator = <span class="prelude-val">Some</span>(args[<span class="number">3</span>].to_lowercase()); <span class="comment">// e.g., "eq", "gt", "lt"
-                            </span>source_port = args.get(<span class="number">4</span>).map(|p| p.to_string()); 
+                            source_operator = <span class="prelude-val">Some</span>(args[<span class="number">2</span>].to_lowercase()); <span class="comment">// e.g., "eq", "gt", "lt"
+                            </span>source_port = args.get(<span class="number">3</span>).map(|p| p.to_string()); 
                             destination_operator = args.get(<span class="number">5</span>).map(|o| o.to_lowercase()); <span class="comment">// e.g., "eq", "gt", "lt"
                             </span>destination_port = args.get(<span class="number">6</span>).map(|p| p.to_string()); 
                         }

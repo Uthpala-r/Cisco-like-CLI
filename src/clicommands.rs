@@ -850,7 +850,21 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             description: "Display available commands for current mode",
             suggestions: None,
             execute: |args, context, _| {
+                println!("\n ");
+                println!(r#"Help may be requested at any point in a command by entering
+a question mark '?'. If nothing matches, the help list will
+be empty and you must backup until entering a '?' shows the
+available options.
+Two styles of help are provided:
+1. Full help is available when you are ready to enter a
+   command argument (e.g. 'show ?') and describes each possible
+   argument.
+2. Partial help is provided when an abbreviated argument is entered
+   and you want to know what arguments match the input
+   (e.g. 'show pr?'.
+"#);
                 println!("\nAvailable commands");
+                println!("\n ");
                 
                 if matches!(context.current_mode, Mode::UserMode) {
                     println!("enable      - Enter privileged mode");
@@ -930,6 +944,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                     println!("exit              - Exit to config mode");
                     println!("ip access-list    - Configure IP access list");
                 }
+                println!("\n ");
                 Ok(())
             }
         },
