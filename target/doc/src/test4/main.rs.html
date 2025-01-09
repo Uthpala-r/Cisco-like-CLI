@@ -172,7 +172,8 @@
 <a href="#171" id="171">171</a>
 <a href="#172" id="172">172</a>
 <a href="#173" id="173">173</a>
-<a href="#174" id="174">174</a></pre></div><pre class="rust"><code><span class="doccomment">//! # Cisco-like Command-Line Interface (CLI) Application
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a></pre></div><pre class="rust"><code><span class="doccomment">//! # Cisco-like Command-Line Interface (CLI) Application
 //!
 //! This file serves as the main module that initializes and links all other sub-modules.
 //! The CLI provides a hierarchical command structure similar to Cisco's networking devices.
@@ -310,6 +311,7 @@
     </span><span class="kw">loop </span>{
         
         <span class="kw">let </span>prompt = context.prompt.clone();
+        <span class="macro">println!</span>();
         <span class="kw">match </span>rl.readline(<span class="kw-2">&amp;</span>prompt) {
             <span class="prelude-val">Ok</span>(buffer) =&gt; {
                 <span class="kw">let </span>input = buffer.trim();
