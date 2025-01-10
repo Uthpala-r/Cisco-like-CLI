@@ -33,6 +33,8 @@ pub struct Command {
     pub name: &'static str,
     pub description: &'static str,
     pub suggestions: Option<Vec<&'static str>>,
+    pub suggestions1: Option<Vec<&'static str>>,
+    pub options: Option<Vec<&'static str>>,
     pub execute: fn(&[&str], &mut CliContext, &mut Option<Clock>) -> Result<(), String>,
 }
 
@@ -412,7 +414,7 @@ Two styles of help are provided:
                 if available_commands.contains(&normalized_input) {
                     // If it's an exact command match, show its subcommands
                     if let Some(cmd) = commands.get(normalized_input) {
-                        if let Some(suggestions) = &cmd.suggestions {
+                        if let Some(suggestions) = &cmd.suggestions1 {
                             println!("Possible completions:");
                             for suggestion in suggestions {
                                 println!("  {}", suggestion);
@@ -434,7 +436,16 @@ Two styles of help are provided:
                             println!("  {}", suggestion);
                         }
                     } else {
-                        println!("No matching commands found for '{}?'", normalized_input);
+                        if let Some(cmd) = commands.get(parts[0]) {
+                            if let Some(options) = &cmd.options {
+                                println!("Possible completions:");
+                                for option in options {
+                                    println!("  {}", option);
+                                }
+                            } else {
+                                println!("No more options available");
+                            }
+                        }
                     }
                 }
             },
@@ -443,7 +454,7 @@ Two styles of help are provided:
                 let available_commands = get_mode_commands(commands, &context.current_mode);
                 if available_commands.contains(&parts[0]) && !normalized_input.ends_with(' ') {
                     if let Some(cmd) = commands.get(parts[0]) {
-                        if let Some(suggestions) = &cmd.suggestions {
+                        if let Some(suggestions) = &cmd.suggestions1 {
                             let partial = parts[1];
                             let matching: Vec<&str> = suggestions
                                 .iter()
@@ -464,7 +475,16 @@ Two styles of help are provided:
                         }
                     }
                 } else {
-                    println!("More subcommands are not available in current mode");
+                    if let Some(cmd) = commands.get(parts[0]) {
+                        if let Some(options) = &cmd.options {
+                            println!("Possible completions:");
+                            for option in options {
+                                println!("  {}", option);
+                            }
+                        } else {
+                            println!("No more options available");
+                        }
+                    }
                 }
             },
             _ => {
@@ -484,10 +504,11 @@ Two styles of help are provided:
     };
 
     if let Some(cmd) = commands.get(cmd_key) {
-        if let Some(suggestions) = &cmd.suggestions {
+        if let Some(suggestions) = &cmd.suggestions1 {
             match parts.len() {
                 1 => {
                     println!("Incomplete command. Subcommand required.");
+                    //(cmd.execute)(&parts[1..], context, clock);
                 }
                 2 => {
                     if suggestions.is_empty() {

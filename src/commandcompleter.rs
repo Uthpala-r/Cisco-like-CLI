@@ -133,7 +133,7 @@ impl Completer for CommandCompleter {
                     });
                 }
             }
-        } else if parts.len() == 2 {
+        } else if parts.len() == 2 && !query.ends_with(' ') {
             // Suggest specific subcommands that start with the entered prefix
             if let Some(command) = suggestions.get(parts[0]) {
                 if let Some(subcommands) = &command.suggestions {

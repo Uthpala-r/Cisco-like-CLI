@@ -102,7 +102,9 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
     commands.insert("enable", Command {
         name: "enable",
         description: "Enter privileged EXEC mode",
-        suggestions: None,
+        suggestions: Some(vec!["password", "secret"]),
+        suggestions1: None,
+        options: None,
         execute: |args, context, _| {
             if args.is_empty(){
                 if matches!(context.current_mode, Mode::UserMode) {
@@ -199,6 +201,8 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         name: "configure terminal",
         description: "Enter global configuration mode",
         suggestions: Some(vec!["terminal"]),
+        suggestions1: Some(vec!["terminal"]),
+        options: None,
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::PrivilegedMode) {
                 if args.len() == 1 && args[0] == "terminal" {
@@ -218,7 +222,10 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
     commands.insert("interface", Command {
         name: "interface",
         description: "Enter Interface configuration mode or Interface Range configuration mode",
-        suggestions: None,
+        suggestions: Some(vec!["range"]),
+        suggestions1: None,
+        options: Some(vec!["range", 
+            "<interface-name>    - Specify a valid interface name"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode | Mode::InterfaceMode) {
                 if args.is_empty() {
@@ -270,6 +277,8 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         name: "exit",
         description: "Exit the current mode and return to the previous mode.",
         suggestions: None,
+        suggestions1: None,
+        options: None,
         execute: |_args, context, _| {
             if _args.is_empty() {
                 match context.current_mode {
@@ -332,6 +341,8 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         name: "hostname",
         description: "Set the device hostname",
         suggestions: None,
+        suggestions1: None,
+        options: Some(vec!["<new-hostname>    - Enter a new hostname"]),
         execute: |args, context, _| {
             if let Mode::ConfigMode = context.current_mode {
                 if let Some(new_hostname) = args.get(0) {
@@ -367,6 +378,9 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             name: "ifconfig",
             description: "Display or configure network details of the router",
             suggestions: None,
+            suggestions1: None,
+            options: Some(vec!["<interface      - Enter the interface you need to change the ip-address of or need to add", 
+                "<ip-address>      - Enter the new ip-address"]),
             execute: |args, _, _| {
                 let mut ifconfig_state = IFCONFIG_STATE.lock().unwrap();
     
@@ -393,7 +407,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                     println!("    inet6 fe80::6a01:72f9:adf2:3ffb  prefixlen 64  scopeid 0x20<link>");
                     println!("    ether 00:0c:29:16:30:92  txqueuelen 1000  (Ethernet)");
                 } else {
-                    println!("Invalid arguments provided to 'ifconfig'.");
+                    println!("Invalid arguments provided to 'ifconfig'. To create an entry 'ifconfig <interface> <ip-address> up");
                 }
     
                 Ok(())
@@ -418,6 +432,19 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                 "vlan",
                 "interfaces"
             ]),
+            suggestions1: Some(vec![
+                "running-config",
+                "startup-config",
+                "access-lists",
+                "ip",
+                "version",
+                "ntp",
+                "processes",
+                "clock",
+                "vlan",
+                "interfaces"
+            ]),
+            options: None,
             execute: |args, context, clock| {
                 if !matches!(context.current_mode, Mode::PrivilegedMode) {
                     return Err("Show commands are only available in Privileged EXEC mode.".into());
@@ -765,6 +792,8 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             name: "write memory",
             description: "Save the running configuration to the startup configuration",
             suggestions: Some(vec!["memory"]),
+            suggestions1: Some(vec!["memory"]),
+            options: None,
             execute: |args, context, _| {
                 if matches!(context.current_mode, Mode::PrivilegedMode | Mode::ConfigMode | Mode::InterfaceMode) {
                     if args.len() == 1 && args[0] == "memory" {
@@ -794,6 +823,8 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             name: "copy",
             description: "Copy running configuration",
             suggestions: Some(vec!["running-config"]),
+            suggestions1: Some(vec!["running-config"]),
+            options: Some(vec!["startup-config"]),
             execute: |args, context, _| {
                 if !matches!(context.current_mode, Mode::PrivilegedMode | Mode::ConfigMode | Mode::InterfaceMode) {
                     return Err("The 'copy' command is only available in Privileged EXEC mode, Config mode and interface mode".into());
@@ -849,6 +880,8 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             name: "help",
             description: "Display available commands for current mode",
             suggestions: None,
+            suggestions1: None,
+            options: None,
             execute: |args, context, _| {
                 println!("\n ");
                 println!(r#"Help may be requested at any point in a command by entering
@@ -957,6 +990,11 @@ Two styles of help are provided:
             name: "clock set",
             description: "Change the clock date and time",
             suggestions: Some(vec!["set"]),
+            suggestions1: Some(vec!["set"]),
+            options: Some(vec!["<hh:mm:ss>      - Enter the time in this specified format",
+                "<day>      - Enter the day '1-31'",
+                "<month>    - Enter a valid month",
+                "<year>     - Enter the year"]),
             execute: |args, context, clock| {
                 if matches!(context.current_mode, Mode::PrivilegedMode) {
                     if args.len() > 1 && args[0] == "set" {   
@@ -1000,6 +1038,16 @@ Two styles of help are provided:
                 "domain-name",
                 "access-list"
             ]),
+            suggestions1: Some(vec![
+                // InterfaceMode commands
+                "address",
+                "ospf",
+                // ConfigMode commands
+                "route",
+                "domain-name",
+                "access-list"
+            ]),
+            options: None,
             execute: |args, context, _| {
                 if args.is_empty() {
                     return Err("Incomplete command. Use 'ip ?' for help.".into());
@@ -1270,6 +1318,8 @@ Two styles of help are provided:
             name: "shutdown",
             description: "Disable the selected network interface.",
             suggestions: None,
+            suggestions1: None,
+            options: None,
             execute: |_, context, _| {
                 if matches!(context.current_mode, Mode::InterfaceMode) {
                     if let Some(interface) = &context.selected_interface {
@@ -1311,6 +1361,8 @@ Two styles of help are provided:
             name: "no shutdown",
             description: "Enable the selected network interface.",
             suggestions: Some(vec!["shutdown", "ntp"]),
+            suggestions1: Some(vec!["shutdown", "ntp"]),
+            options: None,
             execute: |args, context, _| {
                 if args.len() == 1 && args[0] == "shutdown" {
                     if matches!(context.current_mode, Mode::InterfaceMode) {
@@ -1368,6 +1420,8 @@ Two styles of help are provided:
         name: "vlan",
         description: "Define VLAN or VLAN Range",
         suggestions: None,
+        suggestions1: None,
+        options: Some(vec!["<vlan-id>       - Enter the vlan-id"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode | Mode::VlanMode) {
                 if args.is_empty() {
@@ -1443,6 +1497,8 @@ Two styles of help are provided:
         name: "name",
         description: "Set VLAN name",
         suggestions: None,
+        suggestions1: None,
+        options: Some(vec!["<vlan-name>     - Enter a name for the vlan"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::VlanMode) {
                 context.vlan_names.get_or_insert_with(HashMap::new);
@@ -1480,6 +1536,8 @@ Two styles of help are provided:
         name: "state",
         description: "Set VLAN state",
         suggestions: None,
+        suggestions1: None,
+        options: Some(vec!["<vlan-state>       - Enter a valid state ('active', 'suspend')"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::VlanMode) {
                 
@@ -1522,6 +1580,8 @@ Two styles of help are provided:
         name: "switchport",
         description: "Configure switchport settings on the interface",
         suggestions: Some(vec!["mode", "trunk", "access", "nonegotiate", "port-security"]),
+        suggestions1: Some(vec!["mode", "trunk", "access", "nonegotiate", "port-security"]),
+        options: None,
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::InterfaceMode) {
                 if args.is_empty() {
@@ -1611,6 +1671,8 @@ Two styles of help are provided:
         name: "router",
         description: "Enable OSPF routing and enter router configuration mode",
         suggestions: Some(vec!["ospf"]),
+        suggestions1: Some(vec!["ospf"]),
+        options: Some(vec!["<process-id>       - Enter the ospf process-id"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
                 if args.len() == 2 && args[0] == "ospf"  {
@@ -1639,6 +1701,10 @@ Two styles of help are provided:
         name: "network",
         description: "Define an OSPF network and associate it with an area ID",
         suggestions: None,
+        suggestions1: None,
+        options: Some(vec!["<ip-address>        - Enter the ip-address",
+            "<wildcard-mask>      - Enter the wildcard-mask",
+            "<area-id>          - Enter the area-id"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::RouterConfigMode) {
                 if args.len() == 4 {
@@ -1672,6 +1738,9 @@ Two styles of help are provided:
         name: "neighbor",
         description: "Specify a neighbor and optionally assign a cost.",
         suggestions: None,
+        suggestions1: None,
+        options: Some(vec!["<ip-address>       - Emnter the ip-address",
+            "<cost>       - Enter the cost"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::RouterConfigMode) {
                 if args.is_empty() {
@@ -1714,7 +1783,9 @@ Two styles of help are provided:
     commands.insert("area", Command {
         name: "area",
         description: "Configure OSPF area options.",
-        suggestions: None,
+        suggestions: Some(vec!["authentication", "stub", "default-cost"]),
+        suggestions1: None,
+        options: Some(vec!["<area-id>       - Enter the area-id"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::RouterConfigMode) {
                 if args.is_empty() {
@@ -1769,6 +1840,8 @@ Two styles of help are provided:
         name: "passive-interface",
         description: "Disables sending OSPF Hello packets on an interface",
         suggestions: None,
+        suggestions1: None,
+        options: Some(vec!["<interface>     - Enter the interface name"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::RouterConfigMode) {
                 if let Some(interface) = args.get(0) {
@@ -1790,6 +1863,8 @@ Two styles of help are provided:
         name: "distance",
         description: "Set administrative distance for OSPF",
         suggestions: None,
+        suggestions1: None,
+        options: Some(vec!["<distance>      - Set the distance"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::RouterConfigMode) {
                 if let Some(distance) = args.get(0) {
@@ -1814,6 +1889,8 @@ Two styles of help are provided:
         name: "default-information",
         description: "Originate a default route in OSPF",
         suggestions: Some(vec!["originate"]),
+        suggestions1: Some(vec!["originate"]),
+        options: None,
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::RouterConfigMode) {
                 if args.get(0).map(|s| &s[..]) == Some("originate") {
@@ -1832,6 +1909,8 @@ Two styles of help are provided:
         name: "router-id",
         description: "Set the router ID for the OSPF process",
         suggestions: None,
+        suggestions1: None,
+        options: Some(vec!["<router-id>       - Enter the router-id"]),
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::RouterConfigMode) {
                 if let Some(router_id) = args.get(0) {
@@ -1852,6 +1931,8 @@ Two styles of help are provided:
         name: "clear ip ospf process",
         description: "Reset all OSPF processes",
         suggestions: Some(vec!["ip ospf process"]),
+        suggestions1: Some(vec!["ip ospf process"]),
+        options: None,
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::PrivilegedMode) {
                 if args.len() == 3 && args[0] == "ip" && args[1] == "ospf" && args[2] == "process"  {
@@ -1885,6 +1966,8 @@ Two styles of help are provided:
         name: "access-list",
         description: "Configure a standard numbered ACL",
         suggestions: None,
+        suggestions1: None,
+        options: None,
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
                 if args.len() >= 3 {
@@ -1932,6 +2015,8 @@ Two styles of help are provided:
         name: "deny",
         description: "Add a deny entry to the ACL (standard or extended)",
         suggestions: None,
+        suggestions1: None,
+        options: None,
         execute: |args, context, _| {
             match &context.current_mode {
                 // Standard ACL Mode
@@ -2024,6 +2109,8 @@ Two styles of help are provided:
         name: "permit",
         description: "Add a permit entry to the ACL (standard or extended)",
         suggestions: None,
+        suggestions1: None,
+        options: None,
         execute: |args, context, _| {
             match &context.current_mode {
                 // Standard ACL Mode
@@ -2115,6 +2202,8 @@ Two styles of help are provided:
         name: "crypto",
         description: "Crypto configuration commands",
         suggestions: Some(vec!["ipsec profile", "key"]),
+        suggestions1: Some(vec!["ipsec profile", "key"]),
+        options: Some(vec!["<Requirement>   - Enter 'generate' or 'zeroize' "]),
         execute: |args, context, _| {
             if !matches!(context.current_mode, Mode::ConfigMode) {
                 return Err("Crypto commands are only available in Config mode.".into());
@@ -2187,6 +2276,8 @@ Two styles of help are provided:
         name: "set transform-set",
         description: "Specifies which transform sets can be used with the crypto map entry.",
         suggestions: Some(vec!["transform-set"]),
+        suggestions1: Some(vec!["transform-set"]),
+        options: None,
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
                 if args.len() == 1 {
@@ -2207,6 +2298,8 @@ Two styles of help are provided:
         name: "tunnel",
         description: "Configures the tunnel interface with multiple parameters (mode, source, destination, protection, virtual-template).",
         suggestions: Some(vec!["mode", "source", "destination", "protection"]),
+        suggestions1: Some(vec!["mode", "source", "destination", "protection"]),
+        options: None,
         execute: |_args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
                 if _args.is_empty() {
@@ -2266,6 +2359,8 @@ Two styles of help are provided:
         name: "virtual-template",
         description: "Enter interface configuration mode for a virtual-template interface",
         suggestions: None,
+        suggestions1: None,
+        options: Some(vec!["<template-number>       - Enter the template number"]),
         execute: |_args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
                 if _args.len() == 1 {
@@ -2294,6 +2389,8 @@ Two styles of help are provided:
         name: "ntp",
         description: "NTP configuration commands",
         suggestions: Some(vec!["server", "master", "authenticate", "authentication-key", "trusted-key"]),
+        suggestions1: Some(vec!["server", "master", "authenticate", "authentication-key", "trusted-key"]),
+        options: None,
         execute: |args, context, _| {
             if !matches!(context.current_mode, Mode::ConfigMode) {
                 return Err("NTP commands are only available in configuration mode.".into());
@@ -2386,6 +2483,8 @@ Two styles of help are provided:
         name: "service password-encryption",
         description: "Enable password encryption",
         suggestions: Some(vec!["password-encryption"]),
+        suggestions1: Some(vec!["password-encryption"]),
+        options: None,
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
                 if args.len() == 1 && args[0] == "password-encryption" {
@@ -2421,6 +2520,8 @@ Two styles of help are provided:
         name: "ping",
         description: "Ping a specific IP address to check reachability",
         suggestions: None,
+        suggestions1: None,
+        options: Some(vec!["<ip-address>    - Enter the ip-address"]),
         execute: |args, _context, _| {
             if args.len() == 1 {
                 let ip: String = args[0].to_string();

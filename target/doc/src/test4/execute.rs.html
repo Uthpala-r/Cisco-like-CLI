@@ -518,7 +518,28 @@
 <a href="#517" id="517">517</a>
 <a href="#518" id="518">518</a>
 <a href="#519" id="519">519</a>
-<a href="#520" id="520">520</a></pre></div><pre class="rust"><code><span class="comment">//execute.rs
+<a href="#520" id="520">520</a>
+<a href="#521" id="521">521</a>
+<a href="#522" id="522">522</a>
+<a href="#523" id="523">523</a>
+<a href="#524" id="524">524</a>
+<a href="#525" id="525">525</a>
+<a href="#526" id="526">526</a>
+<a href="#527" id="527">527</a>
+<a href="#528" id="528">528</a>
+<a href="#529" id="529">529</a>
+<a href="#530" id="530">530</a>
+<a href="#531" id="531">531</a>
+<a href="#532" id="532">532</a>
+<a href="#533" id="533">533</a>
+<a href="#534" id="534">534</a>
+<a href="#535" id="535">535</a>
+<a href="#536" id="536">536</a>
+<a href="#537" id="537">537</a>
+<a href="#538" id="538">538</a>
+<a href="#539" id="539">539</a>
+<a href="#540" id="540">540</a>
+<a href="#541" id="541">541</a></pre></div><pre class="rust"><code><span class="comment">//execute.rs
 
 </span><span class="doccomment">/// External crates for the CLI application
 </span><span class="kw">use </span>std::collections::{HashMap, HashSet};
@@ -553,6 +574,8 @@
     <span class="kw">pub </span>name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
     <span class="kw">pub </span>description: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
     <span class="kw">pub </span>suggestions: <span class="prelude-ty">Option</span>&lt;Vec&lt;<span class="kw-2">&amp;</span><span class="lifetime">'static </span>str&gt;&gt;,
+    <span class="kw">pub </span>suggestions1: <span class="prelude-ty">Option</span>&lt;Vec&lt;<span class="kw-2">&amp;</span><span class="lifetime">'static </span>str&gt;&gt;,
+    <span class="kw">pub </span>options: <span class="prelude-ty">Option</span>&lt;Vec&lt;<span class="kw-2">&amp;</span><span class="lifetime">'static </span>str&gt;&gt;,
     <span class="kw">pub </span>execute: <span class="kw">fn</span>(<span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str], <span class="kw-2">&amp;mut </span>CliContext, <span class="kw-2">&amp;mut </span><span class="prelude-ty">Option</span>&lt;Clock&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt;,
 }
 
@@ -932,7 +955,7 @@ Two styles of help are provided:
                 <span class="kw">if </span>available_commands.contains(<span class="kw-2">&amp;</span>normalized_input) {
                     <span class="comment">// If it's an exact command match, show its subcommands
                     </span><span class="kw">if let </span><span class="prelude-val">Some</span>(cmd) = commands.get(normalized_input) {
-                        <span class="kw">if let </span><span class="prelude-val">Some</span>(suggestions) = <span class="kw-2">&amp;</span>cmd.suggestions {
+                        <span class="kw">if let </span><span class="prelude-val">Some</span>(suggestions) = <span class="kw-2">&amp;</span>cmd.suggestions1 {
                             <span class="macro">println!</span>(<span class="string">"Possible completions:"</span>);
                             <span class="kw">for </span>suggestion <span class="kw">in </span>suggestions {
                                 <span class="macro">println!</span>(<span class="string">"  {}"</span>, suggestion);
@@ -954,7 +977,16 @@ Two styles of help are provided:
                             <span class="macro">println!</span>(<span class="string">"  {}"</span>, suggestion);
                         }
                     } <span class="kw">else </span>{
-                        <span class="macro">println!</span>(<span class="string">"No matching commands found for '{}?'"</span>, normalized_input);
+                        <span class="kw">if let </span><span class="prelude-val">Some</span>(cmd) = commands.get(parts[<span class="number">0</span>]) {
+                            <span class="kw">if let </span><span class="prelude-val">Some</span>(options) = <span class="kw-2">&amp;</span>cmd.options {
+                                <span class="macro">println!</span>(<span class="string">"Possible completions:"</span>);
+                                <span class="kw">for </span>option <span class="kw">in </span>options {
+                                    <span class="macro">println!</span>(<span class="string">"  {}"</span>, option);
+                                }
+                            } <span class="kw">else </span>{
+                                <span class="macro">println!</span>(<span class="string">"No more options available"</span>);
+                            }
+                        }
                     }
                 }
             },
@@ -963,7 +995,7 @@ Two styles of help are provided:
                 </span><span class="kw">let </span>available_commands = get_mode_commands(commands, <span class="kw-2">&amp;</span>context.current_mode);
                 <span class="kw">if </span>available_commands.contains(<span class="kw-2">&amp;</span>parts[<span class="number">0</span>]) &amp;&amp; !normalized_input.ends_with(<span class="string">' '</span>) {
                     <span class="kw">if let </span><span class="prelude-val">Some</span>(cmd) = commands.get(parts[<span class="number">0</span>]) {
-                        <span class="kw">if let </span><span class="prelude-val">Some</span>(suggestions) = <span class="kw-2">&amp;</span>cmd.suggestions {
+                        <span class="kw">if let </span><span class="prelude-val">Some</span>(suggestions) = <span class="kw-2">&amp;</span>cmd.suggestions1 {
                             <span class="kw">let </span>partial = parts[<span class="number">1</span>];
                             <span class="kw">let </span>matching: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = suggestions
                                 .iter()
@@ -984,7 +1016,16 @@ Two styles of help are provided:
                         }
                     }
                 } <span class="kw">else </span>{
-                    <span class="macro">println!</span>(<span class="string">"More subcommands are not available in current mode"</span>);
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>(cmd) = commands.get(parts[<span class="number">0</span>]) {
+                        <span class="kw">if let </span><span class="prelude-val">Some</span>(options) = <span class="kw-2">&amp;</span>cmd.options {
+                            <span class="macro">println!</span>(<span class="string">"Possible completions:"</span>);
+                            <span class="kw">for </span>option <span class="kw">in </span>options {
+                                <span class="macro">println!</span>(<span class="string">"  {}"</span>, option);
+                            }
+                        } <span class="kw">else </span>{
+                            <span class="macro">println!</span>(<span class="string">"No more options available"</span>);
+                        }
+                    }
                 }
             },
             <span class="kw">_ </span>=&gt; {
@@ -1004,11 +1045,12 @@ Two styles of help are provided:
     };
 
     <span class="kw">if let </span><span class="prelude-val">Some</span>(cmd) = commands.get(cmd_key) {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(suggestions) = <span class="kw-2">&amp;</span>cmd.suggestions {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(suggestions) = <span class="kw-2">&amp;</span>cmd.suggestions1 {
             <span class="kw">match </span>parts.len() {
                 <span class="number">1 </span>=&gt; {
                     <span class="macro">println!</span>(<span class="string">"Incomplete command. Subcommand required."</span>);
-                }
+                    <span class="comment">//(cmd.execute)(&amp;parts[1..], context, clock);
+                </span>}
                 <span class="number">2 </span>=&gt; {
                     <span class="kw">if </span>suggestions.is_empty() {
                         <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = (cmd.execute)(<span class="kw-2">&amp;</span>parts[<span class="number">1</span>..], context, clock) {

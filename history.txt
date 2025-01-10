@@ -1,101 +1,101 @@
 #V2
-?
-conf t
-?
+en
+enable password
 exit cli
 en
-configure terminal ?
-con?
-configure?
+conf t
+enable password HI
+exit
+enable
+Hi
+en
 exit cli
+en
+exit cli
+en
+exit cli
+en
+conf t
+ho R`
+en pas Hi
+en password Hi
+exit
+en
+exit
+exit cli
+en
+conf t
+enable'
+enable
+exit cli
+en
+conf t
+interface g0/0
+exit cli
+en
+conf t
+exit
+co?
+configure t?
+configure terminal?
+configure terminal ?
+conf t
+interface
+interface g0/0
+exit
+in?
+interface?
+interface ?
+exit cli
+en
+configure terminal
+exit
+configure terminal ?
+configure terminal
+interface ?
+exit cli
+en?
 enable
 exit
-en
-exit
-en?
 enable ?
 en
+con/
 con?
-co?
-configure ?
+configure t?
 configure terminal ?
-configure termin?
-configure termi
+conf t
+inter?
 interface ?
 interface g0/0
-ip address ?
-ip address?
-exit cli
-e
-en
-con?
-configure?
-configure ter?
-configure terminal ?
-exit cli
-en?
-exit cli
-en?
-en
-conf t
-exit cli
-en
-conf t
-exit cli
-en
-conf t
-int g0/0
-ip address ?
-exit cli
-en
-conf t
 exit
-co?
-con?
-configure ter?
-configure terminal ?
+hostname ?
+if?
+ifconfig ?
 exit cli
-en?
-ena
-conf t
+en
 exit
-con?
-configure ?
-configure ter?
+enable
+configu?
+configure t?
 configure terminal ?
-configure terminal  ?
-exit cli
-en?
-en
-conf t
-exit
-con?
-configure te?
-configure terminal ?
-int g0/0
-conf t
-int g0/0
-ip address ?
-exit cli
-en
-configure terminal ?
-exit cli
-en
-configure terminal ?
-exit cli
-?
-exit cli
-en
-conf t
-int g0/0
-ip address
-ip address 192.168.1.1 255.255.255.0
-exit cli
-en
-conf t
-exit
-configure terminal ?
-conf t
+configure terminal
+interfa?
 interface ?
-interface g0/0
+interface range g0/0-5
+exit
+en pass Hi
+enable password Hi
+exit
+en
+exit cli
+en
+conf t
+ho R1
+exit
+sh run
+wr mem
+co run startup-config
+copy running-config ?
+copy running-config starup-config
+sh st
 exit cli
