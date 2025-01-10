@@ -1,5 +1,5 @@
 [package]
-name = "test4"
+name = "pnf_cli"
 version = "0.1.0"
 edition = "2021"
 

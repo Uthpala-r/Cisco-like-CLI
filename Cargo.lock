@@ -521,6 +521,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pnf_cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "ctrlc",
+ "ipnetwork",
+ "lazy_static",
+ "reedline",
+ "regex",
+ "rpassword",
+ "rustyline",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -808,25 +827,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "test4"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "clap",
- "ctrlc",
- "ipnetwork",
- "lazy_static",
- "reedline",
- "regex",
- "rpassword",
- "rustyline",
- "serde",
- "serde_json",
- "sha2",
 ]
 
 [[package]]
