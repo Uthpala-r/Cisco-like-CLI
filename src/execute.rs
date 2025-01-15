@@ -147,6 +147,9 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                         cmd == "enable" ||
                         cmd == "ping" ||
                         cmd == "help" ||
+                        cmd == "show" ||
+                        cmd == "clear" ||
+                        cmd == "reload" ||
                         cmd == "exit"
                     })
                     .copied()
@@ -164,6 +167,9 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                         cmd == "copy" ||
                         cmd == "clock" ||
                         cmd == "clear" ||
+                        cmd == "reload" ||
+                        cmd == "debug" ||
+                        cmd == "undebug" ||
                         cmd == "ifconfig"
                         
                     })
@@ -177,6 +183,7 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                         cmd == "interface" ||
                         cmd == "ping" ||
                         cmd == "exit" ||
+                        cmd == "clear" ||
                         cmd == "tunnel" ||
                         cmd == "access-list" ||
                         cmd == "router" ||
@@ -191,6 +198,7 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                         cmd == "ifconfig" ||  
                         cmd == "ntp" ||
                         cmd == "no" || 
+                        cmd == "reload" ||
                         cmd == "crypto"
                     })
                     .copied()
@@ -202,9 +210,11 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                         cmd == "shutdown" ||
                         cmd == "no" ||
                         cmd == "exit" ||
+                        cmd == "clear" ||
                         cmd == "help" ||
                         cmd == "switchport" ||
                         cmd == "write" ||
+                        cmd == "reload" ||
                         cmd == "ip" 
 
                     })
@@ -216,8 +226,10 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                     .filter(|&&cmd| {
                         cmd == "name" ||
                         cmd == "state" ||
+                        cmd == "clear" ||
                         cmd == "exit" ||
                         cmd == "help" ||
+                        cmd == "reload" ||
                         cmd == "vlan" 
 
                     })
@@ -230,10 +242,12 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                         cmd == "network" ||
                         cmd == "neighbor" ||
                         cmd == "exit" ||
+                        cmd == "clear" ||
                         cmd == "area" ||
                         cmd == "passive-interface" ||
                         cmd == "distance" ||
                         cmd == "help" ||
+                        cmd == "reload" ||
                         cmd == "default-information" ||
                         cmd == "router-id"
 
@@ -248,6 +262,8 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                         cmd == "permit" ||
                         cmd == "help" ||
                         cmd == "exit" ||
+                        cmd == "clear" ||
+                        cmd == "reload" ||
                         cmd == "ip"
 
                     })
@@ -261,6 +277,8 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
                         cmd == "permit" ||
                         cmd == "help" ||
                         cmd == "exit" ||
+                        cmd == "clear" ||
+                        cmd == "reload" ||
                         cmd == "ip"
 
                     })
@@ -409,29 +427,36 @@ Two styles of help are provided:
                 
             },            
             1 => {
+                let command_name = parts[0].trim();
                 // Handle single word with ? (e.g., "configure ?")
                 let available_commands = get_mode_commands(commands, &context.current_mode);
-                if available_commands.contains(&normalized_input) {
+                if available_commands.contains(&command_name) {
                     // If it's an exact command match, show its subcommands
-                    if let Some(cmd) = commands.get(normalized_input) {
+                    if let Some(cmd) = commands.get(command_name) {
                         if let Some(suggestions) = &cmd.suggestions1 {
                             println!("Possible completions:");
                             for suggestion in suggestions {
                                 println!("  {}", suggestion);
                             }
+                        } else if let Some(options) = &cmd.options {
+                            // Fall back to options if no suggestions1 are available
+                            println!("Possible completions:");
+                            for option in options {
+                                println!("  {}", option);
+                            }
                         } else {
-                            println!("No subcommands available");
+                            println!("No subcommands or more options available");
                         }
                     }
                 } else {
                     // If it's a partial command, show matching commands
                     let suggestions: Vec<&str> = available_commands
                         .into_iter()
-                        .filter(|cmd| cmd.starts_with(normalized_input))
+                        .filter(|cmd| cmd.starts_with(command_name))
                         .collect();
 
                     if !suggestions.is_empty() {
-                        println!("Possible completions for '{}?':", normalized_input);
+                        println!("Possible completions for '{}?':", command_name);
                         for suggestion in suggestions {
                             println!("  {}", suggestion);
                         }
@@ -483,6 +508,7 @@ Two styles of help are provided:
                             }
                         } else {
                             println!("No more options available");
+                            //(cmd.execute)(&parts[1..], context, clock);
                         }
                     }
                 }

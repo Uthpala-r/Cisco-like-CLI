@@ -1,101 +1,101 @@
 #V2
 en
-enable password
-exit cli
-en
-conf t
-enable password HI
+configure ?
+configure te
 exit
-enable
-Hi
-en
+sh clock
+clock set
+clock set 14:17:20 15 January 2025
+sh clock
 exit cli
 en
-exit cli
-en
-exit cli
-en
-conf t
-ho R`
-en pas Hi
-en password Hi
-exit
-en
-exit
-exit cli
-en
-conf t
-enable'
-enable
-exit cli
-en
-conf t
-interface g0/0
+sh clock
 exit cli
 en
 conf t
 exit
-co?
-configure t?
-configure terminal?
-configure terminal ?
-conf t
-interface
-interface g0/0
-exit
-in?
-interface?
-interface ?
+sh clo
+clo set 14:32:20 15 January 2025
+sh clo
 exit cli
 en
-configure terminal
-exit
-configure terminal ?
-configure terminal
-interface ?
-exit cli
-en?
-enable
-exit
-enable ?
-en
-con/
-con?
-configure t?
-configure terminal ?
-conf t
-inter?
-interface ?
-interface g0/0
-exit
-hostname ?
-if?
-ifconfig ?
-exit cli
-en
-exit
-enable
-configu?
-configure t?
-configure terminal ?
-configure terminal
-interfa?
-interface ?
-interface range g0/0-5
-exit
-en pass Hi
-enable password Hi
-exit
-en
+sh clo
 exit cli
 en
 conf t
-ho R1
+clear
+exit cli
+en
+conf t
+clear
+exit cli
+en
+conf t
+clear
+exit cli
+en
+conf t
+clear
+int g0/0
 exit
-sh run
-wr mem
-co run startup-config
-copy running-config ?
-copy running-config starup-config
-sh st
+clear
+exit
+clear
+exit cli
+en
+conf t
+exit
+show uptime
+show interfaces
+show uptime
+exit cli
+en
+sh up
+sh ver
+exit cli
+en
+sh clock
+sh up
+sh ver
+exit cli
+en
+sh clo
+sh ver
+sh up
+exit cli
+en
+conf t
+sh login
+exit
+sh login
+exit cli
+en
+conf t
+exit sh login
+sh login
+exit
+sh login
+exit cli
+en
+conf t
+exit cli
+en
+conf t
+reload
+en
+reload
+exit cli
+en
+conf t
+reload
+exit cli
+en
+conf t
+exit
+deb all
+und all
+exit
+show ?
+en
+show ?
 exit cli

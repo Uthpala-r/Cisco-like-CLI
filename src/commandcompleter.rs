@@ -204,14 +204,14 @@ impl Completer for CommandCompleter {
 /// for the commands within each mode.
 fn is_command_allowed_in_mode(command: &String, mode: &Mode) -> bool {
     match mode {
-        Mode::UserMode => matches!(command.as_str(), "enable" | "exit" | "help" | "ping"),
-        Mode::PrivilegedMode => matches!(command.as_str(), "configure" | "exit" | "help" | "write" | "copy" | "clock" | "clear" | "ping" | "show" | "ifconfig"),
-        Mode::ConfigMode => matches!(command.as_str(), "hostname" | "interface" | "ip" | "no" | "exit" | "tunnel" | "virtual-template" | "help" | "write" | "ping" | "vlan" | "access-list" | "router" | "enable" | "service" | "set" | "ifconfig" | "ntp" | "crypto"),
-        Mode::InterfaceMode => matches!(command.as_str(), "exit" | "shutdown" | "no" | "switchport" | "help" | "write" | "interface" | "ip"), 
-        Mode::VlanMode => matches!(command.as_str(), "name" | "exit" | "help" | "state" | "vlan"),
-        Mode::RouterConfigMode => matches!(command.as_str(), "network" | "exit" | "help" | "neighbor" | "area" | "passive-interface" | "distance" | "default-information" | "router-id"),
-        Mode::ConfigStdNaclMode(_) => matches!(command.as_str(), "deny" | "permit" | "help" | "exit" | "ip"),
-        Mode::ConfigExtNaclMode(_) => matches!(command.as_str(), "deny" | "permit" | "help" | "exit" | "ip"),
+        Mode::UserMode => matches!(command.as_str(), "enable" | "reload" | "exit" | "clear" | "help" | "show" | "ping"),
+        Mode::PrivilegedMode => matches!(command.as_str(), "configure" | "reload" | "debug" | "undebug" | "exit" | "clear" | "help" | "write" | "copy" | "clock" | "clear" | "ping" | "show" | "ifconfig"),
+        Mode::ConfigMode => matches!(command.as_str(), "hostname" | "reload" | "interface" | "ip" | "no" | "exit" | "clear" | "tunnel" | "virtual-template" | "help" | "write" | "ping" | "vlan" | "access-list" | "router" | "enable" | "service" | "set" | "ifconfig" | "ntp" | "crypto"),
+        Mode::InterfaceMode => matches!(command.as_str(), "exit" | "reload" | "shutdown" | "no" | "switchport" | "clear" | "help" | "write" | "interface" | "ip"), 
+        Mode::VlanMode => matches!(command.as_str(), "name" | "exit" | "reload" | "clear" | "help" | "state" | "vlan"),
+        Mode::RouterConfigMode => matches!(command.as_str(), "network" | "reload" | "exit" | "clear" | "help" | "neighbor" | "area" | "passive-interface" | "distance" | "default-information" | "router-id"),
+        Mode::ConfigStdNaclMode(_) => matches!(command.as_str(), "deny" | "permit" | "reload" | "help" | "exit" | "clear" | "ip"),
+        Mode::ConfigExtNaclMode(_) => matches!(command.as_str(), "deny" | "permit" | "reload" | "help" | "exit" | "clear" | "ip"),
         
         _ => false,
     }

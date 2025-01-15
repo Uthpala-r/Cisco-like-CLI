@@ -7,12 +7,13 @@ use std::io::Write;
 use std::io;
 use std::str::FromStr;
 use rpassword::read_password;
+use std::process::Command as ProcessCommand;
 
 use crate::run_config::{get_running_config, default_startup_config};
 //use crate::run_config::load_config;
 use crate::execute::Command;
 use crate::execute::Mode;
-use crate::clock_settings::{handle_clock_set, parse_clock_set_input, handle_show_clock};
+use crate::clock_settings::{handle_clock_set, parse_clock_set_input, handle_show_clock, handle_show_uptime};
 use crate::network_config::{calculate_broadcast, STATUS_MAP, IFCONFIG_STATE, IP_ADDRESS_STATE, ROUTE_TABLE, OSPF_CONFIG, ACL_STORE, encrypt_password, PASSWORD_STORAGE, set_enable_password, set_enable_secret};
 use crate::network_config::{InterfaceConfig, OSPFConfig, AclEntry, AccessControlList, NtpAssociation};
 
@@ -48,6 +49,11 @@ use crate::network_config::{InterfaceConfig, OSPFConfig, AclEntry, AccessControl
 ///     - `show ntp associations`: Displays the status of NTP associations with servers or clients, showing the synchronization status and other details.
 ///     - `show ntp`: Displays information about the current NTP configuration, associations, and synchronization status.
 ///     - `show processes`: Shows the system processes and memories
+///     - `show uptime`: Shows the time from the last reboot
+///     - `show login`: Shows the details about login delay
+/// - `reload`: Reloads the system
+/// - `debug all`: Debug all the processors
+/// - `undebug all`: Undebug all the processors
 /// - `write memory`: Saves the running configuration to the startup configuration.
 /// - `copy running-config`: Copies the running configuration to the startup configuration or to a new file if mentioned.
 /// - `help`: Displays a list of available commands.
@@ -129,6 +135,21 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             
                         if let Some(ref stored_password) = stored_password {
                             if input_password == *stored_password {
+                                // Correct enable password, proceed to privileged mode
+                                context.current_mode = Mode::PrivilegedMode;
+                                context.prompt = format!("{}#", context.config.hostname);
+                                println!("Entering privileged EXEC mode...");
+                                return Ok(());
+                            }
+                        }
+                    }
+
+                    if stored_password.is_none() {
+                        println!("Enter secret:");
+                        let input_secret= read_password().unwrap_or_else(|_| "".to_string());
+            
+                        if let Some(ref stored_secret) = stored_secret {
+                            if input_secret == *stored_secret {
                                 // Correct enable password, proceed to privileged mode
                                 context.current_mode = Mode::PrivilegedMode;
                                 context.prompt = format!("{}#", context.config.hostname);
@@ -335,7 +356,104 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         },
     });
     
+    commands.insert("reload", Command {
+        name: "reload",
+        description: "Reload the system",
+        suggestions: None,
+        suggestions1: None,
+        options: None,
+        execute: |_, context, _| {
+            
+            println!("System configuration has been modified. Save? [yes/no]:");
     
+            let mut save_input = String::new();
+            std::io::stdin().read_line(&mut save_input).expect("Failed to read input");
+            let save_input = save_input.trim();
+    
+            if save_input.eq_ignore_ascii_case("yes") {
+                println!("Building configuration...");
+                println!("[OK]");
+            } else if save_input.eq_ignore_ascii_case("no") {
+                println!("Configuration not saved.");
+            } else {
+                return Err("Invalid input. Please enter 'yes' or 'no'.".into());
+            }
+    
+            println!("Proceed with reload? [confirm]:");
+            let mut reload_confirm = String::new();
+            std::io::stdin().read_line(&mut reload_confirm).expect("Failed to read input");
+            let reload_confirm = reload_confirm.trim();
+    
+            if reload_confirm.eq_ignore_ascii_case("yes") || reload_confirm.eq_ignore_ascii_case("y") {
+                println!("System Bootstrap, Version 15.1(4)M4, RELEASE SOFTWARE (fc1)");
+                println!("Technical Support: http://www.cisco.com/techsupport");
+                println!("Copyright (c) 2010 by cisco Systems, Inc.");
+                println!("Total memory size = 512 MB - On-board = 512 MB, DIMM0 = 0 MB");
+    
+                // Simulate reload process
+                context.current_mode = Mode::UserMode;
+                context.prompt = format!("{}>", context.config.hostname);
+    
+                println!("\nPress RETURN to get started!");
+                Ok(())
+            } else if reload_confirm.eq_ignore_ascii_case("no") {
+                println!("Reload aborted.");
+                Ok(())
+            } else {
+                Err("Invalid input. Please enter 'yes', 'y', or 'no'.".into())
+            }
+        },
+    });
+    
+    commands.insert("debug", Command {
+        name: "debug all",
+        description: "To turn on all the possible debug levels",
+        suggestions: Some(vec!["all"]),
+        suggestions1: Some(vec!["all"]),
+        options: None,
+        execute: |args, context, _| {
+            if matches!(context.current_mode, Mode::PrivilegedMode) {
+                if args.len() == 1 && args[0] == "all" {
+                    println!("This may severely impact network performance. Continue? (yes/[no]):");
+    
+                    let mut save_input = String::new();
+                    std::io::stdin().read_line(&mut save_input).expect("Failed to read input");
+                    let save_input = save_input.trim();
+            
+                    if save_input.eq_ignore_ascii_case("yes") {
+                        println!("All possible debugging has been turned on");
+                        Ok(())
+                    } else {
+                        return Err("Invalid input. Please enter 'yes' or 'no'.".into());
+                    }
+                } else {
+                    Err("Invalid arguments provided to 'debug all'. This command does not accept additional arguments.".into())
+                }
+            } else {
+                Err("The 'debug all' command is only available in Privileged EXEC mode.".into())
+            }
+        },
+    });
+
+    commands.insert("undebug", Command {
+        name: "undebug all",
+        description: "Turning off all possible debugging processes",
+        suggestions: Some(vec!["all"]),
+        suggestions1: Some(vec!["all"]),
+        options: None,
+        execute: |args, context, _| {
+            if matches!(context.current_mode, Mode::PrivilegedMode) {
+                if args.len() == 1 && args[0] == "all" {
+                    println!("All possible debugging has been turned off");
+                    Ok(())
+                } else {
+                    Err("Invalid arguments provided to 'undebug all'. This command does not accept additional arguments.".into())
+                }
+            } else {
+                Err("The 'undebug all' command is only available in Privileged EXEC mode.".into())
+            }
+        },
+    });
 
     commands.insert("hostname", Command {
         name: "hostname",
@@ -430,7 +548,9 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                 "processes",
                 "clock",
                 "vlan",
-                "interfaces"
+                "interfaces",
+                "uptime",
+                "login"
             ]),
             suggestions1: Some(vec![
                 "running-config",
@@ -442,345 +562,384 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                 "processes",
                 "clock",
                 "vlan",
-                "interfaces"
+                "interfaces",
+                "uptime",
+                "login"
             ]),
             options: None,
             execute: |args, context, clock| {
-                if !matches!(context.current_mode, Mode::PrivilegedMode) {
-                    return Err("Show commands are only available in Privileged EXEC mode.".into());
-                }
-    
-                match args.get(0) {
-                    Some(&"running-config") => {
-                        println!("Building configuration...\n");
-                        println!("Current configuration : 0 bytes\n");
-                        let running_config = get_running_config(&context);
-                        println!("{}", running_config);
-                        Ok(())
-                    },
-                    Some(&"startup-config") => {
-                        println!("Building configuration...\n");
-                        if let Some(last_written) = &context.config.last_written {
-                            println!("Startup configuration (last saved: {}):\n", last_written);
-                            let startup_config = get_running_config(&context);
-                            println!("{}", startup_config);
-                        } else {
-                            println!("Startup configuration (default):\n");
-                            println!("{}", default_startup_config(context));
-                        }
-                        Ok(())
-                    },
-                    Some(&"clock") => {
-                        if let Some(clock) = clock {
-                            handle_show_clock(clock);
-                            Ok(())
-                        } else {
-                            Err("Clock functionality is unavailable.".to_string())
-                        }
-                    },
-                    Some(&"version") => {
-                        println!("Software Version: Cisco IOS 15.2(3)T");
-                        println!("Compiled on: 2024-12-01");
-                        Ok(())
-                    },
-                    Some(&"interfaces") => {
-                        let ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
-                        let Some(interface_name) = &context.selected_interface else {
-                            return Err("No interface selected. Use the 'interface' command first.".into());
-                        };
-                
-                        if ip_address_state.is_empty() {
-                            println!("No interfaces found.");
-                            return Ok(()); 
-                        } else {
-                            for (interface_name, (ip_address, _)) in ip_address_state.iter() {
-                                println!("{} is up, line protocol is up", interface_name);
-                                println!("  Internet address is {}, subnet mask 255.255.255.0", ip_address);
-                                println!("  MTU 1500 bytes, BW 10000 Kbit, DLY 100000 usec");
-                                println!("  Encapsulation ARPA, loopback not set, keepalive set (10 sec)");
-                                println!("  Last clearing of \"show interface\" counters: never");
-                                println!("  Input queue: 0/2000/0/0 (size/max/drops/flushes); Total output drops: 0");
-                                println!("  5 minute input rate 1000 bits/sec, 10 packets/sec");
-                                println!("  5 minute output rate 500 bits/sec, 5 packets/sec");
-                                println!("  100 packets input, 1000 bytes, 10 no buffer");
-                                println!("  50 packets output, 500 bytes, 0 underruns");
-                            }
-                        }
-                
-                        Ok(()) 
-                    },
-                    Some(&"ip") => {
-                        match args.get(1) {
-                            Some(&"ospf") => {
-                                match args.get(2) {
-                                    Some(&"neighbor") => {
-                                        let mut ospf_config = OSPF_CONFIG.lock().unwrap();
-                                        println!("Current OSPF Configuration:");
-                                        println!("Router ID: {:?}", ospf_config.router_id.clone().unwrap_or("Not set".to_string()));
-                                        println!("Administrative Distance: {:?}", ospf_config.distance.unwrap_or(110));
-                                        println!("Default Information Originate: {}", ospf_config.default_information_originate);
-                                        println!("Passive Interfaces: {:?}", ospf_config.passive_interfaces);
-                                        Ok(())
-                                    },
-                                    _ => Err("Invalid OSPF subcommand. Use 'neighbor'".into())
-                                }
-                            },
-                            Some(&"route") => {
-                                let route_table = ROUTE_TABLE.lock().unwrap();
-        
-                                if args.len() == 2 {
-                                    println!("Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP");
-                                    println!("       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area");
-                                    println!("       N1 - OSPF NSSA external type 1, N2 - OSPF NSSA external type 2");
-                                    println!("       E1 - OSPF external type 1, E2 - OSPF external type 2, E - EGP");
-                                    println!("       i - IS-IS, L1 - IS-IS level-1, L2 - IS-IS level-2, ia - IS-IS inter area");
-                                    println!("       * - candidate default, U - per-user static route, o - ODR");
-                                    println!("       P - periodic downloaded static route");
-                                    println!();
-                    
-                                    if route_table.is_empty() {
-                                        println!("No routes configured.");
-                                    } else {
-                                        for (destination, (netmask, next_hop_or_iface)) in route_table.iter() {
-                                            let route_type = if next_hop_or_iface.contains("exit_interface") {
-                                                "C"
-                                            } else {
-                                                "S"
-                                            };
-                    
-                                            println!(
-                                                "{}\t{} {} via {}",
-                                                route_type, destination, netmask, next_hop_or_iface
-                                            );
-                                        }
-                                    }
-                                } else if args.len() == 3 {
-                                    let destination_ip = args[2];
-                                    if let Some((netmask, next_hop_or_iface)) = route_table.get(destination_ip) {
-                                        let route_type = if next_hop_or_iface.contains("exit_interface") {
-                                            "connected"
-                                        } else {
-                                            "static"
-                                        };
-                    
-                                        println!("Routing entry for {}/{}", destination_ip, netmask);
-                                        println!("Known via \"{}\"", route_type);
-                                        println!("  Routing Descriptor Blocks:");
-                                        println!("  * {}", next_hop_or_iface);
-                                    } else {
-                                        println!("No route found for {}.", destination_ip);
-                                    }
-                                } else {
-                                    println!("Invalid arguments. Use 'show ip route' or 'show ip route <ip-address>'.");
-                                }
-                    
+                if matches!(context.current_mode, Mode::UserMode | Mode ::PrivilegedMode){
+                    match args.get(0) {
+                        Some(&"clock") => {
+                            if let Some(clock) = clock {
+                                handle_show_clock(clock);
                                 Ok(())
-                            },
-                            Some(&"interface") => {
-                                match args.get(2) {
-                                    Some(&"brief") => {
-                                        let ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
-                                        let status_map = STATUS_MAP.lock().unwrap();
-                            
-                                        println!(
-                                            "{:<22} {:<15} {:<8} {:<20} {:<20} {:<10}",
-                                            "Interface", "IP-Address", "OK?", "Method", "Status", "Protocol"
-                                        );
-                            
-                                        for (interface_name, (ip_address, _)) in ip_address_state.iter() {
-                                            let is_up = status_map.get(interface_name).copied().unwrap_or(false);
-                                            let status = if is_up {
-                                                "up"
-                                            } else {
-                                                "administratively down"
-                                            };
-                                            let protocol = if is_up {
-                                                "up"
-                                            } else {
-                                                "down"
-                                            };
-                            
-                                            println!(
-                                                "{:<22} {:<15} YES     unset/manual        {}         {}",
-                                                interface_name, ip_address, status, protocol
-                                            );
-                                        }
-                                        Ok(())
-                                    },
-                                    _ => Err("Invalid interface subcommand. Use 'brief'".into())
-                                }
-                            },
-                            _ => Err("Invalid IP subcommand. Use 'ospf neighbor', 'route', or 'interface brief'".into())
-                        }
-                    },
-                    Some(&"ntp") => {
-                        match args.get(1) {
-                            Some(&"associations") => {
-                                if context.ntp_associations.is_empty() {
-                                    println!("No NTP associations configured.");
-                                } else {
-                                    println!("address         ref clock       st   when     poll    reach  delay          offset            disp");
-                                    for assoc in &context.ntp_associations {
-                                        println!(" ~{}       {}          {}   {}        {}      {}      {:.2}           {:.2}              {:.2}",
-                                            assoc.address, assoc.ref_clock, assoc.st, assoc.when, assoc.poll,
-                                            assoc.reach, assoc.delay, assoc.offset, assoc.disp);
-                                    }
-                                    println!(" * sys.peer, # selected, + candidate, - outlyer, x falseticker, ~ configured");
-                                }
+                            } else {
+                                Err("Clock functionality is unavailable.".to_string())
+                            }
+                        },
+                        Some(&"uptime") => {
+                            if let Some(clock) = clock {
+                                handle_show_uptime(clock);
                                 Ok(())
-                            },
-                            None => {
-                                println!("NTP Master: {}", if context.ntp_master { "Enabled" } else { "Disabled" });
-                                println!("NTP Authentication: {}", if context.ntp_authentication_enabled { "Enabled" } else { "Disabled" });
-                                
-                                if !context.ntp_authentication_keys.is_empty() {
-                                    println!("NTP Authentication Keys:");
-                                    for (key_number, key) in &context.ntp_authentication_keys {
-                                        println!("Key {}: {}", key_number, key);
-                                    }
+                            } else {
+                                Err("Clock functionality is unavailable.".to_string())
+                            }
+                        },
+                        Some(&"version") => {
+                            println!("Cisco IOS Software, C2900 Software (C2900-UNIVERSALK9-M), Version 15.1(4)M4, RELEASE SOFTWARE (fc2)");
+                            println!("Compiled Thurs 5-Jan-12 15:41 by pt_team");
+                            println!(" ");
+                            println!("ROM: System Bootstrap, Version 15.1(4)M4, RELEASE SOFTWARE (fc1)");
+                            if let Some(clock) = clock {
+                                handle_show_uptime(clock);
+                            } else {
+                                return Err("Clock functionality is unavailable.".to_string());
+                            }
+                            println!(" ");
+                            println!("Device Details... ");
+                            println!("PNF Router");
+                            Ok(())
+                        },
+                        Some(&"interfaces") => {
+                            let ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
+                            let Some(interface_name) = &context.selected_interface else {
+                                return Err("No interface selected. Use the 'interface' command first.".into());
+                            };
+                    
+                            if ip_address_state.is_empty() {
+                                println!("No interfaces found.");
+                                return Ok(());
+                            } else {
+                                for (interface_name, (ip_address, _)) in ip_address_state.iter() {
+                                    println!("{} is up, line protocol is up", interface_name);
+                                    println!("  Internet address is {}, subnet mask 255.255.255.0", ip_address);
+                                    println!("  MTU 1500 bytes, BW 10000 Kbit, DLY 100000 usec");
+                                    println!("  Encapsulation ARPA, loopback not set, keepalive set (10 sec)");
+                                    println!("  Last clearing of \"show interface\" counters: never");
+                                    println!("  Input queue: 0/2000/0/0 (size/max/drops/flushes); Total output drops: 0");
+                                    println!("  5 minute input rate 1000 bits/sec, 10 packets/sec");
+                                    println!("  5 minute output rate 500 bits/sec, 5 packets/sec");
+                                    println!("  100 packets input, 1000 bytes, 10 no buffer");
+                                    println!("  50 packets output, 500 bytes, 0 underruns");
                                 }
-                                
-                                if !context.ntp_trusted_keys.is_empty() {
-                                    println!("NTP Trusted Keys:");
-                                    for key_number in &context.ntp_trusted_keys {
-                                        println!("Trusted Key {}", key_number);
+                            }
+                    
+                            Ok(())
+                        },
+                        Some(&"ip") => {
+                            match args.get(1) {
+                                Some(&"ospf") => {
+                                    match args.get(2) {
+                                        Some(&"neighbor") => {
+                                            let mut ospf_config = OSPF_CONFIG.lock().unwrap();
+                                            println!("Current OSPF Configuration:");
+                                            println!("Router ID: {:?}", ospf_config.router_id.clone().unwrap_or("Not set".to_string()));
+                                            println!("Administrative Distance: {:?}", ospf_config.distance.unwrap_or(110));
+                                            println!("Default Information Originate: {}", ospf_config.default_information_originate);
+                                            println!("Passive Interfaces: {:?}", ospf_config.passive_interfaces);
+                                            Ok(())
+                                        },
+                                        _ => Err("Invalid OSPF subcommand. Use 'neighbor'".into())
                                     }
-                                }
-                                Ok(())
-                            },
-                            _ => Err("Invalid NTP subcommand. Use 'associations' or no subcommand".into())
-                        }
-                    },
-                    Some(&"vlan") => {
-                        if let (Some(vlan_names), Some(vlan_states)) = (&context.vlan_names, &context.vlan_states) {
-                            // Display table header for VLANs
-                            println!("{:<6} {:<30} {:<10} {}", "VLAN", "Name", "Status", "Ports");
-    
-                            for (vlan_id_str, vlan_name) in vlan_names {
-                                let vlan_id: u16 = vlan_id_str.parse().unwrap_or_default(); 
-                                let unknown_status = "active".to_string();
-                                let status = vlan_states.get(&vlan_id).unwrap_or(&unknown_status); 
-                                let ports = " ";  // temporary
-        
-                                println!("{:<6} {:<30} {:<10} {}", vlan_id, vlan_name, status, ports);
-                            }
-        
-                            Ok(())
-                        } else if let Some(vlan_names) = &context.vlan_names {
-                            println!("{:<6} {:<30} {:<10} {}", "VLAN", "Name", "Status", "Ports");
-    
-                            for vlan_id_str in vlan_names.keys() {
-                                let vlan_id: u16 = vlan_id_str.parse().unwrap_or_default();
-                                let vlan_name = format!("VLAN{}", vlan_id);
-                                let status = "active"; 
-                                let ports = " "; // temporary
-        
-                                println!("{:<6} {:<30} {:<10} {}", vlan_id, vlan_name, status, ports);
-                            }
-    
-                            Ok(())
-                        } else {
-                            Err("No VLAN information available.".into())
-                        }
-                    },
-                    Some(&"access-lists") => {
-                        let acl_store = ACL_STORE.lock().unwrap();
-                        if acl_store.is_empty() {
-                            println!("No access lists configured.");
-                            return Ok(());
-                        }
+                                },
+                                Some(&"route") => {
+                                    let route_table = ROUTE_TABLE.lock().unwrap();
             
-                        for (name, acl) in acl_store.iter() {
-                            println!("\nAccess list: {}", acl.number_or_name);
-                            for entry in &acl.entries {
-                                let protocol = entry.protocol.clone().unwrap_or("ip".to_string());
-                                let source_op = entry.source_operator.clone().unwrap_or_default();
-                                let source_port = entry.source_port.clone().unwrap_or_default();
-                                let destination_op = entry.destination_operator.clone().unwrap_or_default();
-                                let destination_port = entry.destination_port.clone().unwrap_or_default();
-                                let matches = entry.matches.map_or(String::new(), |m| format!("({} matches)", m));
-            
-                                println!(
-                                    "  {} {} {} {} {} {} {} {} {}",
-                                    entry.action,
-                                    protocol,
-                                    entry.source,
-                                    source_op,
-                                    source_port,
-                                    entry.destination,
-                                    destination_op,
-                                    destination_port,
-                                    matches
-                                );
-                            }
-                        }
-            
-                        Ok(())
-                    },
-                    Some(&"processes") => {
-                        if args.len() == 1 {
-                            
-                            println!("CPU utilization for five seconds: 0%/0%; one minute: 0%; five minutes: 0%");
-                            println!(
-                                " PID Q  Ty       PC  Runtime(uS)    Invoked   uSecs    Stacks TTY Process\n\
-                                  1 C  sp 602F3AF0            0       1627       0 2600/3000   0 Load Meter\n\
-                                  2 L  we 60C5BE00            4        136      29 5572/6000   0 CEF Scanner\n\
-                                  3 L  st 602D90F8         1676        837    2002 5740/6000   0 Check heaps\n\
-                                  4 C  we 602D08F8            0          1       0 5568/6000   0 Chunk Manager\n\
-                                  5 C  we 602DF0E8            0          1       0 5592/6000   0 Pool Manager"
-                            ); 
-                            Ok(())     
-                        }
-    
-                        else if args.len() == 2 && args[1] == "cpu"{
-                                
-                            println!("CPU utilization for five seconds: 8%/4%; one minute: 6%; five minutes: 5%");
-                            println!(
-                                " PID Runtime(uS)   Invoked  uSecs    5Sec   1Min   5Min TTY Process\n\
-                                1         384     32789     11   0.00%  0.00%  0.00%   0 Load Meter\n\
-                                2        2752      1179   2334   0.73%  1.06%  0.29%   0 Exec\n\
-                                3      318592      5273  60419   0.00%  0.15%  0.17%   0 Check heaps\n\
-                                4           4         1   4000   0.00%  0.00%  0.00%   0 Pool Manager\n\
-                                5        6472      6568    985   0.00%  0.00%  0.00%   0 ARP Input"
-                            );
-                            Ok(())
-                        }
-                                
-                        else if args.len() == 3 && args[1] == "cpu" && args[2] == "history"{
-                            println!(
-                                "CPU% per minute (last 60 minutes)\n\
-                                100\n 90\n 80         *  *                     * *     *  * *  *\n\
-                                70  * * ***** *  ** ***** ***  **** ******  *  *******     * *\n\
-                                60  #***##*##*#***#####*#*###*****#*###*#*#*##*#*##*#*##*****#\n\
-                                50  ##########################################################\n\
-                                40  ##########################################################\n\
-                                30  ##########################################################\n\
-                                20  ##########################################################\n\
-                                10  ##########################################################\n\
-                                    0....5....1....1....2....2....3....3....4....4....5....5....\n\
-                                            0    5    0    5    0    5    0    5    0    5"
-                            );
-                            Ok(())
-                        }
-
-                        else if args.len() == 2 && args[1] == "memory"{
-                            println!(
-                                "Total: 106206400, Used: 7479116, Free: 98727284\n\
-                                PID TTY  Allocated      Freed    Holding    Getbufs    Retbufs Process\n\
-                                0   0      81648       1808    6577644          0          0 *Init*\n\
-                                0   0        572     123196        572          0          0 *Sched*\n\
-                                0   0   10750692    3442000       5812    2813524          0 *Dead*\n\
-                                1   0        276        276       3804          0          0 Load Meter"
-                            );
-                            Ok(())
-                        }
-                        else{
-                            Err("Invalid subcommand for 'show processes'. Valid subcommands are 'cpu', 'cpu history', and 'memory'.".into())
-                        }
+                                    if args.len() == 2 {
+                                        println!("Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP");
+                                        println!("       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area");
+                                        println!("       N1 - OSPF NSSA external type 1, N2 - OSPF NSSA external type 2");
+                                        println!("       E1 - OSPF external type 1, E2 - OSPF external type 2, E - EGP");
+                                        println!("       i - IS-IS, L1 - IS-IS level-1, L2 - IS-IS level-2, ia - IS-IS inter area");
+                                        println!("       * - candidate default, U - per-user static route, o - ODR");
+                                        println!("       P - periodic downloaded static route");
+                                        println!();
                         
-                    },
-                    
-                    _ => Err("Invalid or incomplete show command".into())
+                                        if route_table.is_empty() {
+                                            println!("No routes configured.");
+                                        } else {
+                                            for (destination, (netmask, next_hop_or_iface)) in route_table.iter() {
+                                                let route_type = if next_hop_or_iface.contains("exit_interface") {
+                                                    "C"
+                                                } else {
+                                                    "S"
+                                                };
+                        
+                                                println!(
+                                                    "{}\t{} {} via {}",
+                                                    route_type, destination, netmask, next_hop_or_iface
+                                                );
+                                            }
+                                        }
+                                    } else if args.len() == 3 {
+                                        let destination_ip = args[2];
+                                        if let Some((netmask, next_hop_or_iface)) = route_table.get(destination_ip) {
+                                            let route_type = if next_hop_or_iface.contains("exit_interface") {
+                                                "connected"
+                                            } else {
+                                                "static"
+                                            };
+                        
+                                            println!("Routing entry for {}/{}", destination_ip, netmask);
+                                            println!("Known via \"{}\"", route_type);
+                                            println!("  Routing Descriptor Blocks:");
+                                            println!("  * {}", next_hop_or_iface);
+                                        } else {
+                                            println!("No route found for {}.", destination_ip);
+                                        }
+                                    } else {
+                                        println!("Invalid arguments. Use 'show ip route' or 'show ip route <ip-address>'.");
+                                    }
+                        
+                                    Ok(())
+                                },
+                                Some(&"interface") => {
+                                    match args.get(2) {
+                                        Some(&"brief") => {
+                                            let ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
+                                            let status_map = STATUS_MAP.lock().unwrap();
+                                
+                                            println!(
+                                                "{:<22} {:<15} {:<8} {:<20} {:<20} {:<10}",
+                                                "Interface", "IP-Address", "OK?", "Method", "Status", "Protocol"
+                                            );
+                                
+                                            for (interface_name, (ip_address, _)) in ip_address_state.iter() {
+                                                let is_up = status_map.get(interface_name).copied().unwrap_or(false);
+                                                let status = if is_up {
+                                                    "up"
+                                                } else {
+                                                    "administratively down"
+                                                };
+                                                let protocol = if is_up {
+                                                    "up"
+                                                } else {
+                                                    "down"
+                                                };
+                                
+                                                println!(
+                                                    "{:<22} {:<15} YES     unset/manual        {}         {}",
+                                                    interface_name, ip_address, status, protocol
+                                                );
+                                            }
+                                            Ok(())
+                                        },
+                                        _ => Err("Invalid interface subcommand. Use 'brief'".into())
+                                    }
+                                },
+                                _ => Err("Invalid IP subcommand. Use 'ospf neighbor', 'route', or 'interface brief'".into())
+                            }
+                        },
+                        Some(&"vlan") => {
+                            if let (Some(vlan_names), Some(vlan_states)) = (&context.vlan_names, &context.vlan_states) {
+                                // Display table header for VLANs
+                                println!("{:<6} {:<30} {:<10} {}", "VLAN", "Name", "Status", "Ports");
+        
+                                for (vlan_id_str, vlan_name) in vlan_names {
+                                    let vlan_id: u16 = vlan_id_str.parse().unwrap_or_default(); 
+                                    let unknown_status = "active".to_string();
+                                    let status = vlan_states.get(&vlan_id).unwrap_or(&unknown_status); 
+                                    let ports = " ";  // temporary
+            
+                                    println!("{:<6} {:<30} {:<10} {}", vlan_id, vlan_name, status, ports);
+                                }
+            
+                                Ok(())
+                            } else if let Some(vlan_names) = &context.vlan_names {
+                                println!("{:<6} {:<30} {:<10} {}", "VLAN", "Name", "Status", "Ports");
+        
+                                for vlan_id_str in vlan_names.keys() {
+                                    let vlan_id: u16 = vlan_id_str.parse().unwrap_or_default();
+                                    let vlan_name = format!("VLAN{}", vlan_id);
+                                    let status = "active"; 
+                                    let ports = " "; // temporary
+            
+                                    println!("{:<6} {:<30} {:<10} {}", vlan_id, vlan_name, status, ports);
+                                }
+        
+                                Ok(())
+                            } else {
+                                Err("No VLAN information available.".into())
+                            }
+                        },
+                        _ => Ok(()),
+                    };
+                    //.map_err(|e| println!("Error: {}", e))?;
+                }
+                
+                if matches!(context.current_mode, Mode::PrivilegedMode) {
+                        
+                    match args.get(0) {
+                        Some(&"running-config") => {
+                            println!("Building configuration...\n");
+                            println!("Current configuration : 0 bytes\n");
+                            let running_config = get_running_config(&context);
+                            println!("{}", running_config);
+                            Ok(())
+                        },
+                        Some(&"startup-config") => {
+                            println!("Building configuration...\n");
+                            if let Some(last_written) = &context.config.last_written {
+                                println!("Startup configuration (last saved: {}):\n", last_written);
+                                let startup_config = get_running_config(&context);
+                                println!("{}", startup_config);
+                            } else {
+                                println!("Startup configuration (default):\n");
+                                println!("{}", default_startup_config(context));
+                            }
+                            Ok(())
+                        },
+                        Some(&"login") => {
+                            println!("A default login delay of 1 seconds is applied.");
+                            println!("No Quiet-Mode access list has been configured.");
+                            println!(" ");
+                            println!("Router NOT enabled to watch for login Attacks");
+                            Ok(())
+                        },
+                        
+                        Some(&"ntp") => {
+                            match args.get(1) {
+                                Some(&"associations") => {
+                                    if context.ntp_associations.is_empty() {
+                                        println!("No NTP associations configured.");
+                                    } else {
+                                        println!("address         ref clock       st   when     poll    reach  delay          offset            disp");
+                                        for assoc in &context.ntp_associations {
+                                            println!(" ~{}       {}          {}   {}        {}      {}      {:.2}           {:.2}              {:.2}",
+                                                assoc.address, assoc.ref_clock, assoc.st, assoc.when, assoc.poll,
+                                                assoc.reach, assoc.delay, assoc.offset, assoc.disp);
+                                        }
+                                        println!(" * sys.peer, # selected, + candidate, - outlyer, x falseticker, ~ configured");
+                                    }
+                                    Ok(())
+                                },
+                                None => {
+                                    println!("NTP Master: {}", if context.ntp_master { "Enabled" } else { "Disabled" });
+                                    println!("NTP Authentication: {}", if context.ntp_authentication_enabled { "Enabled" } else { "Disabled" });
+                                    
+                                    if !context.ntp_authentication_keys.is_empty() {
+                                        println!("NTP Authentication Keys:");
+                                        for (key_number, key) in &context.ntp_authentication_keys {
+                                            println!("Key {}: {}", key_number, key);
+                                        }
+                                    }
+                                    
+                                    if !context.ntp_trusted_keys.is_empty() {
+                                        println!("NTP Trusted Keys:");
+                                        for key_number in &context.ntp_trusted_keys {
+                                            println!("Trusted Key {}", key_number);
+                                        }
+                                    }
+                                    Ok(())
+                                },
+                                _ => Err("Invalid NTP subcommand. Use 'associations' or no subcommand".into())
+                            }
+                        },
+                        
+                        Some(&"access-lists") => {
+                            let acl_store = ACL_STORE.lock().unwrap();
+                            if acl_store.is_empty() {
+                                println!("No access lists configured.");
+                                return Ok(());
+                            }
+                
+                            for (name, acl) in acl_store.iter() {
+                                println!("\nAccess list: {}", acl.number_or_name);
+                                for entry in &acl.entries {
+                                    let protocol = entry.protocol.clone().unwrap_or("ip".to_string());
+                                    let source_op = entry.source_operator.clone().unwrap_or_default();
+                                    let source_port = entry.source_port.clone().unwrap_or_default();
+                                    let destination_op = entry.destination_operator.clone().unwrap_or_default();
+                                    let destination_port = entry.destination_port.clone().unwrap_or_default();
+                                    let matches = entry.matches.map_or(String::new(), |m| format!("({} matches)", m));
+                
+                                    println!(
+                                        "  {} {} {} {} {} {} {} {} {}",
+                                        entry.action,
+                                        protocol,
+                                        entry.source,
+                                        source_op,
+                                        source_port,
+                                        entry.destination,
+                                        destination_op,
+                                        destination_port,
+                                        matches
+                                    );
+                                }
+                            }
+                
+                            Ok(())
+                        },
+                        Some(&"processes") => {
+                            if args.len() == 1 {
+                                
+                                println!("CPU utilization for five seconds: 0%/0%; one minute: 0%; five minutes: 0%");
+                                println!(
+                                    " PID Q  Ty       PC  Runtime(uS)    Invoked   uSecs    Stacks TTY Process\n\
+                                    1 C  sp 602F3AF0            0       1627       0 2600/3000   0 Load Meter\n\
+                                    2 L  we 60C5BE00            4        136      29 5572/6000   0 CEF Scanner\n\
+                                    3 L  st 602D90F8         1676        837    2002 5740/6000   0 Check heaps\n\
+                                    4 C  we 602D08F8            0          1       0 5568/6000   0 Chunk Manager\n\
+                                    5 C  we 602DF0E8            0          1       0 5592/6000   0 Pool Manager"
+                                ); 
+                                Ok(())     
+                            }
+        
+                            else if args.len() == 2 && args[1] == "cpu"{
+                                    
+                                println!("CPU utilization for five seconds: 8%/4%; one minute: 6%; five minutes: 5%");
+                                println!(
+                                    " PID Runtime(uS)   Invoked  uSecs    5Sec   1Min   5Min TTY Process\n\
+                                    1         384     32789     11   0.00%  0.00%  0.00%   0 Load Meter\n\
+                                    2        2752      1179   2334   0.73%  1.06%  0.29%   0 Exec\n\
+                                    3      318592      5273  60419   0.00%  0.15%  0.17%   0 Check heaps\n\
+                                    4           4         1   4000   0.00%  0.00%  0.00%   0 Pool Manager\n\
+                                    5        6472      6568    985   0.00%  0.00%  0.00%   0 ARP Input"
+                                );
+                                Ok(())
+                            }
+                                    
+                            else if args.len() == 3 && args[1] == "cpu" && args[2] == "history"{
+                                println!(
+                                    "CPU% per minute (last 60 minutes)\n\
+                                    100\n 90\n 80         *  *                     * *     *  * *  *\n\
+                                    70  * * ***** *  ** ***** ***  **** ******  *  *******     * *\n\
+                                    60  #***##*##*#***#####*#*###*****#*###*#*#*##*#*##*#*##*****#\n\
+                                    50  ##########################################################\n\
+                                    40  ##########################################################\n\
+                                    30  ##########################################################\n\
+                                    20  ##########################################################\n\
+                                    10  ##########################################################\n\
+                                        0....5....1....1....2....2....3....3....4....4....5....5....\n\
+                                                0    5    0    5    0    5    0    5    0    5"
+                                );
+                                Ok(())
+                            }
+
+                            else if args.len() == 2 && args[1] == "memory"{
+                                println!(
+                                    "Total: 106206400, Used: 7479116, Free: 98727284\n\
+                                    PID TTY  Allocated      Freed    Holding    Getbufs    Retbufs Process\n\
+                                    0   0      81648       1808    6577644          0          0 *Init*\n\
+                                    0   0        572     123196        572          0          0 *Sched*\n\
+                                    0   0   10750692    3442000       5812    2813524          0 *Dead*\n\
+                                    1   0        276        276       3804          0          0 Load Meter"
+                                );
+                                Ok(())
+                            }
+                            else{
+                                Err("Invalid subcommand for 'show processes'. Valid subcommands are 'cpu', 'cpu history', and 'memory'.".into())
+                            }
+                            
+                        },
+                        
+                        _ => Ok(()),
+                    }
+                    //.map_err(|e| println!("Error: {}", e))?;
+                }
+                else {
+                    return Err("Show commands are only available in User EXEC mode and Privileged EXEC mode.".into());
                 }
             },
         },
@@ -1055,8 +1214,14 @@ Two styles of help are provided:
     
                 match (args[0], &context.current_mode) {
                     ("address", Mode::InterfaceMode) => {
-                        if args.len() != 3 {
-                            return Err("Usage: ip address  <ip_address> <netmask>".into());
+                        if args.len() == 2 && args[1] == "?" {
+                            println!("<ip-address>          - IP address of the interface");
+                        }
+                        else if args.len() == 3 && args[2] == "?" {
+                            println!("<netmask>         - Netmask of the interface");
+                        }
+                        else if args.len() != 3 {
+                            return Err("Usage: ip address <ip_address> <netmask>".into());
                         }
                         let ip_address: Ipv4Addr = args[1]
                             .parse()
@@ -1256,13 +1421,15 @@ Two styles of help are provided:
                         
                         else {
                             println!("Invalid arguments provided to 'ip route'. Expected: ip route <ip-address> <netmask> <next-hop | exit-interface> <next-hop>.");
+                            return Err("Usage: ip route <ip-address> <netmask> <next-hop | exit-interface> <next-hop>".into());
                         }
             
                         Ok(())
                     },
                     ("domain-name", Mode::ConfigMode) => {
                         if args.len() <= 1{
-                            Err("Domain name must be provided.".into())
+                            //Err("Domain name must be provided.".into())
+                            return Err("Usage: ip domain-name <name>".into());
                         } else {
                             let domain_name = args[1].to_string();
                             context.config.domain_name = Some(domain_name.clone());
@@ -1301,7 +1468,7 @@ Two styles of help are provided:
                                 }
                             }
                         } else {
-                            Err("Invalid syntax. Use 'ip access-list standard <acl_name>' or 'ip access-list extended <name_or_number>'.".into())
+                            Err("Usage: ip access-list standard|extended <acl_name|number>".into())
                         }
                     },
     
@@ -1928,13 +2095,27 @@ Two styles of help are provided:
     });
 
     commands.insert("clear", Command {
-        name: "clear ip ospf process",
+        name: "clear",
         description: "Reset all OSPF processes",
         suggestions: Some(vec!["ip ospf process"]),
-        suggestions1: Some(vec!["ip ospf process"]),
+        suggestions1: None,
         options: None,
         execute: |args, context, _| {
-            if matches!(context.current_mode, Mode::PrivilegedMode) {
+            if args.is_empty() {
+                // Cross-platform clear screen
+                if cfg!(target_os = "windows") {
+                    ProcessCommand::new("cmd")
+                        .args(["/C", "cls"])
+                        .status()
+                        .unwrap();
+                } else {
+                    ProcessCommand::new("clear")
+                        .status()
+                        .unwrap();
+                }
+                Ok(())
+            }
+            else if matches!(context.current_mode, Mode::PrivilegedMode) {
                 if args.len() == 3 && args[0] == "ip" && args[1] == "ospf" && args[2] == "process"  {
                     print!("Reset ALL OSPF processes? [no]: ");
                     io::stdout().flush().unwrap();
