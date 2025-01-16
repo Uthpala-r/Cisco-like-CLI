@@ -1,4 +1,4 @@
-//! # Cisco-like Command-Line Interface (CLI) Application
+//! # PNF Command-Line Interface (CLI) Application
 //!
 //! This file serves as the main module that initializes and links all other sub-modules.
 //! The CLI provides a hierarchical command structure similar to Cisco's networking devices.

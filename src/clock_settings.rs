@@ -1,32 +1,52 @@
 use chrono::{DateTime, Local, NaiveDateTime, Duration};
 
-/// A structure representing the custom clock in the CLI.
+/// Represents a clock with time, date, and additional metadata.
 ///
-/// This struct is used to store the date and time as strings in a specific format.
-///
-/// # Fields
-/// - `date`: A string representing the current date.
-/// - `time`: A string representing the current time.
-///
-/// # Examples
-/// ```
-/// let clock = Clock {
-///     date: "2024-06-01".to_string(),
-///     time: "12:00".to_string(),
-/// };
-/// assert_eq!(clock.date, "2024-06-01");
-/// assert_eq!(clock.time, "12:00");
-/// ```
-/// 
+/// This struct provides fields for storing the current time, date, and other 
+/// associated details. Some fields are public, while others are internal 
+/// and intended for internal use only.
 pub struct Clock {
+    /// The current time as a `String`.
+    ///
+    /// This field is publicly accessible and is expected to follow a 
+    /// specific time format (e.g., "HH:MM:SS").
     pub time: String,
+
+    /// The current date as a `String`.
+    ///
+    /// This field is publicly accessible and is expected to follow a 
+    /// specific date format (e.g., "YYYY-MM-DD").
     pub date: String,
+
+    /// An optional custom date and time value.
+    ///
+    /// This field is used internally to store an optional custom datetime 
+    /// value. It uses the `DateTime` type from the `chrono` crate with the 
+    /// local timezone.
     custom_datetime: Option<DateTime<Local>>,
-    start_time: DateTime<Local>,  
+
+    /// The time when the clock started, as a `DateTime<Local>`.
+    ///
+    /// This field is used internally to store the start time of the clock. 
+    /// It is initialized when the clock is created.
+    start_time: DateTime<Local>,
+
+    /// The model of the device associated with the clock.
+    ///
+    /// This is a string identifier for the specific clock model.
     device_model: String,
 }
 
 impl Clock {
+
+    /// Creates a new instance of `Clock`.
+    ///
+    /// The clock is initialized with empty `time` and `date` fields, no custom
+    /// datetime, the current local time as the start time, and a default device model
+    /// of "PNF".
+    ///
+    /// # Returns
+    /// A new `Clock` instance.
     pub fn new() -> Self {
         Clock {
             time: String::new(),
@@ -37,6 +57,19 @@ impl Clock {
         }
     }
 
+    /// Sets the time for the clock.
+    ///
+    /// The time must be in the format `HH:MM:SS`, where:
+    /// - `HH` represents hours (0-23)
+    /// - `MM` represents minutes (0-59)
+    /// - `SS` represents seconds (0-59)
+    ///
+    /// # Arguments
+    /// - `time`: A string slice representing the time to set.
+    ///
+    /// # Errors
+    /// Returns an error if the time format is invalid or if the values
+    /// exceed their respective ranges.
     pub fn set_time(&mut self, time: &str) -> Result<(), String> {
         if !time.contains(':') || time.split(':').count() != 3 {
             return Err("Invalid time format. Expected HH:MM:SS".to_string());
@@ -62,6 +95,19 @@ impl Clock {
         Ok(())
     }
 
+    /// Sets the date for the clock.
+    ///
+    /// The date must consist of a valid day, month, and year. The month is represented
+    /// as a string (e.g., "January"). The day must not exceed the maximum days for the
+    /// specified month, considering leap years for February.
+    ///
+    /// # Arguments
+    /// - `day`: The day of the month (1-31).
+    /// - `month`: The month as a string (e.g., "March").
+    /// - `year`: The year as a 4-digit number.
+    ///
+    /// # Errors
+    /// Returns an error if the day is invalid for the given month and year.
     pub fn set_date(&mut self, day: u8, month: &str, year: u16) -> Result<(), String>  {
         let max_days = match month {
             "February" => if year % 4 == 0 { 29 } else { 28 },
@@ -82,6 +128,10 @@ impl Clock {
         Ok(())
     }
 
+    /// Updates the custom datetime field if both the time and date are set.
+    ///
+    /// This method attempts to parse the `time` and `date` fields into a
+    /// combined `DateTime<Local>` value and updates the `custom_datetime` field.
     pub fn update_custom_datetime(&mut self) {
         if !self.time.is_empty() && !self.date.is_empty() {
             if let Ok(naive_time) = NaiveDateTime::parse_from_str(
@@ -96,14 +146,34 @@ impl Clock {
         }
     }
 
+    /// Gets the current datetime.
+    ///
+    /// If a custom datetime is set, it is returned. Otherwise, the current
+    /// local time is returned.
+    ///
+    /// # Returns
+    /// A `DateTime<Local>` representing the current datetime.
     pub fn get_current_datetime(&self) -> DateTime<Local> {
         self.custom_datetime.unwrap_or_else(Local::now)
     }
 
+    /// Calculates the uptime of the clock.
+    ///
+    /// The uptime is the duration between the clock's start time and the current time.
+    ///
+    /// # Returns
+    /// A `Duration` representing the uptime.
     pub fn get_uptime(&self) -> Duration {
         Local::now().signed_duration_since(self.start_time)
     }
 
+    /// Formats the uptime as a human-readable string.
+    ///
+    /// The format includes hours, minutes, and seconds, and it references the
+    /// `device_model` field.
+    ///
+    /// # Returns
+    /// A `String` representing the formatted uptime.
     pub fn format_uptime(&self) -> String {
         let duration = self.get_uptime();
         let total_seconds = duration.num_seconds();
