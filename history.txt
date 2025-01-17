@@ -1,6 +1,4 @@
 #V2
-en
-configure ?
 configure te
 exit
 sh clock
@@ -98,4 +96,6 @@ exit
 show ?
 en
 show ?
+exit cli
+?
 exit cli

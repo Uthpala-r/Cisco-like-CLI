@@ -1059,21 +1059,29 @@ Two styles of help are provided:
                 println!("\n ");
                 
                 if matches!(context.current_mode, Mode::UserMode) {
-                    println!("enable      - Enter privileged mode");
-                    println!("exit        - Exit current mode");
-                    println!("ping        - Send ICMP echo request");
+                    println!("enable            - Enter privileged mode");
+                    println!("exit              - Exit current mode");
+                    println!("ping              - Send ICMP echo request");
+                    println!("help              - Display available commands");
+                    println!("reload            - Reload the system");
+                    println!("clear             - Clear the terminal");
+                    println!("show              - Some available show commands are present. To view enter 'show ?'");
                 }
                 else if matches!(context.current_mode, Mode::PrivilegedMode) {
-                    println!("configure   - Enter configuration mode");
-                    println!("exit        - Exit to user mode");
-                    println!("help        - Display available commands");
-                    println!("write       - Save the configuration");
-                    println!("copy        - Copy configuration files");
-                    println!("clock       - Manage system clock");
-                    println!("clear       - Clear screen");
-                    println!("ping        - Send ICMP echo request");
-                    println!("show        - Show running system information");
-                    println!("ifconfig    - Display interface configuration");
+                    println!("configure         - Enter configuration mode");
+                    println!("exit              - Exit to user mode");
+                    println!("help              - Display available commands");
+                    println!("write             - Save the configuration");
+                    println!("copy              - Copy configuration files");
+                    println!("clock             - Manage system clock");
+                    println!("clear ip ospf process - Clear all the ospf processes");
+                    println!("ping              - Send ICMP echo request");
+                    println!("show              - Some available show commands are present. To view enter 'show ?'");
+                    println!("ifconfig          - Display interface configuration");
+                    println!("reload            - Reload the system");
+                    println!("clear             - Clear the terminal");
+                    println!("debug             - Debug the availbale processes");
+                    println!("undebug           - Undebug the availbale processes");
                 }
                 else if matches!(context.current_mode, Mode::ConfigMode) {
                     println!("hostname          - Set system hostname");
@@ -1096,6 +1104,8 @@ Two styles of help are provided:
                     println!("ifconfig          - Configure interface");
                     println!("ntp               - Configure NTP");
                     println!("crypto            - Configure encryption");
+                    println!("reload            - Reload the system");
+                    println!("clear             - Clear the terminal");
                 }
                 else if matches!(context.current_mode, Mode::InterfaceMode) {
                     println!("exit              - Exit to config mode");
@@ -1107,12 +1117,17 @@ Two styles of help are provided:
                     println!("interface         - Select another interface");
                     println!("ip address        - Set IP address");
                     println!("ip ospf           - Configure OSPF protocol");
+                    println!("reload            - Reload the system");
+                    println!("clear             - Clear the terminal");
                 }
                 else if matches!(context.current_mode, Mode::VlanMode) {
                     println!("name              - Set VLAN name");
                     println!("exit              - Exit to config mode");
                     println!("state             - Set VLAN state");
                     println!("vlan              - Configure VLAN parameters");
+                    println!("reload            - Reload the system");
+                    println!("clear             - Clear the terminal");
+                    println!("help              - Display available commands");
                 }
                 else if matches!(context.current_mode, Mode::RouterConfigMode) {
                     println!("network           - Configure network");
@@ -1123,18 +1138,27 @@ Two styles of help are provided:
                     println!("distance          - Configure administrative distance");
                     println!("default-information - Configure default route distribution");
                     println!("router-id         - Configure router ID");
+                    println!("reload            - Reload the system");
+                    println!("clear             - Clear the terminal");
+                    println!("help              - Display available commands");
                 }
                 else if matches!(context.current_mode, Mode::ConfigStdNaclMode(_)) {
                     println!("deny              - Deny specific traffic");
                     println!("permit            - Permit specific traffic");
                     println!("exit              - Exit to config mode");
                     println!("ip access-list    - Configure IP access list");
+                    println!("reload            - Reload the system");
+                    println!("clear             - Clear the terminal");
+                    println!("help              - Display available commands");
                 }
                 else if matches!(context.current_mode, Mode::ConfigExtNaclMode(_)) {
                     println!("deny              - Deny specific traffic");
                     println!("permit            - Permit specific traffic");
                     println!("exit              - Exit to config mode");
                     println!("ip access-list    - Configure IP access list");
+                    println!("reload            - Reload the system");
+                    println!("clear             - Clear the terminal");
+                    println!("help              - Display available commands");
                 }
                 println!("\n ");
                 Ok(())

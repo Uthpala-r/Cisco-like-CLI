@@ -2737,7 +2737,31 @@
 <a href="#2736" id="2736">2736</a>
 <a href="#2737" id="2737">2737</a>
 <a href="#2738" id="2738">2738</a>
-<a href="#2739" id="2739">2739</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
+<a href="#2739" id="2739">2739</a>
+<a href="#2740" id="2740">2740</a>
+<a href="#2741" id="2741">2741</a>
+<a href="#2742" id="2742">2742</a>
+<a href="#2743" id="2743">2743</a>
+<a href="#2744" id="2744">2744</a>
+<a href="#2745" id="2745">2745</a>
+<a href="#2746" id="2746">2746</a>
+<a href="#2747" id="2747">2747</a>
+<a href="#2748" id="2748">2748</a>
+<a href="#2749" id="2749">2749</a>
+<a href="#2750" id="2750">2750</a>
+<a href="#2751" id="2751">2751</a>
+<a href="#2752" id="2752">2752</a>
+<a href="#2753" id="2753">2753</a>
+<a href="#2754" id="2754">2754</a>
+<a href="#2755" id="2755">2755</a>
+<a href="#2756" id="2756">2756</a>
+<a href="#2757" id="2757">2757</a>
+<a href="#2758" id="2758">2758</a>
+<a href="#2759" id="2759">2759</a>
+<a href="#2760" id="2760">2760</a>
+<a href="#2761" id="2761">2761</a>
+<a href="#2762" id="2762">2762</a>
+<a href="#2763" id="2763">2763</a></pre></div><pre class="rust"><code><span class="doccomment">/// External crates for the CLI application
 </span><span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::net::Ipv4Addr;
 <span class="kw">use </span>std::path::Path;
@@ -3798,21 +3822,29 @@ Two styles of help are provided:
                 <span class="macro">println!</span>(<span class="string">"\n "</span>);
                 
                 <span class="kw">if </span><span class="macro">matches!</span>(context.current_mode, Mode::UserMode) {
-                    <span class="macro">println!</span>(<span class="string">"enable      - Enter privileged mode"</span>);
-                    <span class="macro">println!</span>(<span class="string">"exit        - Exit current mode"</span>);
-                    <span class="macro">println!</span>(<span class="string">"ping        - Send ICMP echo request"</span>);
+                    <span class="macro">println!</span>(<span class="string">"enable            - Enter privileged mode"</span>);
+                    <span class="macro">println!</span>(<span class="string">"exit              - Exit current mode"</span>);
+                    <span class="macro">println!</span>(<span class="string">"ping              - Send ICMP echo request"</span>);
+                    <span class="macro">println!</span>(<span class="string">"help              - Display available commands"</span>);
+                    <span class="macro">println!</span>(<span class="string">"reload            - Reload the system"</span>);
+                    <span class="macro">println!</span>(<span class="string">"clear             - Clear the terminal"</span>);
+                    <span class="macro">println!</span>(<span class="string">"show              - Some available show commands are present. To view enter 'show ?'"</span>);
                 }
                 <span class="kw">else if </span><span class="macro">matches!</span>(context.current_mode, Mode::PrivilegedMode) {
-                    <span class="macro">println!</span>(<span class="string">"configure   - Enter configuration mode"</span>);
-                    <span class="macro">println!</span>(<span class="string">"exit        - Exit to user mode"</span>);
-                    <span class="macro">println!</span>(<span class="string">"help        - Display available commands"</span>);
-                    <span class="macro">println!</span>(<span class="string">"write       - Save the configuration"</span>);
-                    <span class="macro">println!</span>(<span class="string">"copy        - Copy configuration files"</span>);
-                    <span class="macro">println!</span>(<span class="string">"clock       - Manage system clock"</span>);
-                    <span class="macro">println!</span>(<span class="string">"clear       - Clear screen"</span>);
-                    <span class="macro">println!</span>(<span class="string">"ping        - Send ICMP echo request"</span>);
-                    <span class="macro">println!</span>(<span class="string">"show        - Show running system information"</span>);
-                    <span class="macro">println!</span>(<span class="string">"ifconfig    - Display interface configuration"</span>);
+                    <span class="macro">println!</span>(<span class="string">"configure         - Enter configuration mode"</span>);
+                    <span class="macro">println!</span>(<span class="string">"exit              - Exit to user mode"</span>);
+                    <span class="macro">println!</span>(<span class="string">"help              - Display available commands"</span>);
+                    <span class="macro">println!</span>(<span class="string">"write             - Save the configuration"</span>);
+                    <span class="macro">println!</span>(<span class="string">"copy              - Copy configuration files"</span>);
+                    <span class="macro">println!</span>(<span class="string">"clock             - Manage system clock"</span>);
+                    <span class="macro">println!</span>(<span class="string">"clear ip ospf process - Clear all the ospf processes"</span>);
+                    <span class="macro">println!</span>(<span class="string">"ping              - Send ICMP echo request"</span>);
+                    <span class="macro">println!</span>(<span class="string">"show              - Some available show commands are present. To view enter 'show ?'"</span>);
+                    <span class="macro">println!</span>(<span class="string">"ifconfig          - Display interface configuration"</span>);
+                    <span class="macro">println!</span>(<span class="string">"reload            - Reload the system"</span>);
+                    <span class="macro">println!</span>(<span class="string">"clear             - Clear the terminal"</span>);
+                    <span class="macro">println!</span>(<span class="string">"debug             - Debug the availbale processes"</span>);
+                    <span class="macro">println!</span>(<span class="string">"undebug           - Undebug the availbale processes"</span>);
                 }
                 <span class="kw">else if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigMode) {
                     <span class="macro">println!</span>(<span class="string">"hostname          - Set system hostname"</span>);
@@ -3835,6 +3867,8 @@ Two styles of help are provided:
                     <span class="macro">println!</span>(<span class="string">"ifconfig          - Configure interface"</span>);
                     <span class="macro">println!</span>(<span class="string">"ntp               - Configure NTP"</span>);
                     <span class="macro">println!</span>(<span class="string">"crypto            - Configure encryption"</span>);
+                    <span class="macro">println!</span>(<span class="string">"reload            - Reload the system"</span>);
+                    <span class="macro">println!</span>(<span class="string">"clear             - Clear the terminal"</span>);
                 }
                 <span class="kw">else if </span><span class="macro">matches!</span>(context.current_mode, Mode::InterfaceMode) {
                     <span class="macro">println!</span>(<span class="string">"exit              - Exit to config mode"</span>);
@@ -3846,12 +3880,17 @@ Two styles of help are provided:
                     <span class="macro">println!</span>(<span class="string">"interface         - Select another interface"</span>);
                     <span class="macro">println!</span>(<span class="string">"ip address        - Set IP address"</span>);
                     <span class="macro">println!</span>(<span class="string">"ip ospf           - Configure OSPF protocol"</span>);
+                    <span class="macro">println!</span>(<span class="string">"reload            - Reload the system"</span>);
+                    <span class="macro">println!</span>(<span class="string">"clear             - Clear the terminal"</span>);
                 }
                 <span class="kw">else if </span><span class="macro">matches!</span>(context.current_mode, Mode::VlanMode) {
                     <span class="macro">println!</span>(<span class="string">"name              - Set VLAN name"</span>);
                     <span class="macro">println!</span>(<span class="string">"exit              - Exit to config mode"</span>);
                     <span class="macro">println!</span>(<span class="string">"state             - Set VLAN state"</span>);
                     <span class="macro">println!</span>(<span class="string">"vlan              - Configure VLAN parameters"</span>);
+                    <span class="macro">println!</span>(<span class="string">"reload            - Reload the system"</span>);
+                    <span class="macro">println!</span>(<span class="string">"clear             - Clear the terminal"</span>);
+                    <span class="macro">println!</span>(<span class="string">"help              - Display available commands"</span>);
                 }
                 <span class="kw">else if </span><span class="macro">matches!</span>(context.current_mode, Mode::RouterConfigMode) {
                     <span class="macro">println!</span>(<span class="string">"network           - Configure network"</span>);
@@ -3862,18 +3901,27 @@ Two styles of help are provided:
                     <span class="macro">println!</span>(<span class="string">"distance          - Configure administrative distance"</span>);
                     <span class="macro">println!</span>(<span class="string">"default-information - Configure default route distribution"</span>);
                     <span class="macro">println!</span>(<span class="string">"router-id         - Configure router ID"</span>);
+                    <span class="macro">println!</span>(<span class="string">"reload            - Reload the system"</span>);
+                    <span class="macro">println!</span>(<span class="string">"clear             - Clear the terminal"</span>);
+                    <span class="macro">println!</span>(<span class="string">"help              - Display available commands"</span>);
                 }
                 <span class="kw">else if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigStdNaclMode(<span class="kw">_</span>)) {
                     <span class="macro">println!</span>(<span class="string">"deny              - Deny specific traffic"</span>);
                     <span class="macro">println!</span>(<span class="string">"permit            - Permit specific traffic"</span>);
                     <span class="macro">println!</span>(<span class="string">"exit              - Exit to config mode"</span>);
                     <span class="macro">println!</span>(<span class="string">"ip access-list    - Configure IP access list"</span>);
+                    <span class="macro">println!</span>(<span class="string">"reload            - Reload the system"</span>);
+                    <span class="macro">println!</span>(<span class="string">"clear             - Clear the terminal"</span>);
+                    <span class="macro">println!</span>(<span class="string">"help              - Display available commands"</span>);
                 }
                 <span class="kw">else if </span><span class="macro">matches!</span>(context.current_mode, Mode::ConfigExtNaclMode(<span class="kw">_</span>)) {
                     <span class="macro">println!</span>(<span class="string">"deny              - Deny specific traffic"</span>);
                     <span class="macro">println!</span>(<span class="string">"permit            - Permit specific traffic"</span>);
                     <span class="macro">println!</span>(<span class="string">"exit              - Exit to config mode"</span>);
                     <span class="macro">println!</span>(<span class="string">"ip access-list    - Configure IP access list"</span>);
+                    <span class="macro">println!</span>(<span class="string">"reload            - Reload the system"</span>);
+                    <span class="macro">println!</span>(<span class="string">"clear             - Clear the terminal"</span>);
+                    <span class="macro">println!</span>(<span class="string">"help              - Display available commands"</span>);
                 }
                 <span class="macro">println!</span>(<span class="string">"\n "</span>);
                 <span class="prelude-val">Ok</span>(())
