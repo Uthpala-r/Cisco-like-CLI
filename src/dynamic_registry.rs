@@ -47,9 +47,9 @@ pub fn register_command(
         permissions.insert(name, modes);
     }
 
-    println!("Dynamic commands registry now contains: {:?}", 
-        commands.keys().collect::<Vec<_>>()
-    );
+    //println!("Dynamic commands registry now contains: {:?}", 
+        //commands.keys().collect::<Vec<_>>()
+    //);
     // If modes are specified, you can add additional mode-based logic here
     
     Ok(())

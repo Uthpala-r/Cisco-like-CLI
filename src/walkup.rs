@@ -107,6 +107,7 @@ impl ModeHierarchy {
                 command == "show" ||
                 command == "clear" ||
                 command == "reload" ||
+                command == "connect" ||
                 command == "exit",
             Mode::PrivilegedMode => 
                 command == "configure" ||
@@ -121,6 +122,7 @@ impl ModeHierarchy {
                 command == "reload" ||
                 command == "debug" ||
                 command == "undebug" ||
+                command == "connect" ||
                 command == "ifconfig",
             Mode::ConfigMode => 
                 command == "hostname" || 
@@ -143,6 +145,7 @@ impl ModeHierarchy {
                 command == "ntp" ||
                 command == "no" || 
                 command == "reload" ||
+                command == "connect" ||
                 command == "crypto",
             Mode::InterfaceMode => 
                 command == "shutdown" ||
@@ -153,6 +156,7 @@ impl ModeHierarchy {
                 command == "switchport" ||
                 command == "write" ||
                 command == "reload" ||
+                command == "connect" ||
                 command == "ip" ,
             Mode::VlanMode => 
                 command == "name" ||
@@ -161,6 +165,7 @@ impl ModeHierarchy {
                 command == "exit" ||
                 command == "help" ||
                 command == "reload" ||
+                command == "connect" ||
                 command == "vlan",
             Mode::RouterConfigMode => 
                 command == "network" ||
@@ -173,6 +178,7 @@ impl ModeHierarchy {
                 command == "help" ||
                 command == "reload" ||
                 command == "default-information" ||
+                command == "connect" ||
                 command == "router-id", 
             Mode::ConfigStdNaclMode(_) => 
                 command == "deny" ||
@@ -181,6 +187,7 @@ impl ModeHierarchy {
                 command == "exit" ||
                 command == "clear" ||
                 command == "reload" ||
+                command == "connect" ||
                 command == "ip",
             Mode::ConfigExtNaclMode(_) => 
                 command == "deny" ||
@@ -189,6 +196,7 @@ impl ModeHierarchy {
                 command == "exit" ||
                 command == "clear" ||
                 command == "reload" ||
+                command == "connect" ||
                 command == "ip",
     
         }

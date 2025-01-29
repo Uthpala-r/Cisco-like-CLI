@@ -453,6 +453,7 @@ pub fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) 
                     cmd == "show" ||
                     cmd == "clear" ||
                     cmd == "reload" ||
+                    cmd == "connect" ||
                     cmd == "exit"
                 })
                 .copied()
@@ -473,6 +474,7 @@ pub fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) 
                     cmd == "reload" ||
                     cmd == "debug" ||
                     cmd == "undebug" ||
+                    cmd == "connect" ||
                     cmd == "ifconfig"
                     
                 })
@@ -503,6 +505,7 @@ pub fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) 
                     cmd == "no" || 
                     cmd == "reload" ||
                     cmd == "crypto" ||
+                    cmd == "connect" ||
                     //for walkup
                     cmd == "show" ||
                     cmd == "copy" ||
@@ -526,6 +529,7 @@ pub fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) 
                     cmd == "write" ||
                     cmd == "reload" ||
                     cmd == "ip" ||
+                    cmd == "connect" ||
                     //For walkup
                     cmd == "interface" ||
                     cmd == "hostname" ||
@@ -560,6 +564,7 @@ pub fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) 
                     cmd == "help" ||
                     cmd == "reload" ||
                     cmd == "vlan" ||
+                    cmd == "connect" ||
                     //For walkup
                     cmd == "interface" ||
                     cmd == "hostname" ||
@@ -598,6 +603,7 @@ pub fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) 
                     cmd == "reload" ||
                     cmd == "default-information" ||
                     cmd == "router-id" ||
+                    cmd == "connect" ||
                     //For walkup
                     cmd == "interface" ||
                     cmd == "hostname" ||
@@ -632,6 +638,7 @@ pub fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) 
                     cmd == "clear" ||
                     cmd == "reload" ||
                     cmd == "ip" ||
+                    cmd == "connect" ||
                     //For walkup
                     cmd == "interface" ||
                     cmd == "hostname" ||
@@ -666,6 +673,7 @@ pub fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) 
                     cmd == "clear" ||
                     cmd == "reload" ||
                     cmd == "ip" ||
+                    cmd == "connect" ||
                     //For walkup
                     cmd == "interface" ||
                     cmd == "hostname" ||

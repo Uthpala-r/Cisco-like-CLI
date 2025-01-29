@@ -240,6 +240,56 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         },
     });
 
+    commands.insert("connect", Command {
+        name: "connect",
+        description: "Connect to network processor or crypto module",
+        suggestions: Some(vec!["network", "crypto"]),
+        suggestions1: Some(vec!["network", "crypto"]),
+        options: None,
+        execute: |args, context, _| {    
+            if args.len() != 1 {
+                return Err("Invalid number of arguments. Usage: connect <network|crypto>".into());
+            }
+    
+            match args[0] {
+                "network" => {
+                    println!("Connecting to network processor...");
+                    let status = ProcessCommand::new("ssh")
+                        .args([
+                            "-o", "StrictHostKeyChecking=no",
+                            "-o", "UserKnownHostsFile=/dev/null",
+                            "pnfcli@192.168.253.146"   // Replace with actual FRR IP
+                        ])
+                        .status()
+                        .map_err(|e| format!("Failed to execute SSH command: {}", e))?;
+    
+                    if !status.success() {
+                        return Err("Failed to connect to network processor".into());
+                    }
+                    Ok(())
+                },
+                "crypto" => {
+                    println!("Connecting to crypto module...");
+                    // Replace with actual crypto module SSH details
+                    let status = ProcessCommand::new("ssh")
+                        .args([
+                            "-o", "StrictHostKeyChecking=no",
+                            "-o", "UserKnownHostsFile=/dev/null",
+                            "pnfcli@192.168.253.147"  // Replace with actual SEM IP
+                        ])
+                        .status()
+                        .map_err(|e| format!("Failed to execute SSH command: {}", e))?;
+
+                    if !status.success() {
+                        return Err("Failed to connect to crypto module".into());
+                    }
+                    Ok(())
+                },
+                _ => Err("Invalid argument. Use 'network' or 'crypto'".into())
+            }
+        },
+    });
+
     commands.insert("interface", Command {
         name: "interface",
         description: "Enter Interface configuration mode or Interface Range configuration mode",

@@ -5,3 +5,14 @@ conf t
 int g0/0
 host R1
 exit cli
+en
+conf t
+exit cli
+enable
+conf t
+connect network
+exit cli
+en
+connect crypto
+connect network
+exit cli
