@@ -12,6 +12,9 @@ mod clock_settings;
 mod run_config;
 mod execute;
 mod network_config;
+mod dynamic_registry;
+mod new_commands;
+mod walkup;
 
 
 /// Internal imports from the application's modules
@@ -21,7 +24,9 @@ use commandcompleter::CommandCompleter;
 use clicommands::build_command_registry;
 use execute::execute_command;
 use clock_settings::Clock;
-use crate::execute::Mode;
+use crate::execute::{Mode, Command};
+use crate::dynamic_registry::get_registered_commands;
+use crate::new_commands::register_custom_commands;
 
 
 /// External crates for the CLI application
@@ -55,10 +60,10 @@ use ctrlc;
 ///
 /// # Example Usage
 /// ```bash
-/// > Router> enable
-/// > Router# configure terminal
-/// > Router(config)# exit
-/// > Router# exit cli
+/// > PNF> enable
+/// > PNF# configure terminal
+/// > PNF(config)# exit
+/// > PNF# exit cli
 /// Exiting CLI...
 /// ```
 ///
@@ -77,8 +82,8 @@ fn main() {
     let commands = build_command_registry();
     let command_names: Vec<String> = commands.keys().cloned().map(String::from).collect();
     
-    // Define the initial hostname as "Router"
-    let initial_hostname = "Router".to_string();
+    // Define the initial hostname as "PNF"
+    let initial_hostname = "PNF".to_string();
     
     // Define the context for the CLI
     let mut context = CliContext {
@@ -152,6 +157,7 @@ fn main() {
                 if let Some(helper) = rl.helper_mut() {
                     execute_command(input, &commands, &mut context, &mut clock, helper);
                     helper.current_mode = context.current_mode.clone();
+                    helper.refresh_completions().ok();
                 }
                       
             }

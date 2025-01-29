@@ -5,6 +5,8 @@ use std::collections::{HashMap, HashSet};
 use crate::Clock;
 use crate::CliContext;
 use crate::commandcompleter::{CommandCompleter};
+use crate::walkup::ModeHierarchy;
+use crate::dynamic_registry::{get_registered_commands, get_mode_commands_FNC};
 
 /// Represents a command that can be executed in the CLI.
 ///
@@ -29,6 +31,8 @@ use crate::commandcompleter::{CommandCompleter};
 ///     - `&mut CliContext`: The current CLI context, including mode, configuration, and state.
 ///     - `&mut Option<Clock>`: An optional mutable reference to the clock, allowing the command to manipulate system time settings if needed.  
 ///   Returns a `Result<(), String>`, where `Ok(())` indicates success and `Err(String)` contains an error message if execution fails.
+
+#[derive(Clone)]
 pub struct Command {
     pub name: &'static str,
     pub description: &'static str,
@@ -78,7 +82,8 @@ pub struct Command {
 ///     Mode::ConfigExtNaclMode(acl) => println!("Configuring extended ACL: {}", acl),
 /// }
 /// ```
-#[derive(Clone, Debug)]
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Mode {
     UserMode,
     PrivilegedMode,
@@ -137,188 +142,6 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
     if showing_suggestions {
         normalized_input = normalized_input.trim_end_matches('?');
     }
-
-    // Get available commands for current mode
-    fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) -> Vec<&'a str> {
-        match mode {
-            Mode::UserMode => {
-                commands.keys()
-                    .filter(|&&cmd| {
-                        cmd == "enable" ||
-                        cmd == "ping" ||
-                        cmd == "help" ||
-                        cmd == "show" ||
-                        cmd == "clear" ||
-                        cmd == "reload" ||
-                        cmd == "exit"
-                    })
-                    .copied()
-                    .collect()
-            },
-            Mode::PrivilegedMode => {
-                commands.keys()
-                    .filter(|&&cmd| {
-                        cmd == "configure" ||
-                        cmd == "ping" || 
-                        cmd == "exit" || 
-                        cmd == "write" ||
-                        cmd == "help" ||
-                        cmd == "show" ||
-                        cmd == "copy" ||
-                        cmd == "clock" ||
-                        cmd == "clear" ||
-                        cmd == "reload" ||
-                        cmd == "debug" ||
-                        cmd == "undebug" ||
-                        cmd == "ifconfig"
-                        
-                    })
-                    .copied()
-                    .collect()
-            },
-            Mode::ConfigMode => {
-                commands.keys()
-                    .filter(|&&cmd| {
-                        cmd == "hostname" || 
-                        cmd == "interface" ||
-                        cmd == "ping" ||
-                        cmd == "exit" ||
-                        cmd == "clear" ||
-                        cmd == "tunnel" ||
-                        cmd == "access-list" ||
-                        cmd == "router" ||
-                        cmd == "virtual-template" ||
-                        cmd == "help" ||
-                        cmd == "write" ||
-                        cmd == "vlan" ||
-                        cmd == "ip" ||
-                        cmd == "service" ||
-                        cmd == "set" ||
-                        cmd == "enable" ||
-                        cmd == "ifconfig" ||  
-                        cmd == "ntp" ||
-                        cmd == "no" || 
-                        cmd == "reload" ||
-                        cmd == "crypto"
-                    })
-                    .copied()
-                    .collect()
-            },
-            Mode::InterfaceMode => {
-                commands.keys()
-                    .filter(|&&cmd| {
-                        cmd == "shutdown" ||
-                        cmd == "no" ||
-                        cmd == "exit" ||
-                        cmd == "clear" ||
-                        cmd == "help" ||
-                        cmd == "switchport" ||
-                        cmd == "write" ||
-                        cmd == "reload" ||
-                        cmd == "ip" 
-
-                    })
-                    .copied()
-                    .collect()
-            }
-            Mode::VlanMode => {
-                commands.keys()
-                    .filter(|&&cmd| {
-                        cmd == "name" ||
-                        cmd == "state" ||
-                        cmd == "clear" ||
-                        cmd == "exit" ||
-                        cmd == "help" ||
-                        cmd == "reload" ||
-                        cmd == "vlan" 
-
-                    })
-                    .copied()
-                    .collect()
-            }
-            Mode::RouterConfigMode => {
-                commands.keys()
-                    .filter(|&&cmd| {
-                        cmd == "network" ||
-                        cmd == "neighbor" ||
-                        cmd == "exit" ||
-                        cmd == "clear" ||
-                        cmd == "area" ||
-                        cmd == "passive-interface" ||
-                        cmd == "distance" ||
-                        cmd == "help" ||
-                        cmd == "reload" ||
-                        cmd == "default-information" ||
-                        cmd == "router-id"
-
-                    })
-                    .copied()
-                    .collect()
-            }
-            Mode::ConfigStdNaclMode(_) => {
-                commands.keys()
-                    .filter(|&&cmd| {
-                        cmd == "deny" ||
-                        cmd == "permit" ||
-                        cmd == "help" ||
-                        cmd == "exit" ||
-                        cmd == "clear" ||
-                        cmd == "reload" ||
-                        cmd == "ip"
-
-                    })
-                    .copied()
-                    .collect()
-            }
-            Mode::ConfigExtNaclMode(_) => {
-                commands.keys()
-                    .filter(|&&cmd| {
-                        cmd == "deny" ||
-                        cmd == "permit" ||
-                        cmd == "help" ||
-                        cmd == "exit" ||
-                        cmd == "clear" ||
-                        cmd == "reload" ||
-                        cmd == "ip"
-
-                    })
-                    .copied()
-                    .collect()
-            }
-
-        }
-    }
-
-    // Function to find a unique command match
-    fn find_unique_command<'a>(partial: &str, available_commands: &[&'a str]) -> Option<&'a str> {
-        let matches: Vec<&str> = available_commands
-            .iter()
-            .filter(|&&cmd| cmd.starts_with(partial))
-            .copied()
-            .collect();
-
-        if matches.len() == 1 {
-            Some(matches[0])
-        } else {
-            None
-        }
-    }
-
-    // Function to find a unique subcommand match
-    fn find_unique_subcommand<'a>(partial: &str, suggestions: &'a [&str]) -> Option<&'a str> {
-        let matches: Vec<&str> = suggestions
-            .iter()
-            .filter(|&&s| s.starts_with(partial))
-            .copied()
-            .collect();
-
-        if matches.len() == 1 {
-            Some(matches[0])
-        } else {
-            None
-        }
-    }
-
      
     let parts: Vec<&str> = normalized_input.split_whitespace().collect();
    
@@ -553,39 +376,350 @@ Two styles of help are provided:
         return;
     };
 
-    if let Some(cmd) = commands.get(cmd_key) {
-        if let Some(suggestions) = &cmd.suggestions1 {
-            match parts.len() {
-                1 => {
-                    println!("Incomplete command. Subcommand required.");
-                    //(cmd.execute)(&parts[1..], context, clock);
-                }
-                2 => {
-                    if suggestions.is_empty() {
-                        if let Err(err) = (cmd.execute)(&parts[1..], context, clock) {
-                            println!("Error: {}", err);
-                        }
-                    } else {
-                        // For commands with specific subcommands, require a match
-                        if let Some(matched_subcommand) = find_unique_subcommand(parts[1], suggestions) {
-                            if let Err(err) = (cmd.execute)(&[matched_subcommand], context, clock) {
+    let mode_hierarchy = ModeHierarchy::new();
+    if let Some(valid_mode) = mode_hierarchy.walkup_find_command(context.current_mode.clone(), cmd_key) {
+        if valid_mode != context.current_mode {
+            println!("Walkup: Command '{}' found in {} mode", cmd_key, valid_mode);
+            context.current_mode = valid_mode.clone();
+            completer.current_mode = valid_mode;
+        }
+
+        if let Some(cmd) = commands.get(cmd_key) {
+            if let Some(suggestions) = &cmd.suggestions1 {
+                match parts.len() {
+                    1 => {
+                        println!("Incomplete command. Subcommand required.");
+                        //(cmd.execute)(&parts[1..], context, clock);
+                    }
+                    2 => {
+                        if suggestions.is_empty() {
+                            if let Err(err) = (cmd.execute)(&parts[1..], context, clock) {
                                 println!("Error: {}", err);
                             }
                         } else {
-                            println!("Ambiguous or invalid subcommand: {}", parts[1]);
+                            // For commands with specific subcommands, require a match
+                            if let Some(matched_subcommand) = find_unique_subcommand(parts[1], suggestions) {
+                                if let Err(err) = (cmd.execute)(&[matched_subcommand], context, clock) {
+                                    println!("Error: {}", err);
+                                }
+                            } else {
+                                println!("Ambiguous or invalid subcommand: {}", parts[1]);
+                            }
+                        }
+                    }
+                    _ => {
+                        if let Err(err) = (cmd.execute)(&parts[1..], context, clock) {
+                            println!("Error: {}", err);
                         }
                     }
                 }
-                _ => {
-                    if let Err(err) = (cmd.execute)(&parts[1..], context, clock) {
-                        println!("Error: {}", err);
-                    }
+            } else {
+                if let Err(err) = (cmd.execute)(&parts[1..], context, clock) {
+                    println!("Error: {}", err);
                 }
             }
-        } else {
-            if let Err(err) = (cmd.execute)(&parts[1..], context, clock) {
-                println!("Error: {}", err);
+        }
+    }
+    else if let Ok(dynamic_commands) = get_registered_commands() {
+        if let Some(dynamic_command) = dynamic_commands.get(cmd_key) {
+            match (dynamic_command.execute)(&parts[1..], context, clock) {
+                Ok(_) => {
+                    println!("Dynamic command '{}' executed successfully.", cmd_key);
+                    return;
+                }
+                Err(err) => {
+                    println!("Error: {}", err);
+                    return;
+                }
+                
             }
         }
+    }
+
+    else {
+        println!("Command '{}' not found", cmd_key);
+    }
+}
+
+// Get available commands for current mode
+pub fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) -> Vec<&'a str> {
+    match mode {
+        Mode::UserMode => {
+            commands.keys()
+                .filter(|&&cmd| {
+                    cmd == "enable" ||
+                    cmd == "ping" ||
+                    cmd == "help" ||
+                    cmd == "show" ||
+                    cmd == "clear" ||
+                    cmd == "reload" ||
+                    cmd == "exit"
+                })
+                .copied()
+                .collect()
+        },
+        Mode::PrivilegedMode => {
+            commands.keys()
+                .filter(|&&cmd| {
+                    cmd == "configure" ||
+                    cmd == "ping" || 
+                    cmd == "exit" || 
+                    cmd == "write" ||
+                    cmd == "help" ||
+                    cmd == "show" ||
+                    cmd == "copy" ||
+                    cmd == "clock" ||
+                    cmd == "clear" ||
+                    cmd == "reload" ||
+                    cmd == "debug" ||
+                    cmd == "undebug" ||
+                    cmd == "ifconfig"
+                    
+                })
+                .copied()
+                .collect()
+        },
+        Mode::ConfigMode => {
+            commands.keys()
+                .filter(|&&cmd| {
+                    cmd == "hostname" || 
+                    cmd == "interface" ||
+                    cmd == "ping" ||
+                    cmd == "exit" ||
+                    cmd == "clear" ||
+                    cmd == "tunnel" ||
+                    cmd == "access-list" ||
+                    cmd == "router" ||
+                    cmd == "virtual-template" ||
+                    cmd == "help" ||
+                    cmd == "write" ||
+                    cmd == "vlan" ||
+                    cmd == "ip" ||
+                    cmd == "service" ||
+                    cmd == "set" ||
+                    cmd == "enable" ||
+                    cmd == "ifconfig" ||  
+                    cmd == "ntp" ||
+                    cmd == "no" || 
+                    cmd == "reload" ||
+                    cmd == "crypto" ||
+                    //for walkup
+                    cmd == "show" ||
+                    cmd == "copy" ||
+                    cmd == "clock" ||
+                    cmd == "debug" ||
+                    cmd == "undebug" ||
+                    cmd == "ifconfig"
+                })
+                .copied()
+                .collect()
+        },
+        Mode::InterfaceMode => {
+            commands.keys()
+                .filter(|&&cmd| {
+                    cmd == "shutdown" ||
+                    cmd == "no" ||
+                    cmd == "exit" ||
+                    cmd == "clear" ||
+                    cmd == "help" ||
+                    cmd == "switchport" ||
+                    cmd == "write" ||
+                    cmd == "reload" ||
+                    cmd == "ip" ||
+                    //For walkup
+                    cmd == "interface" ||
+                    cmd == "hostname" ||
+                    cmd == "ping" ||
+                    cmd == "tunnel" ||
+                    cmd == "access-list" ||
+                    cmd == "router" ||
+                    cmd == "virtual-template" ||
+                    cmd == "write" ||
+                    cmd == "vlan" ||
+                    cmd == "ip" ||
+                    cmd == "service" ||
+                    cmd == "set" ||
+                    cmd == "enable" ||
+                    cmd == "ifconfig" ||  
+                    cmd == "ntp" ||
+                    cmd == "no" || 
+                    cmd == "reload" ||
+                    cmd == "crypto"
+
+                })
+                .copied()
+                .collect()
+        }
+        Mode::VlanMode => {
+            commands.keys()
+                .filter(|&&cmd| {
+                    cmd == "name" ||
+                    cmd == "state" ||
+                    cmd == "clear" ||
+                    cmd == "exit" ||
+                    cmd == "help" ||
+                    cmd == "reload" ||
+                    cmd == "vlan" ||
+                    //For walkup
+                    cmd == "interface" ||
+                    cmd == "hostname" ||
+                    cmd == "ping" ||
+                    cmd == "tunnel" ||
+                    cmd == "access-list" ||
+                    cmd == "router" ||
+                    cmd == "virtual-template" ||
+                    cmd == "write" ||
+                    cmd == "vlan" ||
+                    cmd == "ip" ||
+                    cmd == "service" ||
+                    cmd == "set" ||
+                    cmd == "enable" ||
+                    cmd == "ifconfig" ||  
+                    cmd == "ntp" ||
+                    cmd == "no" || 
+                    cmd == "reload" ||
+                    cmd == "crypto"
+
+                })
+                .copied()
+                .collect()
+        }
+        Mode::RouterConfigMode => {
+            commands.keys()
+                .filter(|&&cmd| {
+                    cmd == "network" ||
+                    cmd == "neighbor" ||
+                    cmd == "exit" ||
+                    cmd == "clear" ||
+                    cmd == "area" ||
+                    cmd == "passive-interface" ||
+                    cmd == "distance" ||
+                    cmd == "help" ||
+                    cmd == "reload" ||
+                    cmd == "default-information" ||
+                    cmd == "router-id" ||
+                    //For walkup
+                    cmd == "interface" ||
+                    cmd == "hostname" ||
+                    cmd == "ping" ||
+                    cmd == "tunnel" ||
+                    cmd == "access-list" ||
+                    cmd == "router" ||
+                    cmd == "virtual-template" ||
+                    cmd == "write" ||
+                    cmd == "vlan" ||
+                    cmd == "ip" ||
+                    cmd == "service" ||
+                    cmd == "set" ||
+                    cmd == "enable" ||
+                    cmd == "ifconfig" ||  
+                    cmd == "ntp" ||
+                    cmd == "no" || 
+                    cmd == "reload" ||
+                    cmd == "crypto"
+
+                })
+                .copied()
+                .collect()
+        }
+        Mode::ConfigStdNaclMode(_) => {
+            commands.keys()
+                .filter(|&&cmd| {
+                    cmd == "deny" ||
+                    cmd == "permit" ||
+                    cmd == "help" ||
+                    cmd == "exit" ||
+                    cmd == "clear" ||
+                    cmd == "reload" ||
+                    cmd == "ip" ||
+                    //For walkup
+                    cmd == "interface" ||
+                    cmd == "hostname" ||
+                    cmd == "ping" ||
+                    cmd == "tunnel" ||
+                    cmd == "access-list" ||
+                    cmd == "router" ||
+                    cmd == "virtual-template" ||
+                    cmd == "write" ||
+                    cmd == "vlan" ||
+                    cmd == "ip" ||
+                    cmd == "service" ||
+                    cmd == "set" ||
+                    cmd == "enable" ||
+                    cmd == "ifconfig" ||  
+                    cmd == "ntp" ||
+                    cmd == "no" || 
+                    cmd == "reload" ||
+                    cmd == "crypto"
+
+                })
+                .copied()
+                .collect()
+        }
+        Mode::ConfigExtNaclMode(_) => {
+            commands.keys()
+                .filter(|&&cmd| {
+                    cmd == "deny" ||
+                    cmd == "permit" ||
+                    cmd == "help" ||
+                    cmd == "exit" ||
+                    cmd == "clear" ||
+                    cmd == "reload" ||
+                    cmd == "ip" ||
+                    //For walkup
+                    cmd == "interface" ||
+                    cmd == "hostname" ||
+                    cmd == "ping" ||
+                    cmd == "tunnel" ||
+                    cmd == "access-list" ||
+                    cmd == "router" ||
+                    cmd == "virtual-template" ||
+                    cmd == "write" ||
+                    cmd == "vlan" ||
+                    cmd == "ip" ||
+                    cmd == "service" ||
+                    cmd == "set" ||
+                    cmd == "enable" ||
+                    cmd == "ifconfig" ||  
+                    cmd == "ntp" ||
+                    cmd == "no" || 
+                    cmd == "reload" ||
+                    cmd == "crypto"
+
+                })
+                .copied()
+                .collect()
+        }
+
+    }
+}
+
+// Function to find a unique command match
+pub fn find_unique_command<'a>(partial: &str, available_commands: &[&'a str]) -> Option<&'a str> {
+    let matches: Vec<&str> = available_commands
+        .iter()
+        .filter(|&&cmd| cmd.starts_with(partial))
+        .copied()
+        .collect();
+
+    if matches.len() == 1 {
+        Some(matches[0])
+    } else {
+        None
+    }
+}
+
+// Function to find a unique subcommand match
+pub fn find_unique_subcommand<'a>(partial: &str, suggestions: &'a [&str]) -> Option<&'a str> {
+    let matches: Vec<&str> = suggestions
+        .iter()
+        .filter(|&&s| s.starts_with(partial))
+        .copied()
+        .collect();
+
+    if matches.len() == 1 {
+        Some(matches[0])
+    } else {
+        None
     }
 }
