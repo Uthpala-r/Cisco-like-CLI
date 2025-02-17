@@ -2,7 +2,7 @@
 use crate::cliconfig::{CliConfig, CliContext};
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
-use crate::network_config::{STATUS_MAP, IP_ADDRESS_STATE, ROUTE_TABLE, OSPF_CONFIG, ACL_STORE};
+//use crate::network_config::{STATUS_MAP, IP_ADDRESS_STATE, ROUTE_TABLE, OSPF_CONFIG, ACL_STORE};
 
 
 /// Saves the given `CliConfig` to a file named `startup-config.json`.
@@ -85,69 +85,7 @@ pub fn get_running_config(context: &CliContext) -> String {
     let encrypted_password = context.config.encrypted_password.clone().unwrap_or_default();
     let encrypted_secret = context.config.encrypted_secret.clone().unwrap_or_default();
 
-    // Access global states
-    let ip_address_state = IP_ADDRESS_STATE.lock().unwrap();
-    let status_map = STATUS_MAP.lock().unwrap();
-    let route_table = ROUTE_TABLE.lock().unwrap();
-    let ospf_config = OSPF_CONFIG.lock().unwrap();
-    let acl_store = ACL_STORE.lock().unwrap();
-
-    // Determine the active interface
-    let interface = context
-        .selected_interface
-        .clone()
-        .unwrap_or_else(|| "FastEthernet0/1".to_string());
-
-    // Retrieve IP address and netmask for the interface
-    let ip_address = ip_address_state
-        .get(&interface)
-        .map(|(ip, _)| ip.to_string())
-        .unwrap_or_else(|| "no ip address".to_string());
-
-    let mut route_entries = String::new();
-    for (destination, (netmask, next_hop_or_iface)) in route_table.iter() {
-        route_entries.push_str(&format!(
-            "ip route {} {} {}\n",
-            destination, netmask, next_hop_or_iface
-        ));
-    }
-
-    let shutdown_status = if status_map.get(&interface).copied().unwrap_or(false) {
-        "no shutdown"
-    } else {
-        "shutdown"
-    };
-
-    let ospf_process_id = ospf_config.process_id.map_or("N/A".to_string(), |id| id.to_string());
-    let ospf_interface = ospf_config.passive_interfaces.join(", ");
-    let mut ospf_network_configs = String::new();
-    for (network_key, area_id) in ospf_config.networks.iter() {
-        if let Some((ip_address, wildcard_mask)) = network_key.split_once(' ') {
-            ospf_network_configs.push_str(&format!(
-                "network {} {} area {}\n",
-                ip_address, wildcard_mask, area_id
-            ));
-        }
-    }
-
-    let mut acl_configs = String::new();
-    for acl in acl_store.values() {
-        acl_configs.push_str(&format!("!\nip access-list extended {}\n", acl.number_or_name));
-        for entry in &acl.entries {
-            let protocol = entry.protocol.as_deref().unwrap_or("ip");
-            let mut rule = format!(" {} {}", entry.action, protocol);
-            rule.push_str(&format!(" {}", entry.source));
-            if let (Some(op), Some(port)) = (&entry.source_operator, &entry.source_port) {
-                rule.push_str(&format!(" {} {}", op, port));
-            }
-            rule.push_str(&format!(" {}", entry.destination));
-            if let (Some(op), Some(port)) = (&entry.destination_operator, &entry.destination_port) {
-                rule.push_str(&format!(" {} {}", op, port));
-            }
-            acl_configs.push_str(&format!("{}\n", rule));
-        }
-    }
-
+    
     format!(
         r#"version 15.1
 no service timestamps log datetime msec
@@ -158,25 +96,25 @@ hostname {}
 enable password 5 {}
 enable secret 5 {}
 !
-interface {}
- ip address {}
+interface 
+ ip address 
  duplex auto
  speed auto
- {}
+ 
 !
 interface Vlan1
  no ip address
  shutdown
 !
 ip classes
-{}
+
 !
-router ospf {}
+router ospf 
  log-adjacency-changes
- passive-interface {}
- {}
+ passive-interface 
+ 
 !
-{}
+
 !
 !
 end
@@ -189,14 +127,7 @@ end
         hostname,
         encrypted_password,
         encrypted_secret,
-        interface,
-        ip_address,
-        shutdown_status,
-        route_entries,
-        ospf_process_id,
-        ospf_interface,
-        ospf_network_configs,
-        acl_configs,
+        
     )
 }
 

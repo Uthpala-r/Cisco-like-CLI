@@ -16,3 +16,12 @@ en
 connect crypto
 connect network
 exit cli
+connect network
+connect crypto
+exit cli
+connect network
+connect crypto
+exit cli
+en
+conf t
+exit cli

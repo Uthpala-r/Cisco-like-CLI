@@ -1,12 +1,12 @@
 //execute.rs
 
 /// External crates for the CLI application
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use crate::Clock;
 use crate::CliContext;
 use crate::commandcompleter::{CommandCompleter};
 use crate::walkup::ModeHierarchy;
-use crate::dynamic_registry::{get_registered_commands, get_mode_commands_FNC};
+use crate::dynamic_registry::get_registered_commands;
 
 /// Represents a command that can be executed in the CLI.
 ///
@@ -88,11 +88,6 @@ pub enum Mode {
     UserMode,
     PrivilegedMode,
     ConfigMode,
-    InterfaceMode,
-    VlanMode,
-    RouterConfigMode,
-    ConfigStdNaclMode(String),
-    ConfigExtNaclMode(String),
 }
 
 
@@ -195,7 +190,7 @@ Two styles of help are provided:
                 }
                 else if matches!(context.current_mode, Mode::ConfigMode) {
                     println!("hostname          - Set system hostname");
-                    println!("interface         - Configure interface");
+                    //println!("interface         - Configure interface");
                     println!("exit              - Exit to privileged mode");
                     println!("tunnel            - Configure tunnel interface");
                     println!("virtual-template  - Configure virtual template");
@@ -217,59 +212,7 @@ Two styles of help are provided:
                     println!("reload            - Reload the system");
                     println!("clear             - Clear the terminal");
                 }
-                else if matches!(context.current_mode, Mode::InterfaceMode) {
-                    println!("exit              - Exit to config mode");
-                    println!("shutdown          - Shutdown interface");
-                    println!("no                - Negate a command");
-                    println!("switchport        - Configure switching parameters");
-                    println!("help              - Display available commands");
-                    println!("write             - Save the configuration");
-                    println!("interface         - Select another interface");
-                    println!("ip address        - Set IP address");
-                    println!("ip ospf           - Configure OSPF protocol");
-                    println!("reload            - Reload the system");
-                    println!("clear             - Clear the terminal");
-                }
-                else if matches!(context.current_mode, Mode::VlanMode) {
-                    println!("name              - Set VLAN name");
-                    println!("exit              - Exit to config mode");
-                    println!("state             - Set VLAN state");
-                    println!("vlan              - Configure VLAN parameters");
-                    println!("reload            - Reload the system");
-                    println!("clear             - Clear the terminal");
-                    println!("help              - Display available commands");
-                }
-                else if matches!(context.current_mode, Mode::RouterConfigMode) {
-                    println!("network           - Configure network");
-                    println!("exit              - Exit to config mode");
-                    println!("neighbor          - Configure BGP neighbor");
-                    println!("area              - Configure OSPF area");
-                    println!("passive-interface - Configure passive interface");
-                    println!("distance          - Configure administrative distance");
-                    println!("default-information - Configure default route distribution");
-                    println!("router-id         - Configure router ID");
-                    println!("reload            - Reload the system");
-                    println!("clear             - Clear the terminal");
-                    println!("help              - Display available commands");
-                }
-                else if matches!(context.current_mode, Mode::ConfigStdNaclMode(_)) {
-                    println!("deny              - Deny specific traffic");
-                    println!("permit            - Permit specific traffic");
-                    println!("exit              - Exit to config mode");
-                    println!("ip access-list    - Configure IP access list");
-                    println!("reload            - Reload the system");
-                    println!("clear             - Clear the terminal");
-                    println!("help              - Display available commands");
-                }
-                else if matches!(context.current_mode, Mode::ConfigExtNaclMode(_)) {
-                    println!("deny              - Deny specific traffic");
-                    println!("permit            - Permit specific traffic");
-                    println!("exit              - Exit to config mode");
-                    println!("ip access-list    - Configure IP access list");
-                    println!("reload            - Reload the system");
-                    println!("clear             - Clear the terminal");
-                    println!("help              - Display available commands");
-                }
+                
                 println!("\n ");
                 
             },            
@@ -485,7 +428,6 @@ pub fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) 
             commands.keys()
                 .filter(|&&cmd| {
                     cmd == "hostname" || 
-                    cmd == "interface" ||
                     cmd == "ping" ||
                     cmd == "exit" ||
                     cmd == "clear" ||
@@ -516,187 +458,7 @@ pub fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) 
                 })
                 .copied()
                 .collect()
-        },
-        Mode::InterfaceMode => {
-            commands.keys()
-                .filter(|&&cmd| {
-                    cmd == "shutdown" ||
-                    cmd == "no" ||
-                    cmd == "exit" ||
-                    cmd == "clear" ||
-                    cmd == "help" ||
-                    cmd == "switchport" ||
-                    cmd == "write" ||
-                    cmd == "reload" ||
-                    cmd == "ip" ||
-                    cmd == "connect" ||
-                    //For walkup
-                    cmd == "interface" ||
-                    cmd == "hostname" ||
-                    cmd == "ping" ||
-                    cmd == "tunnel" ||
-                    cmd == "access-list" ||
-                    cmd == "router" ||
-                    cmd == "virtual-template" ||
-                    cmd == "write" ||
-                    cmd == "vlan" ||
-                    cmd == "ip" ||
-                    cmd == "service" ||
-                    cmd == "set" ||
-                    cmd == "enable" ||
-                    cmd == "ifconfig" ||  
-                    cmd == "ntp" ||
-                    cmd == "no" || 
-                    cmd == "reload" ||
-                    cmd == "crypto"
-
-                })
-                .copied()
-                .collect()
-        }
-        Mode::VlanMode => {
-            commands.keys()
-                .filter(|&&cmd| {
-                    cmd == "name" ||
-                    cmd == "state" ||
-                    cmd == "clear" ||
-                    cmd == "exit" ||
-                    cmd == "help" ||
-                    cmd == "reload" ||
-                    cmd == "vlan" ||
-                    cmd == "connect" ||
-                    //For walkup
-                    cmd == "interface" ||
-                    cmd == "hostname" ||
-                    cmd == "ping" ||
-                    cmd == "tunnel" ||
-                    cmd == "access-list" ||
-                    cmd == "router" ||
-                    cmd == "virtual-template" ||
-                    cmd == "write" ||
-                    cmd == "vlan" ||
-                    cmd == "ip" ||
-                    cmd == "service" ||
-                    cmd == "set" ||
-                    cmd == "enable" ||
-                    cmd == "ifconfig" ||  
-                    cmd == "ntp" ||
-                    cmd == "no" || 
-                    cmd == "reload" ||
-                    cmd == "crypto"
-
-                })
-                .copied()
-                .collect()
-        }
-        Mode::RouterConfigMode => {
-            commands.keys()
-                .filter(|&&cmd| {
-                    cmd == "network" ||
-                    cmd == "neighbor" ||
-                    cmd == "exit" ||
-                    cmd == "clear" ||
-                    cmd == "area" ||
-                    cmd == "passive-interface" ||
-                    cmd == "distance" ||
-                    cmd == "help" ||
-                    cmd == "reload" ||
-                    cmd == "default-information" ||
-                    cmd == "router-id" ||
-                    cmd == "connect" ||
-                    //For walkup
-                    cmd == "interface" ||
-                    cmd == "hostname" ||
-                    cmd == "ping" ||
-                    cmd == "tunnel" ||
-                    cmd == "access-list" ||
-                    cmd == "router" ||
-                    cmd == "virtual-template" ||
-                    cmd == "write" ||
-                    cmd == "vlan" ||
-                    cmd == "ip" ||
-                    cmd == "service" ||
-                    cmd == "set" ||
-                    cmd == "enable" ||
-                    cmd == "ifconfig" ||  
-                    cmd == "ntp" ||
-                    cmd == "no" || 
-                    cmd == "reload" ||
-                    cmd == "crypto"
-
-                })
-                .copied()
-                .collect()
-        }
-        Mode::ConfigStdNaclMode(_) => {
-            commands.keys()
-                .filter(|&&cmd| {
-                    cmd == "deny" ||
-                    cmd == "permit" ||
-                    cmd == "help" ||
-                    cmd == "exit" ||
-                    cmd == "clear" ||
-                    cmd == "reload" ||
-                    cmd == "ip" ||
-                    cmd == "connect" ||
-                    //For walkup
-                    cmd == "interface" ||
-                    cmd == "hostname" ||
-                    cmd == "ping" ||
-                    cmd == "tunnel" ||
-                    cmd == "access-list" ||
-                    cmd == "router" ||
-                    cmd == "virtual-template" ||
-                    cmd == "write" ||
-                    cmd == "vlan" ||
-                    cmd == "ip" ||
-                    cmd == "service" ||
-                    cmd == "set" ||
-                    cmd == "enable" ||
-                    cmd == "ifconfig" ||  
-                    cmd == "ntp" ||
-                    cmd == "no" || 
-                    cmd == "reload" ||
-                    cmd == "crypto"
-
-                })
-                .copied()
-                .collect()
-        }
-        Mode::ConfigExtNaclMode(_) => {
-            commands.keys()
-                .filter(|&&cmd| {
-                    cmd == "deny" ||
-                    cmd == "permit" ||
-                    cmd == "help" ||
-                    cmd == "exit" ||
-                    cmd == "clear" ||
-                    cmd == "reload" ||
-                    cmd == "ip" ||
-                    cmd == "connect" ||
-                    //For walkup
-                    cmd == "interface" ||
-                    cmd == "hostname" ||
-                    cmd == "ping" ||
-                    cmd == "tunnel" ||
-                    cmd == "access-list" ||
-                    cmd == "router" ||
-                    cmd == "virtual-template" ||
-                    cmd == "write" ||
-                    cmd == "vlan" ||
-                    cmd == "ip" ||
-                    cmd == "service" ||
-                    cmd == "set" ||
-                    cmd == "enable" ||
-                    cmd == "ifconfig" ||  
-                    cmd == "ntp" ||
-                    cmd == "no" || 
-                    cmd == "reload" ||
-                    cmd == "crypto"
-
-                })
-                .copied()
-                .collect()
+        
         }
 
     }

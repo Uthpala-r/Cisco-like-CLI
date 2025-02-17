@@ -94,10 +94,8 @@ pub fn get_commands_for_mode(mode: &Mode) -> Vec<&'static str> {
             if allowed_modes.contains(mode) || 
                (mode == &Mode::PrivilegedMode && allowed_modes.contains(&Mode::UserMode)) ||
                (mode == &Mode::ConfigMode && (allowed_modes.contains(&Mode::UserMode) || 
-                                            allowed_modes.contains(&Mode::PrivilegedMode))) ||
-               (mode == &Mode::InterfaceMode && (allowed_modes.contains(&Mode::UserMode) || 
-                                                allowed_modes.contains(&Mode::PrivilegedMode) ||
-                                                allowed_modes.contains(&Mode::ConfigMode))) {
+                                            allowed_modes.contains(&Mode::PrivilegedMode))) 
+                {
                 if commands.contains_key(command_name) {
                     allowed_commands.push(*command_name);
                 }

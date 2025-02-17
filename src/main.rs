@@ -25,8 +25,8 @@ use clicommands::build_command_registry;
 use execute::execute_command;
 use clock_settings::Clock;
 use crate::execute::{Mode, Command};
-use crate::dynamic_registry::get_registered_commands;
-use crate::new_commands::register_custom_commands;
+//use crate::dynamic_registry::get_registered_commands;
+//use crate::new_commands::register_custom_commands;
 
 
 /// External crates for the CLI application
@@ -90,14 +90,6 @@ fn main() {
         current_mode: Mode::UserMode,
         config: CliConfig::default(),
         prompt: format!("{}>", CliConfig::default().hostname),
-        selected_interface: None,
-        selected_vlan: None,
-        vlan_names: None,
-        vlan_states: None,
-        switchport_mode: None,
-        trunk_encapsulation: None,
-        native_vlan: None,
-        allowed_vlans: HashSet::new(),
         ntp_servers: HashSet::new(), 
         ntp_associations: Vec::new(),
         ntp_authentication_enabled: false,   

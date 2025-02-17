@@ -37,16 +37,7 @@ impl ModeHierarchy {
         
         parent_map.insert(Mode::UserMode, None);
         parent_map.insert(Mode::PrivilegedMode, Some(Mode::UserMode));
-        parent_map.insert(Mode::ConfigMode, Some(Mode::PrivilegedMode));
-        parent_map.insert(Mode::InterfaceMode, Some(Mode::ConfigMode));
-        parent_map.insert(Mode::VlanMode, Some(Mode::ConfigMode));
-        parent_map.insert(Mode::RouterConfigMode, Some(Mode::ConfigMode));
-        //parent_map.insert(Mode::RouterRIPMode, Some(Mode::ConfigMode));
-        //parent_map.insert(Mode::RouterISISMode, Some(Mode::ConfigMode));  
-        //parent_map.insert(Mode::RouterEIGRPMode, Some(Mode::ConfigMode));
-        //parent_map.insert(Mode::RouterBGPMode, Some(Mode::ConfigMode));
-        parent_map.insert(Mode::ConfigStdNaclMode("default".to_string()), Some(Mode::ConfigMode));  
-        parent_map.insert(Mode::ConfigExtNaclMode("default".to_string()), Some(Mode::ConfigMode));    
+        parent_map.insert(Mode::ConfigMode, Some(Mode::PrivilegedMode));  
         
         Self { parent_map }
     }
@@ -147,57 +138,6 @@ impl ModeHierarchy {
                 command == "reload" ||
                 command == "connect" ||
                 command == "crypto",
-            Mode::InterfaceMode => 
-                command == "shutdown" ||
-                command == "no" ||
-                command == "exit" ||
-                command == "clear" ||
-                command == "help" ||
-                command == "switchport" ||
-                command == "write" ||
-                command == "reload" ||
-                command == "connect" ||
-                command == "ip" ,
-            Mode::VlanMode => 
-                command == "name" ||
-                command == "state" ||
-                command == "clear" ||
-                command == "exit" ||
-                command == "help" ||
-                command == "reload" ||
-                command == "connect" ||
-                command == "vlan",
-            Mode::RouterConfigMode => 
-                command == "network" ||
-                command == "neighbor" ||
-                command == "exit" ||
-                command == "clear" ||
-                command == "area" ||
-                command == "passive-interface" ||
-                command == "distance" ||
-                command == "help" ||
-                command == "reload" ||
-                command == "default-information" ||
-                command == "connect" ||
-                command == "router-id", 
-            Mode::ConfigStdNaclMode(_) => 
-                command == "deny" ||
-                command == "permit" ||
-                command == "help" ||
-                command == "exit" ||
-                command == "clear" ||
-                command == "reload" ||
-                command == "connect" ||
-                command == "ip",
-            Mode::ConfigExtNaclMode(_) => 
-                command == "deny" ||
-                command == "permit" ||
-                command == "help" ||
-                command == "exit" ||
-                command == "clear" ||
-                command == "reload" ||
-                command == "connect" ||
-                command == "ip",
     
         }
         
