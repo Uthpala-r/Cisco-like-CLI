@@ -1,27 +1,101 @@
 #V2
+connect network
+connect crypto
 exit cli
 en
 conf t
-int g0/0
+exit cli
+en
+conf t
+disable
+exit
+disable
+exit cli
+traceroute
+exit cli
+en
+disable
+exit cli
+en
+traceroute 10.0.0.0
+exit cli
+show sessions
+exit cli
+show version
+exit cli
+show sessions
+exit cli
+show sessions
+exit cli
+show running-config
+en
+show running-config
+conf t
 host R1
+exit
+show running-config
+exit
+sh his
 exit cli
 en
-conf t
+sh run
+sh ntp
+sh clock
+sh up
+sh ver
+exit
+sh ses
+sh contr
 exit cli
-enable
-conf t
-connect network
+show sessions
+sho contr
+sh run
+exit cli
+sh sess
+sh clock
+sh up
+sh ver
+exit cli
+sh cl
+sh sess
+sh cont
+show history
+en
+show running-config
+sh sta
+sh login
+exit cli'
+exit cli
+sh cl
+sh sess
+sh cont
+sh cont Serial
+show controllers serial
+show controllers Serial
+sh his
+sh run
+en
+sh run
+sh star
+sh login
+sh ntp
+sh proc
+exit cli
+ssh
+en
+ssh
+exit cli
+ssh
+en
+ssh
+ssh -v
+ssh -l
+ssh -l hi@192.168.1.1
+ssh help
+ssh -h
 exit cli
 en
-connect crypto
-connect network
-exit cli
-connect network
-connect crypto
-exit cli
-connect network
-connect crypto
-exit cli
-en
-conf t
+ssh
+ssh -h
+ssh --help
 exit cli

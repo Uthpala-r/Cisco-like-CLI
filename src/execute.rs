@@ -397,6 +397,8 @@ pub fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) 
                     cmd == "clear" ||
                     cmd == "reload" ||
                     cmd == "connect" ||
+                    cmd == "disable" ||
+                    cmd == "traceroute" ||
                     cmd == "exit"
                 })
                 .copied()
@@ -418,6 +420,9 @@ pub fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) 
                     cmd == "debug" ||
                     cmd == "undebug" ||
                     cmd == "connect" ||
+                    cmd == "disable" ||
+                    cmd == "traceroute" ||
+                    cmd == "ssh" ||
                     cmd == "ifconfig"
                     
                 })
@@ -448,6 +453,8 @@ pub fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) 
                     cmd == "reload" ||
                     cmd == "crypto" ||
                     cmd == "connect" ||
+                    cmd == "disable" ||
+                    cmd == "traceroute" ||
                     //for walkup
                     cmd == "show" ||
                     cmd == "copy" ||

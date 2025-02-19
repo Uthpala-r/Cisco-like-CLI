@@ -214,9 +214,9 @@ impl Completer for CommandCompleter {
 /// for the commands within each mode.
 fn is_command_allowed_in_mode(command: &String, mode: &Mode) -> bool {
     match mode {
-        Mode::UserMode => matches!(command.as_str(), "enable" | "connect" | "reload" | "exit" | "clear" | "help" | "show" | "ping"),
-        Mode::PrivilegedMode => matches!(command.as_str(), "configure" | "connect" | "reload" | "debug" | "undebug" | "exit" | "clear" | "help" | "write" | "copy" | "clock" | "clear" | "ping" | "show" | "ifconfig"),
-        Mode::ConfigMode => matches!(command.as_str(), "hostname" | "connect" | "reload" | "interface" | "ip" | "no" | "exit" | "clear" | "tunnel" | "virtual-template" | "help" | "write" | "ping" | "vlan" | "access-list" | "router" | "enable" | "service" | "set" | "ifconfig" | "ntp" | "crypto"),
+        Mode::UserMode => matches!(command.as_str(), "enable" | "disable" | "traceroute" | "connect" | "reload" | "exit" | "clear" | "help" | "show" | "ping"),
+        Mode::PrivilegedMode => matches!(command.as_str(), "configure" | "ssh" | "disable" | "traceroute" | "connect" | "reload" | "debug" | "undebug" | "exit" | "clear" | "help" | "write" | "copy" | "clock" | "clear" | "ping" | "show" | "ifconfig"),
+        Mode::ConfigMode => matches!(command.as_str(), "hostname" | "connect" | "disable" | "traceroute" | "reload" | "interface" | "ip" | "no" | "exit" | "clear" | "tunnel" | "virtual-template" | "help" | "write" | "ping" | "vlan" | "access-list" | "router" | "enable" | "service" | "set" | "ifconfig" | "ntp" | "crypto"),
         
         _ => false,
     }

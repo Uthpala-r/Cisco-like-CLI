@@ -2,8 +2,8 @@
 use std::collections::HashMap;
 use std::net::Ipv4Addr;
 use std::path::Path;
-use std::fs::{File};
-use std::io::Write;
+use std::fs::File;
+use std::io::{self, Write, BufRead};
 //use std::io;
 use std::str::FromStr;
 use rpassword::read_password;
@@ -322,6 +322,37 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             }
         },
     });
+
+    commands.insert("disable", Command {
+        name: "disable",
+        description: "Exit the Privileged EXEC mode.",
+        suggestions: None,
+        suggestions1: None,
+        options: None,
+        execute: |_args, context, _| {
+            if _args.is_empty() {
+                match context.current_mode {
+                    Mode::ConfigMode => {
+                        println!("This command only works at the Privileged Mode.");
+                        Err("This command only works at the Privileged Mode.".into())
+                    
+                    }
+                    Mode::PrivilegedMode => {
+                        context.current_mode = Mode::UserMode;
+                        context.prompt = format!("{}>", context.config.hostname);
+                        println!("Exiting Privileged EXEC Mode...");
+                        Ok(())
+                    }
+                    Mode::UserMode => {
+                        println!("Already at the top level. No mode to exit.");
+                        Err("No mode to exit.".into())
+                    }
+                }
+            } else {
+                Err("Invalid arguments provided to 'exit'. This command does not accept additional arguments.".into())
+            }
+        },
+    });
     
     commands.insert("reload", Command {
         name: "reload",
@@ -508,35 +539,33 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             suggestions: Some(vec![
                 "running-config",
                 "startup-config",
-                "access-lists",
-                "ip",
                 "version",
                 "ntp",
                 "processes",
                 "clock",
-                "vlan",
-                "interfaces",
                 "uptime",
+                "controllers",
+                "history",
+                "sessions",
                 "login"
             ]),
             suggestions1: Some(vec![
                 "running-config",
                 "startup-config",
-                "access-lists",
-                "ip",
                 "version",
                 "ntp",
                 "processes",
                 "clock",
-                "vlan",
-                "interfaces",
                 "uptime",
+                "controllers",
+                "history",
+                "sessions",
                 "login"
             ]),
             options: None,
             execute: |args, context, clock| {
                 if matches!(context.current_mode, Mode::UserMode | Mode ::PrivilegedMode){
-                    match args.get(0) {
+                    return match args.get(0) {
                         Some(&"clock") => {
                             if let Some(clock) = clock {
                                 handle_show_clock(clock);
@@ -569,23 +598,59 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                             Ok(())
                         },
                         
+                        Some(&"sessions") if matches!(context.current_mode, Mode::UserMode) => {
+                            println!("% No connections open");
+                            Ok(())
+                        },
+
+                        Some(&"controllers") if matches!(context.current_mode, Mode::UserMode) => {
+                            if args.len() < 2 {
+                                return Err("Interface type required. Usage: show controllers <interface-type> <interface-number>".into());
+                            }
+                            
+                            let interface_type = args[1];
+                            let interface_number = args.get(2).unwrap_or(&"0/0");
+                            
+                            // Validate interface type
+                            let valid_interfaces = vec![
+                                "GigabitEthernet", "FastEthernet", "Ethernet", "Serial"
+                            ];
+                            
+                            if !valid_interfaces.contains(&interface_type) {
+                                return Err(format!("Invalid interface type. Valid types are: {}", 
+                                    valid_interfaces.join(", ")).into());
+                            }
+                            
+                            println!("Interface {}{}", interface_type, interface_number);
+                            println!("Hardware is PQUICC MPC860P ADDR: 80C95180, FASTSEND: 80011BA4");
+                            println!("DIST ROUTE ENABLED: 0");
+                            println!("Route Cache Flag: 0");
+                            
+                            Ok(())
+                        },
+                        Some(&"history") if matches!(context.current_mode, Mode::UserMode) => {
+                            // Read from history.txt file
+                            
+                            match read_lines("history.txt") {
+                                Ok(lines) => {
+                                    for line in lines.flatten() {
+                                        println!("{}", line);
+                                    }
+                                    Ok(())
+                                },
+                                Err(e) => Err(format!("Error reading history file: {}", e).into())
+                            }
+                        },
                         
-                        _ => Ok(()),
-                    };
-                    //.map_err(|e| println!("Error: {}", e))?;
-                }
-                
-                if matches!(context.current_mode, Mode::PrivilegedMode) {
-                        
-                    match args.get(0) {
-                        Some(&"running-config") => {
+                        Some(&"running-config") if matches!(context.current_mode, Mode::PrivilegedMode) => {
                             println!("Building configuration...\n");
                             println!("Current configuration : 0 bytes\n");
                             let running_config = get_running_config(&context);
                             println!("{}", running_config);
                             Ok(())
                         },
-                        Some(&"startup-config") => {
+
+                        Some(&"startup-config") if matches!(context.current_mode, Mode::PrivilegedMode) => {
                             println!("Building configuration...\n");
                             if let Some(last_written) = &context.config.last_written {
                                 println!("Startup configuration (last saved: {}):\n", last_written);
@@ -597,7 +662,8 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                             }
                             Ok(())
                         },
-                        Some(&"login") => {
+
+                        Some(&"login") if matches!(context.current_mode, Mode::PrivilegedMode) => {
                             println!("A default login delay of 1 seconds is applied.");
                             println!("No Quiet-Mode access list has been configured.");
                             println!(" ");
@@ -605,7 +671,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                             Ok(())
                         },
                         
-                        Some(&"ntp") => {
+                        Some(&"ntp") if matches!(context.current_mode, Mode::PrivilegedMode) => {
                             match args.get(1) {
                                 Some(&"associations") => {
                                     if context.ntp_associations.is_empty() {
@@ -644,41 +710,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                             }
                         },
                         
-                        Some(&"access-lists") => {
-                            let acl_store = ACL_STORE.lock().unwrap();
-                            if acl_store.is_empty() {
-                                println!("No access lists configured.");
-                                return Ok(());
-                            }
-                
-                            for (name, acl) in acl_store.iter() {
-                                println!("\nAccess list: {}", acl.number_or_name);
-                                for entry in &acl.entries {
-                                    let protocol = entry.protocol.clone().unwrap_or("ip".to_string());
-                                    let source_op = entry.source_operator.clone().unwrap_or_default();
-                                    let source_port = entry.source_port.clone().unwrap_or_default();
-                                    let destination_op = entry.destination_operator.clone().unwrap_or_default();
-                                    let destination_port = entry.destination_port.clone().unwrap_or_default();
-                                    let matches = entry.matches.map_or(String::new(), |m| format!("({} matches)", m));
-                
-                                    println!(
-                                        "  {} {} {} {} {} {} {} {} {}",
-                                        entry.action,
-                                        protocol,
-                                        entry.source,
-                                        source_op,
-                                        source_port,
-                                        entry.destination,
-                                        destination_op,
-                                        destination_port,
-                                        matches
-                                    );
-                                }
-                            }
-                
-                            Ok(())
-                        },
-                        Some(&"processes") => {
+                        Some(&"processes") if matches!(context.current_mode, Mode::PrivilegedMode) => {
                             if args.len() == 1 {
                                 
                                 println!("CPU utilization for five seconds: 0%/0%; one minute: 0%; five minutes: 0%");
@@ -741,9 +773,16 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                             
                         },
                         
-                        _ => Ok(()),
+                        Some(cmd) => {
+                            println!("Invalid show command: {}", cmd);
+                            Ok(())
+                        },
+
+                        None => {
+                            println!("Missing parameter. Usage: show <command>");
+                            Ok(())
+                        }
                     }
-                    //.map_err(|e| println!("Error: {}", e))?;
                 }
                 else {
                     return Err("Show commands are only available in User EXEC mode and Privileged EXEC mode.".into());
@@ -761,7 +800,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             suggestions1: Some(vec!["memory"]),
             options: None,
             execute: |args, context, _| {
-                if matches!(context.current_mode, Mode::PrivilegedMode | Mode::ConfigMode) {
+                if matches!(context.current_mode, Mode::UserMode | Mode::PrivilegedMode | Mode::ConfigMode) {
                     if args.len() == 1 && args[0] == "memory" {
                         // Save the running configuration to the startup configuration
                         let running_config = get_running_config(context);
@@ -996,7 +1035,7 @@ Two styles of help are provided:
 
     commands.insert("clear", Command {
         name: "clear",
-        description: "Reset all OSPF processes",
+        description: "Clear the terminal",
         suggestions: Some(vec!["ip ospf process"]),
         suggestions1: None,
         options: None,
@@ -1153,6 +1192,92 @@ Two styles of help are provided:
         },
     });
 
+    commands.insert(
+        "ssh",
+        Command {
+            name: "ssh",
+            description: "Establish SSH connection to a remote host",
+            suggestions: Some(vec![
+                "-v",
+                "-l",
+                "-h",
+                "--help"
+            ]),
+            suggestions1: Some(vec![
+                "-v",
+                "-l",
+                "-h",
+                "--help"
+            ]),
+            options: Some(vec![
+                "-v           - Display SSH version",
+                "-l           - Login to remote server (usage: ssh -l <username>@<ip-address>)",
+            ]),
+            execute: |args, context, _| {
+                if matches!(context.current_mode, Mode::PrivilegedMode) {
+                    match args.get(0) {
+                        Some(&"-v") => {
+                            println!("OpenSSH_8.9p1 Ubuntu-3ubuntu0.1, OpenSSL 3.0.2 15 Mar 2022");
+                            Ok(())
+                        },
+                        Some(&"-l") => {
+                            if args.len() < 2 {
+                                println!("Usage: ssh -l <username>@<ip-address>");
+                                return Ok(());
+                            }
+    
+                            let connection_string = args[1];
+                            
+                            // Split the connection string into username and ip
+                            match connection_string.split_once('@') {
+                                Some((username, ip)) => {
+                                    println!("Attempting SSH connection to {} as user {}", ip, username);
+                                    println!("OpenSSH_8.9p1 Ubuntu-3ubuntu0.1, OpenSSL 3.0.2 15 Mar 2022");
+                                    println!("debug1: Reading configuration data /etc/ssh/ssh_config");
+                                    println!("debug1: Connecting to {} port 22", ip);
+                                    
+                                    // Simulate connection attempt
+                                    println!("debug1: Connection established.");
+                                    println!("debug1: Authenticating to {}:22 as '{}'", ip, username);
+                                    println!("debug1: Server accepts key: /home/{}/.ssh/id_rsa", username);
+                                    println!("Authenticated to {} ([{}]:22).", ip, ip);
+                                    println!("debug1: channel 0: new [client-session]");
+                                    println!("debug1: Entering interactive session.");
+                                    println!("Last login: Wed Feb 19 03:35:18 2025");
+                                    Ok(())
+                                },
+                                None => {
+                                    println!("Invalid format. Use: ssh -l username@ip-address");
+                                    println!("Example: ssh -l admin@192.168.1.1");
+                                    Ok(())
+                                }
+                            }
+                        },
+                        Some(&help) if help == "-h" || help == "--help" => {
+                            println!("SSH Command Usage:");
+                            println!("  ssh -v                     Display SSH version");
+                            println!("  ssh -l username@ip-address Login to remote server");
+                            println!("\nExamples:");
+                            println!("  ssh -l admin@192.168.1.1");
+                            Ok(())
+                        },
+                        Some(cmd) => {
+                            println!("Invalid SSH option: {}", cmd);
+                            println!("Use 'ssh -h' for help");
+                            Ok(())
+                        },
+                        None => {
+                            println!("Missing parameters. Use 'ssh -h' for help");
+                            Ok(())
+                        }
+                    }
+                } else {
+                    Err("SSH command is only available in User EXEC mode and Privileged EXEC mode.".to_string())
+                }
+            },
+        }
+    );
+
     commands.insert("ping", Command {
         name: "ping",
         description: "Ping a specific IP address to check reachability",
@@ -1189,7 +1314,76 @@ Two styles of help are provided:
         },
     });
     
+    commands.insert("traceroute", Command {
+        name: "traceroute",
+        description: "Trace the route to a specific IP address or hostname",
+        suggestions: None,
+        suggestions1: None,
+        options: Some(vec!["<ip-address/hostname>    - Enter the IP address or hostname"]),
+        execute: |args, _context, _| {
+            if args.len() == 1 {
+                let target: String = args[0].to_string();
+                println!("\nTracing route to {} over a maximum of 30 hops\n", target);
+                
+                // Simulated route table with known hops
+                let route_hops = vec![
+                    ("172.16.0.5", true),
+                    ("192.168.0.50", true),
+                    ("122.56.168.186", true),
+                    ("122.56.99.240", true),
+                    ("122.56.99.243", true),
+                    ("122.56.116.6", true),
+                    ("122.56.116.5", true),
+                    ("0.0.0.0", false),  // Timeout simulation
+                    ("0.0.0.0", false),  // Timeout simulation
+                ];
+    
+                // Print header spacing for the columns
+                println!("  {:3} {:8} {:8} {:8} {}", 
+                    "Hop", "Time 1", "Time 2", "Time 3", "Address");
+                println!("  {}", "-".repeat(70));
+    
+                for (hop_num, (ip, reachable)) in route_hops.iter().enumerate() {
+                    if *reachable {
+                        // Generate random response times between 1-20ms for variation
+                        let time1 = rand::random::<u8>() % 20 + 1;
+                        let time2 = rand::random::<u8>() % 20 + 1;
+                        let time3 = rand::random::<u8>() % 20 + 1;
+                        
+                        println!("  {:3} {:4}ms   {:4}ms   {:4}ms   {}", 
+                            hop_num + 1,
+                            time1,
+                            time2,
+                            time3,
+                            ip
+                        );
+                    } else {
+                        // Print timeout for unreachable hops
+                        println!("  {:3} {:8} {:8} {:8} {}", 
+                            hop_num + 1,
+                            "*", "*", "*",
+                            "Request timed out."
+                        );
+                    }
+                }
+    
+                if route_hops.iter().any(|(_, reachable)| *reachable) {
+                    Ok(())
+                } else {
+                    Err(format!("Unable to trace route to {}", target).into())
+                }
+            } else {
+                Err("Invalid syntax. Usage: traceroute <ip/hostname>".into())
+            }
+        },
+    });
 
 
     commands
+}
+
+fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+where P: AsRef<Path> {
+    let file = File::open(filename)?;
+    Ok(io::BufReader::new(file).lines())
 }

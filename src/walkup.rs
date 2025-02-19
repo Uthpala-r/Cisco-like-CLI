@@ -99,6 +99,8 @@ impl ModeHierarchy {
                 command == "clear" ||
                 command == "reload" ||
                 command == "connect" ||
+                command == "disable" ||
+                command == "traceroute" ||
                 command == "exit",
             Mode::PrivilegedMode => 
                 command == "configure" ||
@@ -114,6 +116,9 @@ impl ModeHierarchy {
                 command == "debug" ||
                 command == "undebug" ||
                 command == "connect" ||
+                command == "traceroute" ||
+                command == "disable" ||
+                command == "ssh" ||
                 command == "ifconfig",
             Mode::ConfigMode => 
                 command == "hostname" || 
@@ -137,6 +142,8 @@ impl ModeHierarchy {
                 command == "no" || 
                 command == "reload" ||
                 command == "connect" ||
+                command == "traceroute" ||
+                command == "disable" ||
                 command == "crypto",
     
         }
