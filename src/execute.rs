@@ -6,7 +6,6 @@ use crate::Clock;
 use crate::CliContext;
 use crate::commandcompleter::{CommandCompleter};
 use crate::walkup::ModeHierarchy;
-use crate::dynamic_registry::get_registered_commands;
 
 /// Represents a command that can be executed in the CLI.
 ///
@@ -141,6 +140,9 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
     }
      
     let parts: Vec<&str> = normalized_input.split_whitespace().collect();
+    if parts.is_empty() {
+        return;
+    }
    
     let available_commands = get_mode_commands(commands, &context.current_mode);
 
@@ -315,6 +317,72 @@ Two styles of help are provided:
                         }
                     }
                 }
+                // Handle subcommand suggestions
+                let command_name = parts[0];
+                let subcommand = parts[1];
+
+                if let Some(cmd) = commands.get(command_name) {
+                    match command_name {
+                        "ntp" => {
+                            match subcommand {
+                                "source" => {
+                                    println!("Possible completions:");
+                                    println!("<interface_name>  - Set source interface for NTP packets");
+                                },
+                                "server" => {
+                                    println!("Possible completions:");
+                                    println!("<ip-address>      - Configure NTP server with IPv4 address");
+                                },
+                                "authentication-key" => {
+                                    println!("Possible completions:");
+                                    println!("<key-number>      - Configure key number (1-65535)");
+                                },
+                                "trusted-key" => {
+                                    println!("Possible completions:");
+                                    println!("<key-number>      - Trusted authentication key number");
+                                },
+                                &_ => {}
+                            }
+                        },
+                        // Add other commands here as needed
+                        &_ => {}
+                            
+                    }
+                }
+            },
+            3 => {
+                // Handle third-level suggestions (e.g., after "ntp server" or "ntp source")
+                let command_name = parts[0];
+                let subcommand = parts[1];
+
+                if command_name == "ntp" {
+                    match subcommand {
+                        "authentication-key" => {
+                            println!("Possible completions:");
+                            println!("md5              - Keyed Message Digest 5 algorithm");
+                        },
+                        _ => println!("No additional parameters available")
+                    }
+                } else {
+                    println!("No additional parameters available");
+                }
+            },
+            4 => {
+                // Handle third-level suggestions (e.g., after "ntp server" or "ntp source")
+                let command_name = parts[0];
+                let subcommand = parts[1];
+
+                if command_name == "ntp" {
+                    match subcommand {
+                        "authentication-key" => {
+                            println!("Possible completions:");
+                            println!("<key-name>              - Configure key name");
+                        },
+                        _ => println!("No additional parameters available")
+                    }
+                } else {
+                    println!("No additional parameters available");
+                }
             },
             _ => {
                 // Full command with ? (e.g., "configure terminal ?")
@@ -325,12 +393,26 @@ Two styles of help are provided:
     }
 
     // Handle command execution (when no '?' is present)
-    let cmd_key = if let Some(matched_cmd) = find_unique_command(parts[0], &available_commands) {
-        matched_cmd
-    } else {
-        println!("Ambiguous command or command not available in current mode: {}", parts[0]);
+    let cmd_key = parts[0];
+    if let Some(matched_cmd) = find_unique_command(cmd_key, &available_commands) {
+        if let Some(cmd) = commands.get(matched_cmd) {
+            // Rest of the execution logic...
+            if let Err(err) = (cmd.execute)(&parts[1..], context, clock) {
+                println!("Error: {}", err);
+            }
+        }
+        return;
+    } else if !showing_suggestions {
+        println!("Command not found or ambiguous. Type '?' for help.");
         return;
     };
+
+    //let cmd_key = if let Some(matched_cmd) = find_unique_command(parts[0], &available_commands) {
+        //matched_cmd
+    //} else {
+       // println!("Ambiguous command or command not available in current mode: {}", parts[0]);
+        //return;
+    //};
 
     let mode_hierarchy = ModeHierarchy::new();
     if let Some(valid_mode) = mode_hierarchy.walkup_find_command(context.current_mode.clone(), cmd_key) {
@@ -373,21 +455,6 @@ Two styles of help are provided:
                 if let Err(err) = (cmd.execute)(&parts[1..], context, clock) {
                     println!("Error: {}", err);
                 }
-            }
-        }
-    }
-    else if let Ok(dynamic_commands) = get_registered_commands() {
-        if let Some(dynamic_command) = dynamic_commands.get(cmd_key) {
-            match (dynamic_command.execute)(&parts[1..], context, clock) {
-                Ok(_) => {
-                    println!("Dynamic command '{}' executed successfully.", cmd_key);
-                    return;
-                }
-                Err(err) => {
-                    println!("Error: {}", err);
-                    return;
-                }
-                
             }
         }
     }

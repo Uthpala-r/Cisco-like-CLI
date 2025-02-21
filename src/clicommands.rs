@@ -1252,7 +1252,8 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             suggestions: Some(vec!["running-config"]),
             suggestions1: Some(vec!["running-config"]),
             suggestions2: Some(vec!["startup-config"]),
-            options: Some(vec!["<file_name>     - Enter the file name or 'startup-config'"]),
+            options: Some(vec!["<file_name>     - Enter the file name or 'startup-config'",
+            "startup-config"]),
             execute: |args, context, _| {
                 if !matches!(context.current_mode, Mode::PrivilegedMode | Mode::ConfigMode) {
                     return Err("The 'copy' command is only available in Privileged EXEC mode, Config mode and interface mode".into());
@@ -1819,9 +1820,8 @@ Two styles of help are provided:
             ]),
             suggestions2: None,
             options: Some(vec![
-                "-v           - Display SSH version",
-                "-l           - Login to remote server (usage: ssh -l <username>@<ip-address>)",
-                "-h, --help   - Display help"
+                "<login-name>       - Enter the hostname",
+                "<ip_address>       - Enter the host IP address"
             ]),
             execute: |args, context, _| {
                 if matches!(context.current_mode, Mode::PrivilegedMode) {

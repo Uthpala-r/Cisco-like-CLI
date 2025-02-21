@@ -2,7 +2,6 @@
 use crate::build_command_registry;
 use crate::execute::Mode;
 use crate::execute::Command;
-use crate::dynamic_registry::get_registered_commands;
 
 use rustyline::hint::Hinter;
 use rustyline::Helper;
@@ -59,15 +58,6 @@ impl CommandCompleter {
             commands,
             current_mode,
         }
-    }
-
-    pub fn refresh_completions(&mut self) -> Result<(), String> {
-        if let Ok(commands) = get_registered_commands() {
-            for command in commands.keys() {
-                self.commands.insert(command.to_string(), vec![command.to_string()]);
-            }
-        }
-        Ok(())
     }
 
 }

@@ -12,8 +12,6 @@ mod clock_settings;
 mod run_config;
 mod execute;
 mod network_config;
-mod dynamic_registry;
-mod new_commands;
 mod walkup;
 
 
@@ -151,7 +149,6 @@ fn main() {
                 if let Some(helper) = rl.helper_mut() {
                     execute_command(input, &commands, &mut context, &mut clock, helper);
                     helper.current_mode = context.current_mode.clone();
-                    helper.refresh_completions().ok();
                 }
                       
             }

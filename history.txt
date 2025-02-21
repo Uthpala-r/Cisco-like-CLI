@@ -1,101 +1,101 @@
 #V2
-en
-sh run
-sh star
-sh login
-sh ntp
-sh proc
-exit cli
-ssh
-en
-ssh
-exit cli
-ssh
-en
-ssh
-ssh -v
-ssh -l
-ssh -l hi@192.168.1.1
-ssh help
-ssh -h
-exit cli
-en
-ssh
-ssh -h
-ssh --help
 exit cli
 en
 conf t
-interface loopback 0
-ip address 10.10.10.1 255.255.255.0
-no shutdown
+exit cli
+en
+conf t
+ntp authentication-key ?
+ntp authentication-key 7 ?
+ntp authentication-key 7 md5 ?
+ntp authentication-key 7 md5 hi
+exit cli
+show?
+show ?
+exit cli
+en
+con?
+configure ?
+configure t?
+configure terminal?
+configure terminal ?
+exit cli
+en
+conf t
+ntp authentication-key 7 ?
+ntp authentication-key ?
 exit
-show interfaces
-show interfaces loopback 0
-show interfaces g0/0
-conf t
+configure terminal ?
 exit cli
 en
-conf t
-ntp source
-ntp source loopback 0
-ntp source loopback0
-ntp server 10.10.10.1
-ntp master
-ntp authenticat
-ntp authenticate
-ntp authentication-key 5 md5 hi
-ntp trusted-key
-ntp trusted-key 5
-exit
-show ntp associations
-show ntp
-clear ntp associations
-show ntp associations
-show ntp
+configure terminal ?
 exit cli
 en
-conf t
-ntp source 10.10.10.1
-exit
-show ntp associations
-conf t
-ntp server 10.10.10.1
-exit
-show ntp associations
-clear ntp associations
-show ntp associations
-exit cli
-do show running-config
-exit cli
-do show running-config
-en
-conf t
-int g0/0
-do sh clock
-do show clock
-do show ?
-exit cli
-en
-sh ip interface brief
-exit
-do show ip  interface brief
-do show ip interface brief
-exit cli
-do show ip interface brief
-exit cli
-en
-conf t
-exit cli
-enable password ?
-exit cli
-en
-copy running-config startup-config
-exit cli
-en
+configure terminal ?
 copy running-config ?
 exit cli
 en
-copy running-config startup-config
-do show version
+copy running-config s?
+copy running-config ?
+exit cli
+en
+conf t
+exit cli
+en
+exit cli
+enable
+en?
+exit cli
+en
+exit cli
+en
+exit cli
+en
+exit cli
+en
+conf t
+configure terminal
+exit
+conf t
+exit cli
+en
+exit cli
+en
+conf t
+exit cli
+en
+configure terminal
+int g0/0
+do show running-config
+exit
+sh run
+show running-config
+exit
+en
+configure terminal
+int g0/0
+exit
+int rang f0/0-1
+exit
+hos R1
+exit
+deb al
+debug all
+exit
+sh cl
+sh up
+exit cli
+en
+conf terminal
+exoit
+cponf t
+conf t
+exit
+conf t
+exit cli
+en
+conf?
+configure ?
+configure t?
+configure terminal ?
 exit cli
