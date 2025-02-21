@@ -88,6 +88,7 @@ pub enum Mode {
     UserMode,
     PrivilegedMode,
     ConfigMode,
+    InterfaceMode,
 }
 
 
@@ -167,10 +168,16 @@ Two styles of help are provided:
                     println!("enable            - Enter privileged mode");
                     println!("exit              - Exit current mode");
                     println!("ping              - Send ICMP echo request");
+                    println!("traceroute        - Display the packet transfer path");
                     println!("help              - Display available commands");
                     println!("reload            - Reload the system");
                     println!("clear             - Clear the terminal");
                     println!("show              - Some available show commands are present. To view enter 'show ?'");
+                    println!("write             - Save the configuration");
+                    println!("ifconfig          - Display interface configuration");
+                    println!("connect           - Connect the Network Processor or the SEM");
+                    println!("disable           - Exit the Privileged EXEC Mode and enter the USER EXEC Mode");
+
                 }
                 else if matches!(context.current_mode, Mode::PrivilegedMode) {
                     println!("configure         - Enter configuration mode");
@@ -179,36 +186,41 @@ Two styles of help are provided:
                     println!("write             - Save the configuration");
                     println!("copy              - Copy configuration files");
                     println!("clock             - Manage system clock");
-                    println!("clear ip ospf process - Clear all the ospf processes");
                     println!("ping              - Send ICMP echo request");
+                    println!("traceroute        - Display the packet transfer path");
                     println!("show              - Some available show commands are present. To view enter 'show ?'");
                     println!("ifconfig          - Display interface configuration");
                     println!("reload            - Reload the system");
                     println!("clear             - Clear the terminal");
                     println!("debug             - Debug the availbale processes");
                     println!("undebug           - Undebug the availbale processes");
+                    println!("connect           - Connect the Network Processor or the SEM");
+                    println!("ssh               - Connect via SSH or show ssh version");
                 }
                 else if matches!(context.current_mode, Mode::ConfigMode) {
                     println!("hostname          - Set system hostname");
-                    //println!("interface         - Configure interface");
                     println!("exit              - Exit to privileged mode");
-                    println!("tunnel            - Configure tunnel interface");
-                    println!("virtual-template  - Configure virtual template");
                     println!("help              - Display available commands");
                     println!("write             - Save the configuration");
                     println!("ping              - Send ICMP echo request");
-                    println!("vlan              - Configure VLAN");
-                    println!("access-list       - Configure access list");
-                    println!("router            - Configure routing protocol");
+                    println!("traceroute        - Display the packet transfer path");
                     println!("enable            - Enter privileged mode");
-                    println!("ip route          - Configure static routes");
-                    println!("ip domain-name    - Configure DNS domain name");
-                    println!("ip access-list    - Configure IP access list");
-                    println!("service           - Configure system services");
-                    println!("set               - Set system parameters");
+                    println!("service password encryption - Encrypt passwords defined for the device");
                     println!("ifconfig          - Configure interface");
                     println!("ntp               - Configure NTP");
-                    println!("crypto            - Configure encryption");
+                    println!("no ntp            - Remove NTP configurations");
+                    println!("reload            - Reload the system");
+                    println!("interface         - Select another interface");
+                    println!("clear             - Clear the terminal");
+                }
+                else if matches!(context.current_mode, Mode::InterfaceMode) {
+                    println!("exit              - Exit to config mode");
+                    println!("shutdown          - Shutdown interface");
+                    println!("no                - Negate a command");
+                    println!("help              - Display available commands");
+                    println!("write             - Save the configuration");
+                    println!("interface         - Select another interface");
+                    println!("ip address        - Set IP address");
                     println!("reload            - Reload the system");
                     println!("clear             - Clear the terminal");
                 }
@@ -399,6 +411,7 @@ pub fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) 
                     cmd == "connect" ||
                     cmd == "disable" ||
                     cmd == "traceroute" ||
+                    cmd == "do" ||
                     cmd == "exit"
                 })
                 .copied()
@@ -423,6 +436,7 @@ pub fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) 
                     cmd == "disable" ||
                     cmd == "traceroute" ||
                     cmd == "ssh" ||
+                    cmd == "do" ||
                     cmd == "ifconfig"
                     
                 })
@@ -436,14 +450,8 @@ pub fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) 
                     cmd == "ping" ||
                     cmd == "exit" ||
                     cmd == "clear" ||
-                    cmd == "tunnel" ||
-                    cmd == "access-list" ||
-                    cmd == "router" ||
-                    cmd == "virtual-template" ||
                     cmd == "help" ||
                     cmd == "write" ||
-                    cmd == "vlan" ||
-                    cmd == "ip" ||
                     cmd == "service" ||
                     cmd == "set" ||
                     cmd == "enable" ||
@@ -451,21 +459,52 @@ pub fn get_mode_commands<'a>(commands: &'a HashMap<&str, Command>, mode: &Mode) 
                     cmd == "ntp" ||
                     cmd == "no" || 
                     cmd == "reload" ||
-                    cmd == "crypto" ||
                     cmd == "connect" ||
                     cmd == "disable" ||
                     cmd == "traceroute" ||
+                    cmd == "interface" ||
+                    cmd == "do" ||
                     //for walkup
                     cmd == "show" ||
                     cmd == "copy" ||
                     cmd == "clock" ||
                     cmd == "debug" ||
                     cmd == "undebug" ||
+                    cmd == "ssh" ||
+                    cmd == "disable" ||
                     cmd == "ifconfig"
                 })
                 .copied()
                 .collect()
         
+        }
+        Mode::InterfaceMode => {
+            commands.keys()
+                .filter(|&&cmd| {
+                    cmd == "shutdown" ||
+                    cmd == "no" ||
+                    cmd == "exit" ||
+                    cmd == "clear" ||
+                    cmd == "help" ||
+                    cmd == "write" ||
+                    cmd == "reload" ||
+                    cmd == "ip" ||
+                    cmd == "do" ||
+                    //For walkup
+                    cmd == "interface" ||
+                    cmd == "hostname" ||
+                    cmd == "ping" ||
+                    cmd == "write" ||
+                    cmd == "service" ||
+                    cmd == "enable" ||
+                    cmd == "ifconfig" ||  
+                    cmd == "ntp" ||
+                    cmd == "no" || 
+                    cmd == "reload" 
+
+                })
+                .copied()
+                .collect()
         }
 
     }

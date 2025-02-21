@@ -1,7 +1,7 @@
 //use crate::cliconfig::CliContext;
 //use crate::clock_settings::Clock;
 use crate::dynamic_registry::register_command;
-use crate::execute::{Command, Mode};
+use crate::execute::Mode;
 //use std::collections::{HashMap};
 
 /// Registers all custom commands

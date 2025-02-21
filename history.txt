@@ -1,72 +1,4 @@
 #V2
-connect network
-connect crypto
-exit cli
-en
-conf t
-exit cli
-en
-conf t
-disable
-exit
-disable
-exit cli
-traceroute
-exit cli
-en
-disable
-exit cli
-en
-traceroute 10.0.0.0
-exit cli
-show sessions
-exit cli
-show version
-exit cli
-show sessions
-exit cli
-show sessions
-exit cli
-show running-config
-en
-show running-config
-conf t
-host R1
-exit
-show running-config
-exit
-sh his
-exit cli
-en
-sh run
-sh ntp
-sh clock
-sh up
-sh ver
-exit
-sh ses
-sh contr
-exit cli
-show sessions
-sho contr
-sh run
-exit cli
-sh sess
-sh clock
-sh up
-sh ver
-exit cli
-sh cl
-sh sess
-sh cont
-show history
-en
-show running-config
-sh sta
-sh login
-exit cli'
-exit cli
-sh cl
 sh sess
 sh cont
 sh cont Serial
@@ -98,4 +30,72 @@ en
 ssh
 ssh -h
 ssh --help
+exit cli
+en
+conf t
+interface loopback 0
+ip address 10.10.10.1 255.255.255.0
+no shutdown
+exit
+show interfaces
+show interfaces loopback 0
+show interfaces g0/0
+conf t
+exit cli
+en
+conf t
+ntp source
+ntp source loopback 0
+ntp source loopback0
+ntp server 10.10.10.1
+ntp master
+ntp authenticat
+ntp authenticate
+ntp authentication-key 5 md5 hi
+ntp trusted-key
+ntp trusted-key 5
+exit
+show ntp associations
+show ntp
+clear ntp associations
+show ntp associations
+show ntp
+exit cli
+en
+conf t
+ntp source 10.10.10.1
+exit
+show ntp associations
+conf t
+ntp server 10.10.10.1
+exit
+show ntp associations
+clear ntp associations
+show ntp associations
+exit cli
+do show running-config
+exit cli
+do show running-config
+en
+conf t
+int g0/0
+do sh clock
+do show clock
+do show ?
+exit cli
+en
+sh ip interface brief
+exit
+do show ip  interface brief
+do show ip interface brief
+exit cli
+do show ip interface brief
+exit cli
+en
+conf t
+exit cli
+enable password ?
+exit cli
+en
+copy running-config startup-config
 exit cli

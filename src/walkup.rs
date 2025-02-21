@@ -4,7 +4,7 @@
 /// This module defines the `Mode` enum, `ModeHierarchy` struct, and associated functions
 /// for navigating through command modes and executing commands
 
-use crate::execute::{Mode, Command, get_mode_commands};
+use crate::execute::Mode;
 use crate::dynamic_registry::{get_mode_commands_FNC, DYNAMIC_COMMANDS};
 use std::collections::HashMap;
 use std::fmt;
@@ -101,6 +101,7 @@ impl ModeHierarchy {
                 command == "connect" ||
                 command == "disable" ||
                 command == "traceroute" ||
+                command == "do" ||
                 command == "exit",
             Mode::PrivilegedMode => 
                 command == "configure" ||
@@ -119,6 +120,7 @@ impl ModeHierarchy {
                 command == "traceroute" ||
                 command == "disable" ||
                 command == "ssh" ||
+                command == "do" ||
                 command == "ifconfig",
             Mode::ConfigMode => 
                 command == "hostname" || 
@@ -126,16 +128,9 @@ impl ModeHierarchy {
                 command == "ping" ||
                 command == "exit" ||
                 command == "clear" ||
-                command == "tunnel" ||
-                command == "access-list" ||
-                command == "router" ||
-                command == "virtual-template" ||
                 command == "help" ||
                 command == "write" ||
-                command == "vlan" ||
-                command == "ip" ||
                 command == "service" ||
-                command == "set" ||
                 command == "enable" ||
                 command == "ifconfig" ||  
                 command == "ntp" ||
@@ -143,8 +138,18 @@ impl ModeHierarchy {
                 command == "reload" ||
                 command == "connect" ||
                 command == "traceroute" ||
-                command == "disable" ||
-                command == "crypto",
+                command == "do" ||
+                command == "disable",
+            Mode::InterfaceMode => 
+                command == "shutdown" ||
+                command == "no" ||
+                command == "exit" ||
+                command == "clear" ||
+                command == "help" ||
+                command == "write" ||
+                command == "reload" ||
+                command == "do" ||
+                command == "ip" ,
     
         }
         

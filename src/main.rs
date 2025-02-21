@@ -24,7 +24,7 @@ use commandcompleter::CommandCompleter;
 use clicommands::build_command_registry;
 use execute::execute_command;
 use clock_settings::Clock;
-use crate::execute::{Mode, Command};
+use crate::execute::Mode;
 //use crate::dynamic_registry::get_registered_commands;
 //use crate::new_commands::register_custom_commands;
 
@@ -83,13 +83,15 @@ fn main() {
     let command_names: Vec<String> = commands.keys().cloned().map(String::from).collect();
     
     // Define the initial hostname as "PNF"
-    let initial_hostname = "PNF".to_string();
+    let _initial_hostname = "PNF".to_string();
     
     // Define the context for the CLI
     let mut context = CliContext {
         current_mode: Mode::UserMode,
         config: CliConfig::default(),
         prompt: format!("{}>", CliConfig::default().hostname),
+        selected_interface: None,
+        ntp_source_interface: None,
         ntp_servers: HashSet::new(), 
         ntp_associations: Vec::new(),
         ntp_authentication_enabled: false,   
@@ -121,7 +123,7 @@ fn main() {
     let mut clock = Some(Clock::new());
     
 
-    let mut exit_requested = false;
+    let _exit_requested = false;
 
     ctrlc::set_handler(move || {
         println!("\nCtrl+C pressed, but waiting for 'exit cli' command to exit...");
