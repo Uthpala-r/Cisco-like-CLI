@@ -1,11 +1,4 @@
 #V2
-sh sess
-sh cont
-sh cont Serial
-show controllers serial
-show controllers Serial
-sh his
-sh run
 en
 sh run
 sh star
@@ -98,4 +91,11 @@ enable password ?
 exit cli
 en
 copy running-config startup-config
+exit cli
+en
+copy running-config ?
+exit cli
+en
+copy running-config startup-config
+do show version
 exit cli

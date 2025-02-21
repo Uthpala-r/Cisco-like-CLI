@@ -20,6 +20,7 @@ pub fn register_command(
     description: &'static str,
     suggestions: Option<Vec<&'static str>>,
     suggestions1: Option<Vec<&'static str>>,
+    suggestions2: Option<Vec<&'static str>>,
     options: Option<Vec<&'static str>>,
     execute: fn(&[&str], &mut CliContext, &mut Option<Clock>) -> Result<(), String>,
     allowed_modes: Option<Vec<Mode>>, // New parameter to specify allowed modes
@@ -29,6 +30,7 @@ pub fn register_command(
         description,
         suggestions,
         suggestions1,
+        suggestions2,
         options,
         execute,
     };

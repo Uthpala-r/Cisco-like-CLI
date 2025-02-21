@@ -13,6 +13,7 @@ pub fn register_custom_commands() {
         Some(vec!["world", "friend", "privileged", "config"]),
         Some(vec!["world", "friend", "privileged", "config"]),
         None,
+        None,
         |args, context, _| {
             match args.get(0).map(|s| *s) {
                 Some("world") => println!("Hello, World!"),

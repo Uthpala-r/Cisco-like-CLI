@@ -81,6 +81,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         description: "Enter privileged EXEC mode",
         suggestions: Some(vec!["password", "secret"]),
         suggestions1: None,
+        suggestions2: None,
         options: Some(vec!["<password>      - Enter the password/secret>"]),
         execute: |args, context, _| {
             if args.is_empty(){
@@ -194,6 +195,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         description: "Enter global configuration mode",
         suggestions: Some(vec!["terminal"]),
         suggestions1: Some(vec!["terminal"]),
+        suggestions2: None,
         options: None,
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::PrivilegedMode) {
@@ -216,6 +218,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         description: "Enter Interface configuration mode or Interface Range configuration mode",
         suggestions: Some(vec!["range"]),
         suggestions1: None,
+        suggestions2: None,
         options: Some(vec!["range", 
             "<interface-name>    - Specify a valid interface name"]),
         execute: |args, context, _| {
@@ -270,6 +273,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         description: "Connect to network processor or crypto module",
         suggestions: Some(vec!["network", "crypto"]),
         suggestions1: Some(vec!["network", "crypto"]),
+        suggestions2: None,
         options: None,
         execute: |args, _context, _| {    
             if args.len() != 1 {
@@ -321,6 +325,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         description: "Exit the current mode and return to the previous mode.",
         suggestions: None,
         suggestions1: None,
+        suggestions2: None,
         options: None,
         execute: |_args, context, _| {
             if _args.is_empty() {
@@ -359,6 +364,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         description: "Exit the Privileged EXEC mode and return to the USER EXEC mode.",
         suggestions: None,
         suggestions1: None,
+        suggestions2: None,
         options: None,
         execute: |_args, context, _| {
             if _args.is_empty() {
@@ -395,6 +401,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         description: "Reload the system",
         suggestions: None,
         suggestions1: None,
+        suggestions2: None,
         options: None,
         execute: |_, context, _| {
             
@@ -444,6 +451,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         description: "To turn on all the possible debug levels",
         suggestions: Some(vec!["all"]),
         suggestions1: Some(vec!["all"]),
+        suggestions2: None,
         options: None,
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::PrivilegedMode) {
@@ -474,6 +482,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         description: "Turning off all possible debugging processes",
         suggestions: Some(vec!["all"]),
         suggestions1: Some(vec!["all"]),
+        suggestions2: None,
         options: None,
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::PrivilegedMode) {
@@ -494,6 +503,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         description: "Set the device hostname",
         suggestions: None,
         suggestions1: None,
+        suggestions2: None,
         options: Some(vec!["<new-hostname>    - Enter a new hostname"]),
         execute: |args, context, _| {
             if let Mode::ConfigMode = context.current_mode {
@@ -531,6 +541,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             description: "Display or configure network details of the router",
             suggestions: None,
             suggestions1: None,
+            suggestions2: None,
             options: Some(vec!["<interface      - Enter the interface you need to change the ip-address of or need to add", 
                 "<ip-address>      - Enter the new ip-address"]),
             execute: |args, _, _| {
@@ -600,6 +611,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                 "interfaces",
                 "login"
             ]),
+            suggestions2: None,
             options: None,
             execute: |args, context, clock| {
                 if matches!(context.current_mode, Mode::UserMode | Mode ::PrivilegedMode){
@@ -903,7 +915,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             description: "Execute privileged EXEC commands from any configuration mode",
             suggestions: Some(vec!["show"]),
             suggestions1: Some(vec!["show"]),
-            options: Some(vec![
+            suggestions2: Some(vec![
                 "running-config",
                 "startup-config",
                 "version",
@@ -917,6 +929,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                 "interfaces",
                 "login"
             ]),
+            options: None,
             execute: |args, context, clock| {
                 // Check if the first argument is "show"
                 match args.get(0) {
@@ -1206,6 +1219,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             description: "Save the running configuration to the startup configuration",
             suggestions: Some(vec!["memory"]),
             suggestions1: Some(vec!["memory"]),
+            suggestions2: None,
             options: None,
             execute: |args, context, _| {
                 if matches!(context.current_mode, Mode::UserMode | Mode::PrivilegedMode | Mode::ConfigMode) {
@@ -1237,6 +1251,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             description: "Copy running configuration",
             suggestions: Some(vec!["running-config"]),
             suggestions1: Some(vec!["running-config"]),
+            suggestions2: Some(vec!["startup-config"]),
             options: Some(vec!["<file_name>     - Enter the file name or 'startup-config'"]),
             execute: |args, context, _| {
                 if !matches!(context.current_mode, Mode::PrivilegedMode | Mode::ConfigMode) {
@@ -1294,6 +1309,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             description: "Display available commands for current mode",
             suggestions: None,
             suggestions1: None,
+            suggestions2: None,
             options: None,
             execute: |_args, context, _| {
                 println!("\n ");
@@ -1387,6 +1403,7 @@ Two styles of help are provided:
             description: "Change the clock date and time",
             suggestions: Some(vec!["set"]),
             suggestions1: Some(vec!["set"]),
+            suggestions2: None,
             options: Some(vec!["<hh:mm:ss>      - Enter the time in this specified format",
                 "<day>      - Enter the day '1-31'",
                 "<month>    - Enter a valid month",
@@ -1426,12 +1443,9 @@ Two styles of help are provided:
         Command {
             name: "ip",
             description: "Define all the ip commands",
-            suggestions: Some(vec![
-                "address"
-            ]),
-            suggestions1: Some(vec![
-                "address"
-            ]),
+            suggestions: Some(vec!["address"]),
+            suggestions1: Some(vec!["address"]),
+            suggestions2: None,
             options: Some(vec![
                 "<IP_Address>   - Enter the IP Address",
                 "<subnetmask>   - Enter the subnet mask"
@@ -1496,6 +1510,7 @@ Two styles of help are provided:
             description: "Disable the selected network interface.",
             suggestions: None,
             suggestions1: None,
+            suggestions2: None,
             options: None,
             execute: |_, context, _| {
                 if matches!(context.current_mode, Mode::InterfaceMode) {
@@ -1539,6 +1554,7 @@ Two styles of help are provided:
             description: "Enable the selected network interface.",
             suggestions: Some(vec!["shutdown", "ntp"]),
             suggestions1: Some(vec!["shutdown", "ntp"]),
+            suggestions2: Some(vec!["server"]),
             options: None,
             execute: |args, context, _| {
                 if args.len() == 1 && args[0] == "shutdown" {
@@ -1598,6 +1614,7 @@ Two styles of help are provided:
         description: "Clear processes",
         suggestions: Some(vec!["ntp associations"]),
         suggestions1: None,
+        suggestions2: None,
         options: None,
         execute: |args, context, _| {
             match args.get(0) {
@@ -1641,6 +1658,7 @@ Two styles of help are provided:
         description: "NTP configuration commands",
         suggestions: Some(vec!["source", "server", "master", "authenticate", "authentication-key", "trusted-key"]),
         suggestions1: Some(vec!["source", "server", "master", "authenticate", "authentication-key", "trusted-key"]),
+        suggestions2: None,
         options: None,
         execute: |args, context, _| {
             if !matches!(context.current_mode, Mode::ConfigMode) {
@@ -1749,6 +1767,7 @@ Two styles of help are provided:
         description: "Enable password encryption",
         suggestions: Some(vec!["password-encryption"]),
         suggestions1: Some(vec!["password-encryption"]),
+        suggestions2: None,
         options: None,
         execute: |args, context, _| {
             if matches!(context.current_mode, Mode::ConfigMode) {
@@ -1798,6 +1817,7 @@ Two styles of help are provided:
                 "-h",
                 "--help"
             ]),
+            suggestions2: None,
             options: Some(vec![
                 "-v           - Display SSH version",
                 "-l           - Login to remote server (usage: ssh -l <username>@<ip-address>)",
@@ -1873,6 +1893,7 @@ Two styles of help are provided:
         description: "Ping a specific IP address to check reachability",
         suggestions: None,
         suggestions1: None,
+        suggestions2: None,
         options: Some(vec!["<ip-address>    - Enter the ip-address"]),
         execute: |args, _context, _| {
             if args.len() == 1 {
@@ -1909,6 +1930,7 @@ Two styles of help are provided:
         description: "Trace the route to a specific IP address or hostname",
         suggestions: None,
         suggestions1: None,
+        suggestions2: None,
         options: Some(vec!["<ip-address/hostname>    - Enter the IP address or hostname"]),
         execute: |args, _context, _| {
             if args.len() == 1 {

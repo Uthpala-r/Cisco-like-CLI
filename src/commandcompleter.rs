@@ -157,6 +157,32 @@ impl Completer for CommandCompleter {
                     }
                 }
             }
+        } else if parts.len() == 2 && query.ends_with(' ') {
+            // Suggest third word based on suggestions2 when space is after second word
+            if let Some(command) = suggestions.get(parts[0]) {
+                if let Some(subcommands) = &command.suggestions2 {
+                    for &subcmd in subcommands {
+                        candidates.push(Pair {
+                            display: subcmd.to_string(),
+                            replacement: format!("{} {} {}", parts[0], parts[1], subcmd),
+                        });
+                    }
+                }
+            }
+        } else if parts.len() == 3 && !query.ends_with(' ') {
+            // Suggest completions for partial third word
+            if let Some(command) = suggestions.get(parts[0]) {
+                if let Some(subcommands) = &command.suggestions2 {
+                    for &subcmd in subcommands {
+                        if subcmd.starts_with(parts[2]) {
+                            candidates.push(Pair {
+                                display: subcmd.to_string(),
+                                replacement: subcmd.to_string(),
+                            });
+                        }
+                    }
+                }
+            }
         }
 
         let new_pos = if parts.len() > 1 {

@@ -38,6 +38,7 @@ pub struct Command {
     pub description: &'static str,
     pub suggestions: Option<Vec<&'static str>>,
     pub suggestions1: Option<Vec<&'static str>>,
+    pub suggestions2: Option<Vec<&'static str>>,
     pub options: Option<Vec<&'static str>>,
     pub execute: fn(&[&str], &mut CliContext, &mut Option<Clock>) -> Result<(), String>,
 }
