@@ -4,6 +4,7 @@ use std::net::Ipv4Addr;
 use std::sync::{Mutex, Arc};
 use std::collections::HashMap;
 use sha2::{Sha256, Digest};
+use std::process::Command as SystemCommand;
 
 
 /// Represents the configuration of a network interface.
@@ -11,9 +12,20 @@ use sha2::{Sha256, Digest};
 /// # Fields
 /// - `ip_address`: The IPv4 address of the interface.
 /// - `is_up`: A boolean indicating whether the interface is active.
+#[derive(Clone)]
 pub struct InterfaceConfig {
-    pub ip_address: Ipv4Addr,  
-    pub is_up: bool,  
+    pub ip_address: Ipv4Addr,
+    pub netmask: Ipv4Addr,
+    pub broadcast: Ipv4Addr,
+    pub mac_address: String,
+    pub mtu: u32,
+    pub flags: Vec<String>,
+    pub is_up: bool,
+}
+
+pub struct InterfacesConfig {
+    pub ip_address: Ipv4Addr,
+    pub is_up: bool,
 }
 
 
@@ -30,18 +42,7 @@ lazy_static::lazy_static! {
     /// By default, the `ens33` interface is initialized with the IP `192.168.253.135` 
     /// and a subnet prefix of 24.
     /// 
-    pub static ref IFCONFIG_STATE: Arc<Mutex<HashMap<String, (Ipv4Addr, Ipv4Addr)>>> = Arc::new(Mutex::new({
-        let mut map = HashMap::new();
-
-        // Default interface and its configuration
-        let default_interface = "ens33".to_string();
-        let default_ip = Ipv4Addr::from_str("192.168.253.135").expect("Invalid IP address format");
-        let default_broadcast = calculate_broadcast(default_ip, 24);
-        
-        map.insert(default_interface, (default_ip, default_broadcast));
-        
-        map
-    }));
+    pub static ref IFCONFIG_STATE: Mutex<HashMap<String, InterfaceConfig>> = Mutex::new(HashMap::new());
 
     
     /// A thread-safe global map that tracks the administrative status of network interfaces.
@@ -158,13 +159,54 @@ lazy_static::lazy_static! {
 /// let broadcast = calculate_broadcast(ip, prefix_len);
 /// assert_eq!(broadcast, Ipv4Addr::new(192, 168, 1, 255));
 /// ```
-pub fn calculate_broadcast(ip: Ipv4Addr, prefix_len: u32) -> Ipv4Addr {
-    let ip_u32 = u32::from(ip);             // Convert the IP address to a 32-bit integer
-    let mask = !0 << (32 - prefix_len);     // Create the subnet mask
-    let broadcast_u32 = ip_u32 | !mask;     // Calculate the broadcast address
-    Ipv4Addr::from(broadcast_u32)           // Convert back to an Ipv4Addr
+pub fn calculate_broadcast(ip: Ipv4Addr, netmask: Ipv4Addr) -> Ipv4Addr {
+    let ip_octets = ip.octets();
+    let mask_octets = netmask.octets();
+    let mut broadcast_octets = [0u8; 4];
+    
+    for i in 0..4 {
+        broadcast_octets[i] = ip_octets[i] | !mask_octets[i];
+    }
+    
+    Ipv4Addr::from(broadcast_octets)
 }
 
+pub fn format_flags(interface: &InterfaceConfig) -> String {
+    let mut flags = interface.flags.join(",");
+    if interface.is_up {
+        flags = format!("UP,{}", flags);
+    }
+    format!("<{}>", flags)
+}
+
+pub fn print_interface(name: &str, config: &InterfaceConfig) {
+    println!("{}: flags=4163{} mtu {}", 
+        name,
+        format_flags(config),
+        config.mtu
+    );
+    println!("        inet {} netmask {} broadcast {}", 
+        config.ip_address,
+        config.netmask,
+        config.broadcast
+    );
+    println!("        ether {} txqueuelen 1000 (Ethernet)", 
+        config.mac_address
+    );
+}
+
+pub fn get_system_interfaces() -> String {
+    let output = SystemCommand::new("ifconfig")
+        .output()
+        .unwrap_or_else(|_| {
+            // Try with /sbin/ifconfig if regular ifconfig fails
+            SystemCommand::new("/sbin/ifconfig")
+                .output()
+                .unwrap_or_else(|_| panic!("Failed to execute ifconfig"))
+        });
+
+    String::from_utf8_lossy(&output.stdout).to_string()
+}
 
 /// Encrypts a password using the SHA-256 hashing algorithm.
 ///

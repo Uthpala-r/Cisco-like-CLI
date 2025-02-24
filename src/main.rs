@@ -12,7 +12,6 @@ mod clock_settings;
 mod run_config;
 mod execute;
 mod network_config;
-mod walkup;
 
 
 /// Internal imports from the application's modules

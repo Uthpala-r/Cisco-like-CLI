@@ -12,7 +12,7 @@ use crate::run_config::{get_running_config, default_startup_config};
 use crate::execute::Command;
 use crate::execute::Mode;
 use crate::clock_settings::{handle_clock_set, parse_clock_set_input, handle_show_clock, handle_show_uptime};
-use crate::network_config::{calculate_broadcast, InterfaceConfig, STATUS_MAP, IP_ADDRESS_STATE, IFCONFIG_STATE, ROUTE_TABLE, encrypt_password, PASSWORD_STORAGE, set_enable_password, set_enable_secret};
+use crate::network_config::{calculate_broadcast, print_interface, format_flags, get_system_interfaces, InterfaceConfig, InterfacesConfig, STATUS_MAP, IP_ADDRESS_STATE, IFCONFIG_STATE, ROUTE_TABLE, encrypt_password, PASSWORD_STORAGE, set_enable_password, set_enable_secret};
 use crate::network_config::NtpAssociation;
 
 
@@ -538,39 +538,92 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
         "ifconfig",
         Command {
             name: "ifconfig",
-            description: "Display or configure network details of the router",
+            description: "Configure a network interface",
             suggestions: None,
             suggestions1: None,
             suggestions2: None,
-            options: Some(vec!["<interface      - Enter the interface you need to change the ip-address of or need to add", 
-                "<ip-address>      - Enter the new ip-address"]),
+            options: Some(vec![
+                "<interface>         - Network interface name",
+                "<address>           - IP address to set",
+                "up|down             - Bring interface up or down",
+                "netmask <mask>      - Set network mask",
+                "broadcast <addr>    - Set broadcast address",
+                "mtu <size>          - Set MTU size"
+            ]),
             execute: |args, _, _| {
                 let mut ifconfig_state = IFCONFIG_STATE.lock().unwrap();
     
+                // Display all interfaces if no arguments
                 if args.is_empty() {
+                    println!("System Network Interfaces:");
+                    println!("-------------------------");
+                    println!("{}", get_system_interfaces());
+                    
+                    println!("\nConfigured Virtual Interfaces:");
+                    println!("----------------------------");
                     if ifconfig_state.is_empty() {
-                        println!("No interfaces found.");
+                        println!("No interfaces configured.");
+                        return Ok(());
+                    }
+        
+                    for (name, config) in ifconfig_state.iter() {
+                        print_interface(name, config);
+                    }
+                    return Ok(());
+                }
+    
+                let interface_name = args[0].to_string();
+
+                // Handle interface configuration
+                if args.len() == 1 {
+                    // Show single interface
+                    if let Some(config) = ifconfig_state.get(&interface_name) {
+                        print_interface(&interface_name, config);
                     } else {
-                        for (interface_name, (ip_address, broadcast_address)) in ifconfig_state.iter() {
-                            println!("{}: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500", interface_name);
-                            println!("    inet {}  netmask 255.255.255.0  broadcast {}", ip_address, broadcast_address);
-                            println!("    inet6 fe80::6a01:72f9:adf2:3ffb  prefixlen 64  scopeid 0x20<link>");
-                            println!("    ether 00:0c:29:16:30:92  txqueuelen 1000  (Ethernet)");
+                        println!("Interface {} not found", interface_name);
+                    }
+                } else {
+                    let command = &args[1];
+                    if *command == "up" || *command == "down" {
+                        let is_up = *command == "up";
+                        if let Some(config) = ifconfig_state.get_mut(&interface_name) {
+                            config.is_up = is_up;
+                            println!("{} {} {}", interface_name, 
+                                if is_up { "up" } else { "down" },
+                                if is_up { "and running" } else { "and stopped" });
+                        }
+                    } else {
+                        // Configure new interface or update existing one
+                        if args.len() < 3 || args[2] != "up" {
+                            println!("Error: Missing 'up' command after IP address");
+                            return Ok(());
+                        }
+    
+                        match Ipv4Addr::from_str(command) {
+                            Ok(ip) => {
+                                let netmask = Ipv4Addr::new(255, 255, 255, 0);
+                                let broadcast = calculate_broadcast(ip, netmask);
+                                
+                                let config = InterfaceConfig {
+                                    ip_address: ip,
+                                    netmask,
+                                    broadcast,
+                                    mac_address: "00:0c:29:16:30:92".to_string(),
+                                    mtu: 1500,
+                                    flags: vec!["BROADCAST".to_string(), 
+                                              "RUNNING".to_string(), 
+                                              "MULTICAST".to_string()],
+                                    is_up: true,
+                                };
+    
+                                ifconfig_state.insert(interface_name.clone(), config.clone());
+                                print_interface(&interface_name, &config);
+                            },
+                            Err(_) => {
+                                println!("Error: Invalid IP address format");
+                            }
                         }
                     }
-                } else if args.len() == 3 && args[2] == "up" {
-                    let new_interface = &args[0];
-                    let new_ip: Ipv4Addr = Ipv4Addr::from_str(&args[1]).expect("Invalid IP address format");
-                    let new_broadcast = calculate_broadcast(new_ip, 24);
-    
-                    ifconfig_state.insert(new_interface.to_string(), (new_ip, new_broadcast));
-    
-                    println!("Updated {}: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500", new_interface);
-                    println!("    inet {}  netmask 255.255.255.0  broadcast {}", new_ip, new_broadcast);
-                    println!("    inet6 fe80::6a01:72f9:adf2:3ffb  prefixlen 64  scopeid 0x20<link>");
-                    println!("    ether 00:0c:29:16:30:92  txqueuelen 1000  (Ethernet)");
-                } else {
-                    println!("Invalid arguments provided to 'ifconfig'. To create an entry 'ifconfig <interface> <ip-address> up");
                 }
     
                 Ok(())
@@ -1522,7 +1575,7 @@ Two styles of help are provided:
                             
                             let ip_address = interface_config.0.clone();
                             
-                            let mut interface_config = InterfaceConfig {
+                            let mut interface_config = InterfacesConfig {
                                 ip_address: Ipv4Addr::new(0, 0, 0, 0),
                                 is_up: false,
                             };
