@@ -731,7 +731,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                             
                             Ok(())
                         },
-                        Some(&"history") if matches!(context.current_mode, Mode::UserMode) => {
+                        Some(&"history") if matches!(context.current_mode, Mode::UserMode | Mode::PrivilegedMode) => {
                             // Read from history.txt file
                             
                             match read_lines("history.txt") {

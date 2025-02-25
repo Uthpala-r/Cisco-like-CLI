@@ -32,7 +32,12 @@ use rustyline::Editor;
 use rustyline::history::DefaultHistory;
 use std::collections::{HashSet, HashMap};
 use ctrlc;
-
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use nix::sys::signal::{signal, SigHandler, Signal};
+use signal_hook::{consts::SIGTSTP, flag};
+use std::fs;
+use std::path::Path;
 
 /// Main function of the CLI application.
 ///
@@ -44,7 +49,9 @@ use ctrlc;
 /// - Builds a registry of commands and retrieves their names for command completion.
 /// - Configures the CLI context, including hostname, modes, and other configurations.
 /// - Sets up a Rustyline editor for user input with custom history and completion behavior.
-/// - Configures signal handling for `Ctrl+C`, ensuring the CLI does not exit abruptly.
+/// - Configures signal handling for `Ctrl+C` and `Ctrl+Z`, emulating Cisco router behavior:
+///   - In configuration modes, returns to Privileged mode
+///   - In User mode, does nothing special
 /// - Processes user input in a loop, executing commands, handling history, and responding to errors.
 ///
 /// # Key Components
@@ -52,20 +59,20 @@ use ctrlc;
 /// - **CLI Context**: Contains the current CLI state, including modes, selected interfaces, and VLANs.
 /// - **Rustyline Editor**: Provides user input handling with features like auto-completion and history.
 /// - **Clock Settings**: Maintains an optional system clock for configuration purposes.
-/// - **Graceful Exit**: Handles the `Ctrl+C` signal and waits for the user to explicitly issue the 
-///   `exit cli` command to terminate the session.
+/// - **Signal Handling**: Manages `Ctrl+C` and `Ctrl+Z` signals to emulate Cisco router behavior.
 ///
 /// # Example Usage
 /// ```bash
 /// > PNF> enable
 /// > PNF# configure terminal
-/// > PNF(config)# exit
+/// > PNF(config)# [Ctrl+C pressed]
 /// > PNF# exit cli
 /// Exiting CLI...
 /// ```
 ///
 /// # Signals
-/// - `Ctrl+C`: Displays a message and prevents immediate exit. The user must type `exit cli` to terminate.
+/// - `Ctrl+C`: In configuration modes, returns to Privileged mode. In User mode, does nothing.
+/// - `Ctrl+Z`: In configuration modes, returns to Privileged mode. In User mode, does nothing.
 ///
 /// # Errors
 /// - Any error during initialization or user input handling (e.g., `ReadlineError`) is logged and
@@ -114,20 +121,59 @@ fn main() {
     
     let completer = CommandCompleter::new(commands_map, Mode::UserMode);
     rl.set_helper(Some(completer));
-    rl.load_history("history.txt").ok();
+
+    if Path::new("history.txt").exists() {
+        rl.load_history("history.txt").ok();
+    }
 
     // Set up the initial clock settings
     let mut clock = Some(Clock::new());
     
+    // Flag to indicate when Ctrl+C is pressed to return to Privileged mode
+    let return_to_privileged = Arc::new(AtomicBool::new(false));
+    let return_to_privileged_clone = Arc::clone(&return_to_privileged);
 
-    let _exit_requested = false;
+    // Flag for Ctrl+Z
+    let ctrl_z_pressed = Arc::new(AtomicBool::new(false));
 
+    // Setup Ctrl+C handler with Cisco-like behavior
     ctrlc::set_handler(move || {
-        println!("\nCtrl+C pressed, but waiting for 'exit cli' command to exit...");
+        return_to_privileged_clone.store(true, Ordering::SeqCst);
     }).expect("Error setting Ctrl+C handler");
+
+     // Setup Ctrl+Z handler using signal-hook, which is more Rust-friendly
+    flag::register(SIGTSTP, Arc::clone(&ctrl_z_pressed))
+        .expect("Error setting Ctrl+Z handler");
 
     // Main REPL loop for processing user input
     loop {
+        // Handle Ctrl+Z signal (if it was received)
+        if ctrl_z_pressed.load(Ordering::SeqCst) {
+            // Reset the flag
+            ctrl_z_pressed.store(false, Ordering::SeqCst);
+            
+            // Handle Ctrl+Z based on current mode
+            match context.current_mode {
+                Mode::UserMode => {
+                    // In User mode, just print ^Z but don't change modes
+                    println!("\n^Z");
+                },
+                _ => {
+                    // In any other mode, return to Privileged mode
+                    //println!("\n^Z");
+                    context.current_mode = Mode::PrivilegedMode;
+                    context.prompt = format!("{}#", context.config.hostname);
+                    // Reset interface selection when exiting config mode
+                    context.selected_interface = None;
+                    
+                    // Update the helper's mode
+                    if let Some(helper) = rl.helper_mut() {
+                        helper.current_mode = context.current_mode.clone();
+                    }
+                }
+            }
+            continue;
+        }
         
         let prompt = context.prompt.clone();
         println!();
@@ -142,28 +188,54 @@ fn main() {
                 
                 if input == "exit cli" {
                     println!("Exiting CLI...");
+                    // Delete the history file
+                    if let Err(e) = fs::remove_file("history.txt") {
+                        //println!("Warning: Could not delete history file: {}", e);
+                    } else {
+                        //println!("History file deleted.");
+                    }
                     break;
                 }
 
+                rl.save_history("history.txt").ok();
+            
+                // Execute the command with the current context
                 if let Some(helper) = rl.helper_mut() {
                     execute_command(input, &commands, &mut context, &mut clock, helper);
                     helper.current_mode = context.current_mode.clone();
                 }
-                      
             }
 
             Err(ReadlineError::Interrupted) => {
-                println!("Ctrl+C pressed, but waiting for 'exit cli' command to exit...");
+                // Implement Cisco-like behavior for Ctrl+C via the ReadlineError::Interrupted
+                match context.current_mode {
+                    Mode::UserMode => {
+                        // In User mode, just print ^C but don't change modes (like Cisco)
+                        //println!("\n^C");
+                    },
+                    _ => {
+                        // In any other mode, return to Privileged mode (like Cisco)
+                        //println!("\n^C");
+                        context.current_mode = Mode::PrivilegedMode;
+                        context.prompt = format!("{}#", context.config.hostname);
+                        // Reset interface selection when exiting config mode
+                        context.selected_interface = None;
+                        
+                        // Update the helper's mode
+                        if let Some(helper) = rl.helper_mut() {
+                            helper.current_mode = context.current_mode.clone();
+                        }
+                    }
+                }
             }
-
 
             Err(err) => {
                 println!("Error: {:?}", err);
                 break;
             }
         }
-
     }
-    // Save the command history before exiting
-    rl.save_history("history.txt").ok();
+    
 }
+
+
