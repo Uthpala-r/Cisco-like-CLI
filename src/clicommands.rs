@@ -1950,27 +1950,41 @@ Two styles of help are provided:
         options: Some(vec!["<ip-address>    - Enter the ip-address"]),
         execute: |args, _context, _| {
             if args.len() == 1 {
-                let ip: String = args[0].to_string();
-                let route_table = ROUTE_TABLE.lock().unwrap();
-    
-                if route_table.contains_key(&ip) {
-                    println!("Pinging {} with 32 bytes of data:", ip);
-                    for _ in 0..4 {
-                        println!("Reply from {}: bytes=32 time<1ms TTL=128", ip);
-                    }
-                    println!("\nPing statistics for {}:", ip);
-                    println!("    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),");
-                    println!("Approximate round trip times in milli-seconds:");
-                    println!("    Minimum = 0ms, Maximum = 1ms, Average = 0ms");
+                let ip = args[0].to_string();
+                
+                println!("Pinging {} with 32 bytes of data:", ip);
+                
+                // Use std::process to call the system ping command
+                let output = match std::process::Command::new("ping")
+                    .arg("-c")
+                    .arg("4")  // Send 4 packets (Linux/macOS style)
+                    .arg("-s")
+                    .arg("32") // 32 bytes of data
+                    .arg(&ip)
+                    .output() {
+                        Ok(output) => output,
+                        Err(e) => return Err(format!("Failed to execute ping: {}", e).into())
+                    };
+                
+                // Convert output to string and print it
+                match std::str::from_utf8(&output.stdout) {
+                    Ok(stdout) => println!("{}", stdout),
+                    Err(_) => println!("Could not display ping output")
+                };
+                
+                // Also print stderr if there's any error output
+                if !output.stderr.is_empty() {
+                    match std::str::from_utf8(&output.stderr) {
+                        Ok(stderr) => println!("{}", stderr),
+                        Err(_) => println!("Could not display error output")
+                    };
+                }
+                
+                // Check if ping was successful based on exit status
+                if output.status.success() {
                     Ok(())
                 } else {
-                    println!("Pinging {} with 32 bytes of data:", ip);
-                    for _ in 0..4 {
-                        println!("Request timed out.");
-                    }
-                    println!("\nPing statistics for {}:", ip);
-                    println!("    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss),");
-                    Err(format!("IP address {} is not reachable.", ip).into())
+                    Err(format!("Ping to {} failed.", ip).into())
                 }
             } else {
                 Err("Invalid syntax. Usage: ping <ip>".into())
@@ -1987,56 +2001,50 @@ Two styles of help are provided:
         options: Some(vec!["<ip-address/hostname>    - Enter the IP address or hostname"]),
         execute: |args, _context, _| {
             if args.len() == 1 {
-                let target: String = args[0].to_string();
-                println!("\nTracing route to {} over a maximum of 30 hops\n", target);
-                
-                // Simulated route table with known hops
-                let route_hops = vec![
-                    ("172.16.0.5", true),
-                    ("192.168.0.50", true),
-                    ("122.56.168.186", true),
-                    ("122.56.99.240", true),
-                    ("122.56.99.243", true),
-                    ("122.56.116.6", true),
-                    ("122.56.116.5", true),
-                    ("0.0.0.0", false),  // Timeout simulation
-                    ("0.0.0.0", false),  // Timeout simulation
-                ];
+                let target = args[0].to_string();
     
-                // Print header spacing for the columns
-                println!("  {:3} {:8} {:8} {:8} {}", 
-                    "Hop", "Time 1", "Time 2", "Time 3", "Address");
-                println!("  {}", "-".repeat(70));
+                println!("Tracing route to {} over a maximum of 30 hops", target);
     
-                for (hop_num, (ip, reachable)) in route_hops.iter().enumerate() {
-                    if *reachable {
-                        // Generate random response times between 1-20ms for variation
-                        let time1 = rand::random::<u8>() % 20 + 1;
-                        let time2 = rand::random::<u8>() % 20 + 1;
-                        let time3 = rand::random::<u8>() % 20 + 1;
-                        
-                        println!("  {:3} {:4}ms   {:4}ms   {:4}ms   {}", 
-                            hop_num + 1,
-                            time1,
-                            time2,
-                            time3,
-                            ip
-                        );
-                    } else {
-                        // Print timeout for unreachable hops
-                        println!("  {:3} {:8} {:8} {:8} {}", 
-                            hop_num + 1,
-                            "*", "*", "*",
-                            "Request timed out."
-                        );
-                    }
-                }
+                // Run the traceroute command directly
+                let output = match std::process::Command::new("traceroute")
+                    .args(["-n", "-m", "30", &target])
+                    .stdout(std::process::Stdio::piped())
+                    .stderr(std::process::Stdio::piped())
+                    .spawn() {
+                        Ok(mut child) => {
+                            // Stream output in real-time
+                            if let Some(stdout) = child.stdout.take() {
+                                let mut reader = std::io::BufReader::new(stdout);
+                                let mut line = String::new();
     
-                if route_hops.iter().any(|(_, reachable)| *reachable) {
-                    Ok(())
-                } else {
-                    Err(format!("Unable to trace route to {}", target).into())
-                }
+                                // Process and print output in real-time
+                                use std::io::BufRead;
+                                while let Ok(bytes) = reader.read_line(&mut line) {
+                                    if bytes == 0 {
+                                        break;
+                                    }
+                                    print!("{}", line);
+                                    line.clear();
+                                }
+                            }
+    
+                            // Wait for the child process to finish
+                            match child.wait() {
+                                Ok(status) => {
+                                    if status.success() {
+                                        println!("Trace complete.");
+                                        Ok(())
+                                    } else {
+                                        Err(format!("Traceroute to {} failed with status: {}", target, status).into())
+                                    }
+                                },
+                                Err(e) => Err(format!("Error waiting for process: {}", e).into())
+                            }
+                        },
+                        Err(e) => Err(format!("Failed to execute traceroute: {}", e).into())
+                    };
+    
+                output
             } else {
                 Err("Invalid syntax. Usage: traceroute <ip/hostname>".into())
             }
