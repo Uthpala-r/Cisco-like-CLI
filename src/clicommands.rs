@@ -463,8 +463,13 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
                     std::io::stdin().read_line(&mut save_input).expect("Failed to read input");
                     let save_input = save_input.trim();
             
-                    if save_input.eq_ignore_ascii_case("yes") {
+                    if ["yes", "y", ""].contains(&save_input.to_ascii_lowercase().as_str()) {
                         println!("All possible debugging has been turned on");
+                        //Execution must be provided
+                        Ok(())
+                    } else if ["no", "n"].contains(&save_input.to_ascii_lowercase().as_str()){
+                        println!("Returned");
+                        //Execution must be provided
                         Ok(())
                     } else {
                         return Err("Invalid input. Please enter 'yes' or 'no'.".into());
