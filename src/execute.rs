@@ -80,8 +80,6 @@ and you want to know what arguments match the input
                 println!("write             - Save the configuration");
                 println!("ifconfig          - Display interface configuration");
                 println!("connect           - Connect the Network Processor or the SEM");
-                println!("disable           - Exit the Privileged EXEC Mode and enter the USER EXEC Mode");
-
             }
             else if matches!(context.current_mode, Mode::PrivilegedMode) {
                 println!("configure         - Enter configuration mode");
@@ -100,6 +98,7 @@ and you want to know what arguments match the input
                 println!("undebug           - Undebug the availbale processes");
                 println!("connect           - Connect the Network Processor or the SEM");
                 println!("ssh               - Connect via SSH or show ssh version");
+                println!("disable           - Exit the Privileged EXEC Mode and enter the USER EXEC Mode");
             }
             else if matches!(context.current_mode, Mode::ConfigMode) {
                 println!("hostname          - Set system hostname");

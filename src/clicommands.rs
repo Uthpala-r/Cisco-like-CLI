@@ -3,10 +3,11 @@ use std::collections::HashMap;
 use std::net::Ipv4Addr;
 use std::path::Path;
 use std::fs::File;
-use std::io::{self, Write, BufRead};
+use std::io::{self, Write, BufRead, BufReader};
 use std::str::FromStr;
 use rpassword::read_password;
 use std::process::Command as ProcessCommand;
+use std::process::Stdio;
 
 use crate::run_config::{get_running_config, default_startup_config};
 use crate::execute::Command;
@@ -411,21 +412,21 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
             std::io::stdin().read_line(&mut save_input).expect("Failed to read input");
             let save_input = save_input.trim();
     
-            if save_input.eq_ignore_ascii_case("yes") {
+            if ["yes", "y", ""].contains(&save_input.to_ascii_lowercase().as_str()) {
                 println!("Building configuration...");
                 println!("[OK]");
-            } else if save_input.eq_ignore_ascii_case("no") {
+            } else if ["no", "n"].contains(&save_input.to_ascii_lowercase().as_str()) {
                 println!("Configuration not saved.");
             } else {
                 return Err("Invalid input. Please enter 'yes' or 'no'.".into());
             }
     
-            println!("Proceed with reload? [confirm]:");
+            println!("Proceed with reload? [yes/no]:");
             let mut reload_confirm = String::new();
             std::io::stdin().read_line(&mut reload_confirm).expect("Failed to read input");
             let reload_confirm = reload_confirm.trim();
     
-            if reload_confirm.eq_ignore_ascii_case("yes") || reload_confirm.eq_ignore_ascii_case("y") {
+            if ["yes", "y", ""].contains(&reload_confirm.to_ascii_lowercase().as_str()) {
                 println!("System Bootstrap, Version 15.1(4)M4, RELEASE SOFTWARE (fc1)");
                 println!("Technical Support: http://www.cisco.com/techsupport");
                 println!("Copyright (c) 2010 by cisco Systems, Inc.");
@@ -437,7 +438,7 @@ pub fn build_command_registry() -> HashMap<&'static str, Command> {
     
                 println!("\nPress RETURN to get started!");
                 Ok(())
-            } else if reload_confirm.eq_ignore_ascii_case("no") {
+            } else if ["no", "n"].contains(&reload_confirm.to_ascii_lowercase().as_str()) {
                 println!("Reload aborted.");
                 Ok(())
             } else {
@@ -1394,8 +1395,6 @@ Two styles of help are provided:
                     println!("write             - Save the configuration");
                     println!("ifconfig          - Display interface configuration");
                     println!("connect           - Connect the Network Processor or the SEM");
-                    println!("disable           - Exit the Privileged EXEC Mode and enter the USER EXEC Mode");
-
                 }
                 else if matches!(context.current_mode, Mode::PrivilegedMode) {
                     println!("configure         - Enter configuration mode");
@@ -1414,6 +1413,7 @@ Two styles of help are provided:
                     println!("undebug           - Undebug the availbale processes");
                     println!("connect           - Connect the Network Processor or the SEM");
                     println!("ssh               - Connect via SSH or show ssh version");
+                    println!("disable           - Exit the Privileged EXEC Mode and enter the USER EXEC Mode");
                 }
                 else if matches!(context.current_mode, Mode::ConfigMode) {
                     println!("hostname          - Set system hostname");
@@ -1954,34 +1954,37 @@ Two styles of help are provided:
                 
                 println!("Pinging {} with 32 bytes of data:", ip);
                 
-                // Use std::process to call the system ping command
-                let output = match std::process::Command::new("ping")
+                let mut child = match ProcessCommand::new("ping")
                     .arg("-c")
                     .arg("4")  // Send 4 packets (Linux/macOS style)
                     .arg("-s")
                     .arg("32") // 32 bytes of data
                     .arg(&ip)
-                    .output() {
-                        Ok(output) => output,
-                        Err(e) => return Err(format!("Failed to execute ping: {}", e).into())
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
+                    .spawn() {
+                        Ok(child) => child,
+                        Err(e) => return Err(format!("Failed to execute ping: {}", e).into()),
                     };
                 
-                // Convert output to string and print it
-                match std::str::from_utf8(&output.stdout) {
-                    Ok(stdout) => println!("{}", stdout),
-                    Err(_) => println!("Could not display ping output")
-                };
-                
-                // Also print stderr if there's any error output
-                if !output.stderr.is_empty() {
-                    match std::str::from_utf8(&output.stderr) {
-                        Ok(stderr) => println!("{}", stderr),
-                        Err(_) => println!("Could not display error output")
-                    };
+                // Read stdout line by line
+                if let Some(stdout) = child.stdout.take() {
+                    let reader = BufReader::new(stdout);
+                    for line in reader.lines() {
+                        match line {
+                            Ok(l) => println!("{}", l),
+                            Err(_) => println!("Error reading output"),
+                        }
+                    }
                 }
                 
-                // Check if ping was successful based on exit status
-                if output.status.success() {
+                // Wait for the process to finish
+                let status = match child.wait() {
+                    Ok(status) => status,
+                    Err(e) => return Err(format!("Failed to wait for ping process: {}", e).into()),
+                };
+    
+                if status.success() {
                     Ok(())
                 } else {
                     Err(format!("Ping to {} failed.", ip).into())
