@@ -4,7 +4,11 @@ use std::net::Ipv4Addr;
 use std::sync::{Mutex, Arc};
 use std::collections::HashMap;
 use sha2::{Sha256, Digest};
-use std::process::Command as SystemCommand;
+use std::process::Command as ProcessCommand;
+use std::process::Stdio;
+use std::path::Path;
+use std::io::{self, Write, BufRead, BufReader};
+use std::fs::File;
 
 
 /// Represents the configuration of a network interface.
@@ -196,11 +200,11 @@ pub fn print_interface(name: &str, config: &InterfaceConfig) {
 }
 
 pub fn get_system_interfaces() -> String {
-    let output = SystemCommand::new("ifconfig")
+    let output = ProcessCommand::new("ifconfig")
         .output()
         .unwrap_or_else(|_| {
             // Try with /sbin/ifconfig if regular ifconfig fails
-            SystemCommand::new("/sbin/ifconfig")
+            ProcessCommand::new("/sbin/ifconfig")
                 .output()
                 .unwrap_or_else(|_| panic!("Failed to execute ifconfig"))
         });
@@ -460,4 +464,64 @@ pub fn get_enable_password() -> Option<String> {
 pub fn get_enable_secret() -> Option<String> {
     let storage = PASSWORD_STORAGE.lock().unwrap();
     storage.enable_secret.clone()
+}
+
+pub fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+where P: AsRef<Path> {
+    let file = File::open(filename)?;
+    Ok(io::BufReader::new(file).lines())
+}
+
+pub fn connect_via_ssh(hostname: &str, ip: &str) -> Result<(), String> {
+    let ssh_target = format!("{}@{}", hostname, ip);
+
+    let status = ProcessCommand::new("ssh")
+        .args([
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "UserKnownHostsFile=/dev/null",
+            &ssh_target,
+        ])
+        .status()
+        .map_err(|e| format!("Failed to execute SSH command: {}", e))?;
+
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("SSH connection to {} failed with status: {}", ssh_target, status))
+    }
+}
+
+pub fn execute_spawn_process(command: &str, args: &[&str]) -> Result<(), String> {
+    let mut child = match ProcessCommand::new(command)
+        .args(args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+    {
+        Ok(child) => child,
+        Err(e) => return Err(format!("Failed to execute {}: {}", command, e)),
+    };
+
+    // Read stdout line by line
+    if let Some(stdout) = child.stdout.take() {
+        let reader = BufReader::new(stdout);
+        for line in reader.lines() {
+            match line {
+                Ok(l) => println!("{}", l),
+                Err(_) => println!("Error reading output"),
+            }
+        }
+    }
+
+    // Wait for the process to finish
+    let status = match child.wait() {
+        Ok(status) => status,
+        Err(e) => return Err(format!("Failed to wait for {} process: {}", command, e)),
+    };
+
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("{} command failed with exit status: {}", command, status))
+    }
 }

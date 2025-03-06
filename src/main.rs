@@ -12,6 +12,7 @@ mod clock_settings;
 mod run_config;
 mod execute;
 mod network_config;
+mod show_c;
 
 
 /// Internal imports from the application's modules

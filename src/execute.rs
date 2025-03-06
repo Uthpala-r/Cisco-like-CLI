@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use crate::Clock;
 use crate::CliContext;
 use crate::commandcompleter::CommandCompleter;
+use crate::run_config::help_command;
 
 #[derive(Clone)]
 pub struct Command {
@@ -52,83 +53,7 @@ pub fn execute_command(input: &str, commands: &HashMap<&str, Command>, context: 
     match parts.len() {
         0 => {
             // Handle single word with ? (e.g., "?")
-            println!("\n ");
-            println!(r#"Help may be requested at any point in a command by entering
-a question mark '?'. If nothing matches, the help list will
-be empty and you must backup until entering a '?' shows the
-available options.
-Two styles of help are provided:
-1. Full help is available when you are ready to enter a
-command argument (e.g. 'show ?') and describes each possible
-argument.
-2. Partial help is provided when an abbreviated argument is entered
-and you want to know what arguments match the input
-(e.g. 'show pr?'.
-"#);
-            println!("\nAvailable commands");
-            println!("\n ");
-            
-            if matches!(context.current_mode, Mode::UserMode) {
-                println!("enable            - Enter privileged mode");
-                println!("exit              - Exit current mode");
-                println!("ping              - Send ICMP echo request");
-                println!("traceroute        - Display the packet transfer path");
-                println!("help              - Display available commands");
-                println!("reload            - Reload the system");
-                println!("clear             - Clear the terminal");
-                println!("show              - Some available show commands are present. To view enter 'show ?'");
-                println!("write             - Save the configuration");
-                println!("ifconfig          - Display interface configuration");
-                println!("connect           - Connect the Network Processor or the SEM");
-            }
-            else if matches!(context.current_mode, Mode::PrivilegedMode) {
-                println!("configure         - Enter configuration mode");
-                println!("exit              - Exit to user mode");
-                println!("help              - Display available commands");
-                println!("write             - Save the configuration");
-                println!("copy              - Copy configuration files");
-                println!("clock             - Manage system clock");
-                println!("ping              - Send ICMP echo request");
-                println!("traceroute        - Display the packet transfer path");
-                println!("show              - Some available show commands are present. To view enter 'show ?'");
-                println!("ifconfig          - Display interface configuration");
-                println!("reload            - Reload the system");
-                println!("clear             - Clear the terminal");
-                println!("debug             - Debug the availbale processes");
-                println!("undebug           - Undebug the availbale processes");
-                println!("connect           - Connect the Network Processor or the SEM");
-                println!("ssh               - Connect via SSH or show ssh version");
-                println!("disable           - Exit the Privileged EXEC Mode and enter the USER EXEC Mode");
-            }
-            else if matches!(context.current_mode, Mode::ConfigMode) {
-                println!("hostname          - Set system hostname");
-                println!("exit              - Exit to privileged mode");
-                println!("help              - Display available commands");
-                println!("write             - Save the configuration");
-                println!("ping              - Send ICMP echo request");
-                println!("traceroute        - Display the packet transfer path");
-                println!("enable            - Enter privileged mode");
-                println!("service password encryption - Encrypt passwords defined for the device");
-                println!("ifconfig          - Configure interface");
-                println!("ntp               - Configure NTP");
-                println!("no ntp            - Remove NTP configurations");
-                println!("reload            - Reload the system");
-                println!("interface         - Select another interface");
-                println!("clear             - Clear the terminal");
-            }
-            else if matches!(context.current_mode, Mode::InterfaceMode) {
-                println!("exit              - Exit to config mode");
-                println!("shutdown          - Shutdown interface");
-                println!("no                - Negate a command");
-                println!("help              - Display available commands");
-                println!("write             - Save the configuration");
-                println!("interface         - Select another interface");
-                println!("ip address        - Set IP address");
-                println!("reload            - Reload the system");
-                println!("clear             - Clear the terminal");
-            }
-            
-            println!("\n ");
+            help_command(&context);
             
         },            
         1 => {
